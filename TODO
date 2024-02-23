@@ -1,0 +1,81 @@
+Edit mode:
+----------
+need a more intuitive way to select create new, and need to start in edit mode
+
+remove information on who's turn it is from the status bar when in edit mode
+
+reszing is all broken
+
+Minor Bugs:
+-----------
+Easy 6 - z order issues
+
+hard 13, if the pusher pushes you into the hole the game thinks it is your shot, but you can't hit because you are in the hole
+
+undo button not greyed out when undo impossible
+
+when resizing make it so some pixmaps are not painted new every time (store size like in Katom?)
+
+fix scoreboard resizing, it can get too big, and can also get too small!
+
+USA Pro 7, text for Golden Gate displays incorrectly. And Washington DC should be on one line in hole 8
+
+need to find a sound for getting a score below par, see game.cpp and find the line that contains:
+	//playSound("woohoo");
+
+apparently void KolfGame::startNextHole() needs tidying work since it is too complex (see game.cpp)
+
+apparently KolfGame::shotDone() needs changing, since it says // do hack stuff, shouldn't be done here
+
+the names of menu items with checkboxs (eg in the Settings menu) seem wrong to me, need to think about what I want to change
+
+bad performace on levels with floaters. Also on the intro the ball seems to slow at the bottom of the first loop of the circular slope
+
+wrong player selected in score table at start of game
+
+in strict mode it is possible to select different holes, this is clearly cheating, but useful for debuging, so should be kept in for now
+
+in edit mode it is possible to make a course with no cup
+
+check if KolfGame::viewportToViewport() is still needed
+
+layout of the big buttons at the top of window is wrong, needs thinking about
+
+make slope arrows above sand? Only wants to be above sand, if that, this needs to be thought about. 
+
+obscure load game crash, steps to reproduce:
+1) load saved game
+2) Save the game
+3) End the game
+4) click load game (in Game menu)
+crash
+
+auto save when editing needs to be implimented, in game.cpp see:
+void KolfGame::autoSaveTimeout()
+
+ball Collision is wrong, sometimes when you hit your opponents ball on the side it goes in the opposite direction of where you would expect it to go
+
+check the pluginloader.cpp group is correct, see first for loop in loadAll
+
+
+TIDYING TO DO WHEN SVG FULLY IMPLIMENTED:
+-----------------------------------------
+fix ball colours, probably need seperate balls
+
+IMPROVEMENTS:
+-------------
+improve graphics
+
+get new stuff option for kolf, not just for SVG graphics but also for courses (currently many storred on Jason Katz-Brown's website)
+
+make slope darkness depend on slope angle again
+
+use ball.advance() to give ball a spin animation?
+
+give black holes an animation?
+	ball falling into hole animation? (rather than just disappearing it coudl shrink to nothing)
+
+have animations for the ball's interaction with sand and water?
+
+fix appearance of large buttons (there are too many!) by only showing one of "New", "Save Course" or "End Game" at a time, since only one of them is ever appropriate. Also remove the Show info button and move to the Settings menu if more space is needed.
+
