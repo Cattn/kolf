@@ -238,7 +238,13 @@ ecm_add_app_icon(kolf ICONS ${ICONS_SRCS})
 
 target_link_libraries( kolf kolfprivate)
 install(TARGETS kolf  ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
-target_link_libraries(kolf ws2_32)
+
+if(WIN32)
+    target_link_libraries(kolf wsock32 ws2_32)
+else()
+    find_package(Threads)
+    target_link_libraries(kolf ${CMAKE_THREAD_LIBS_INIT})
+endif()
 
 ########### install files ###############
 
