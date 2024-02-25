@@ -25,6 +25,13 @@
 #include "obstacles.h"
 #include "scoreboard.h"
 
+#include <iostream>
+#include <cstring>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
 #include <KActionCollection>
 #include <KIO/CopyJob>
 #include <KIO/Job>
@@ -45,6 +52,10 @@
 #include <QStatusBar>
 #include <QTemporaryFile>
 #include <QTimer>
+
+const int PORT = 3010;
+const char* SERVER_IP = "127.0.0.1";
+
 
 KolfWindow::KolfWindow()
     : KXmlGuiWindow(nullptr)
@@ -649,9 +660,60 @@ void KolfWindow::openUrl(const QUrl &url)
 		closeGame();
 }
 
+
+
+void sendJsonToServer(const char* json_data) {
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        std::cerr << "WSAStartup failed\n";
+        return;
+    }
+
+    SOCKET client_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (client_socket == INVALID_SOCKET) {
+        std::cerr << "Error creating socket: " << WSAGetLastError() << std::endl;
+        WSACleanup();
+        return;
+    }
+
+    sockaddr_in server_address{};
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(PORT);
+
+    if (inet_pton(AF_INET, SERVER_IP, &(server_address.sin_addr)) <= 0) {
+        std::cerr << "Invalid address or address not supported\n";
+        closesocket(client_socket);
+        WSACleanup();
+        return;
+    }
+
+    if (connect(client_socket, (struct sockaddr*)&server_address, sizeof(server_address)) == SOCKET_ERROR) {
+        std::cerr << "Error connecting to the server: " << WSAGetLastError() << std::endl;
+        closesocket(client_socket);
+        WSACleanup();
+        return;
+    }
+
+    // Create an HTTP request with the JSON data
+    std::string http_request = "POST /turn HTTP/1.1\r\n"
+                               "Host: " + std::string(SERVER_IP) + "\r\n"
+                               "Content-Type: application/json\r\n"
+                               "Content-Length: " + std::to_string(strlen(json_data)) + "\r\n"
+                               "\r\n" + std::string(json_data);
+
+    send(client_socket, http_request.c_str(), http_request.size(), 0);
+
+    closesocket(client_socket);
+    WSACleanup();
+}
+
 void KolfWindow::newPlayersTurn(Player *player)
 {
 	tempStatusBarText = i18n("%1's turn", player->name());
+	const std::string playerName = player->name().toStdString(); 
+	const std::string json_data = "{\"player\": \"" + playerName + "\"}";
+	sendJsonToServer(json_data.c_str()); 
+
 
 	if (showInfoAction->isChecked())
 		statusBar()->showMessage(tempStatusBarText, 5 * 1000);

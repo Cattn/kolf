@@ -8,6 +8,8 @@ set(RELEASE_SERVICE_VERSION "${RELEASE_SERVICE_VERSION_MAJOR}.${RELEASE_SERVICE_
 
 project(kolf VERSION ${RELEASE_SERVICE_VERSION})
 
+
+
 set (QT_MIN_VERSION "5.15.0")
 set (KF_MIN_VERSION "5.92.0")
 
@@ -236,6 +238,7 @@ ecm_add_app_icon(kolf ICONS ${ICONS_SRCS})
 
 target_link_libraries( kolf kolfprivate)
 install(TARGETS kolf  ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+target_link_libraries(kolf ws2_32)
 
 ########### install files ###############
 
