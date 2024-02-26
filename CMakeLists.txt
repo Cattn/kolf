@@ -171,6 +171,8 @@ target_sources(kolfprivate PRIVATE
     canvasitem.h
     config.cpp
     config.h
+    dataserver.cpp
+    dataserver.h
     editor.cpp
     editor.h
     game.cpp
