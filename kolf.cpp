@@ -731,12 +731,13 @@ void sendJsonToServer(const char* json_data) {
 #endif
 }
 
+#include <thread>
+
 void KolfWindow::newPlayersTurn(Player *player)
 {
 	tempStatusBarText = i18n("%1's turn", player->name());
 	const std::string playerName = player->name().toStdString(); 
 	const std::string json_data = "{\"player\": \"" + playerName + "\"}";
-	sendJsonToServer(json_data.c_str()); 
 
 
 	if (showInfoAction->isChecked())
@@ -745,6 +746,10 @@ void KolfWindow::newPlayersTurn(Player *player)
 		statusBar()->showMessage(tempStatusBarText);
 
 	scoreboard->setCurrentCell(player->id() - 1, game->currentHole() - 1);
+	std::thread sendThread([this, json_data]() {
+		sendJsonToServer(json_data.c_str());
+	});	
+	sendThread.detach(); 
 }
 
 void KolfWindow::newStatusText(const QString &text)
