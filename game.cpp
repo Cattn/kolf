@@ -25,6 +25,8 @@
 
 #include "tagaro/board.h"
 
+#include "dataServer.h"
+
 #include <QHBoxLayout>
 #include <QApplication>
 #include <QCheckBox>
@@ -193,7 +195,7 @@ void Putter::setAngle(Ball *ball)
 	finishMe();
 }
 
-void Putter::go(Direction d, Amount amount)
+void Putter::go(Direction d, Amount amount) // angle handling (rad)
 {
 	double addition = (amount == Amount_More? 6 * oneDegree : amount == Amount_Less? .5 * oneDegree : 2 * oneDegree);
 
@@ -219,6 +221,12 @@ void Putter::go(Direction d, Amount amount)
 			break;
 	}
 
+	std::string json_data = "{\"direction\": \"" + std::to_string(static_cast<int>(d)) + "\", \"angle\": \"" + std::to_string(angle) + "\"}";
+
+	std::thread sendThread([this, json_data = std::move(json_data)]() {
+		sendJsonToServer(json_data.c_str(), "turn");
+	});	
+	sendThread.detach(); 
 	finishMe();
 }
 
@@ -465,7 +473,7 @@ KolfGame::KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const 
 	setMouseTracking(true);
 	viewport()->setMouseTracking(true);
 	setFrameShape(NoFrame);
-
+	// useful vars declared here
 	regAdv = false;
 	curHole = 0; // will get ++'d
 	cfg = nullptr;
@@ -649,7 +657,7 @@ void KolfGame::playSound(Sound soundType)
 	}
 }
 
-void KolfGame::startFirstHole(int hole)
+void KolfGame::startFirstHole(int hole) // has first hole info in it
 {
 	if (curHole > 0) // if there was saved game, sync scoreboard
 		// with number of holes
@@ -1167,6 +1175,7 @@ void KolfGame::fastTimeout()
 	}
 }
 
+
 void KolfGame::ballMoved()
 {
 	if (putter->isVisible())
@@ -1174,6 +1183,13 @@ void KolfGame::ballMoved()
 		putter->setPos((*curPlayer).ball()->x(), (*curPlayer).ball()->y());
 		updateMouse();
 	}
+
+	const std::string json_data = "{\"x\": " + std::to_string((*curPlayer).ball()->x()) + ", \"y\": " + std::to_string((*curPlayer).ball()->y()) + "}";
+
+	std::thread sendThread([this, json_data]() {
+		sendJsonToServer(json_data.c_str(), "shot");
+	});	
+	sendThread.detach(); 
 }
 
 void KolfGame::putterTimeout()
@@ -1372,7 +1388,7 @@ void KolfGame::loadStateList()
 	}
 }
 
-void KolfGame::shotDone()
+void KolfGame::shotDone() // has shot info in it
 {
 	inPlay = false;
 	Q_EMIT inPlayEnd();
@@ -1557,7 +1573,7 @@ void KolfGame::startBall(const Vector &velocity)
 	inPlay = true;
 }
 
-void KolfGame::shotStart()
+void KolfGame::shotStart() // has magnitude and angle
 {
 	// ensure we never hit the ball back into the hole which
 	// can cause hole skippage

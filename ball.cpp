@@ -92,17 +92,11 @@ void Ball::friction()
 void Ball::moveBy(double dx, double dy)
 {
 	EllipticalCanvasItem::moveBy(dx, dy);
-	const std::string json_data = "{\"moveData\": \"" + std::to_string(dx) + "," + std::to_string(dy) + "\"}";
 	if (game && !game->isPaused())
 		collisionDetect();
 
 	if ((dx || dy) && game && game->curBall() == this)
 		game->ballMoved();
-
-	std::thread sendThread([this, json_data]() {
-		sendJsonToServer(json_data.c_str(), "dev");
-	});	
-	sendThread.detach(); 
 }
 
 
