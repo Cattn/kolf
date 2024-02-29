@@ -24,7 +24,7 @@
 #include "objects.h"
 #include "obstacles.h"
 #include "scoreboard.h"
-#include "dataserver.h"
+#include "dataServer.h"
 
 #include <KActionCollection>
 #include <KIO/CopyJob>

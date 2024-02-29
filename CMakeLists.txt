@@ -172,7 +172,7 @@ target_sources(kolfprivate PRIVATE
     config.cpp
     config.h
     dataserver.cpp
-    dataserver.h
+    dataServer.h
     editor.cpp
     editor.h
     game.cpp

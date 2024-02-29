@@ -141,7 +141,7 @@ void sendJsonToServer(const char* json_data, const char* path) {
     inet_pton(AF_INET, SERVER_IP, &server_address.sin_addr);
 
 
-    if (connect(client_socket, (struct sockaddr*)&server_address, sizeof(server_address)) == SOCKET_ERROR) {
+    if (connect(client_socket, (struct sockaddr*)&server_address, sizeof(server_address)) == SO_ERROR) {
         std::cerr << "Error connecting to the server\n";
 #ifdef _WIN32
         std::cerr << "Error code: " << WSAGetLastError() << std::endl;
