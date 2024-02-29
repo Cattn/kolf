@@ -3,6 +3,7 @@
 const int PORT = 3010;
 const char* SERVER_IP = "127.0.0.1";
 
+
 class ShotClass {
         public:
             std::string name;
@@ -16,6 +17,18 @@ class ShotClass {
             int aimTime;
             time_t shotTime;
             std::string path = "shot";
+            void clear() {
+                name = "";
+                x = 0;
+                y = 0;
+                angleStart = 0;
+                angleEnd = 0;
+                startDistance = 0;
+                endDistance = 0;
+                magnitude = 0;
+                aimTime = 0;
+                shotTime = 0;
+            };
     };
 
  class HoleClass {
@@ -27,6 +40,14 @@ class ShotClass {
             int aimTime;
             int ranking;
             std::string path = "hole";
+            void clear() {
+                name = "";
+                shots = 0;
+                score = 0;
+                par = 0;
+                aimTime = 0;
+                ranking = 0;
+            };
 };
 
 ShotClass shot;
@@ -111,6 +132,11 @@ void sendTestDataToServer() {
 
     std::string jsonStr = j.dump();
     sendJsonToServer(jsonStr.c_str(), "dev");
+}
+
+void resetData() {
+    hole.clear();
+    shot.clear();
 }
 
 void sendJsonToServer(const char* json_data, const char* path) {

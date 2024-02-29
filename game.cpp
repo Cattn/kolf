@@ -1615,6 +1615,7 @@ void KolfGame::holeDone()
 {
 	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it)
 		(*it).ball()->setVisible(false);
+	resetData();
 	startNextHole();
 	sayWhosGoing();
 }

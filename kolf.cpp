@@ -657,7 +657,6 @@ void KolfWindow::newPlayersTurn(Player *player)
 {
 	tempStatusBarText = i18n("%1's turn", player->name());
 	const std::string playerName = player->name().toStdString(); 
-	const std::string json_data = "{\"player\": \"" + playerName + "\"}";
 
 
 	if (showInfoAction->isChecked())
@@ -666,7 +665,7 @@ void KolfWindow::newPlayersTurn(Player *player)
 		statusBar()->showMessage(tempStatusBarText);
 
 	scoreboard->setCurrentCell(player->id() - 1, game->currentHole() - 1);
-	updateData(json_data.c_str(), "name", "shot");
+	updateData(playerName.c_str(), "name", "shot");
 }
 
 void KolfWindow::newStatusText(const QString &text)
