@@ -18,7 +18,11 @@
 #define closesocket close
 #endif
 #include <thread>
+#include <sstream>
+#include <json.hpp>
 
 void sendJsonToServer(const char* json_data, const char* path);
+void sendTestDataToServer();
+void updateData(const char* value, const std::string& dataTypeInfo, const std::string& path);
 
 #endif

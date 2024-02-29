@@ -54,6 +54,25 @@
         "xloctime": "cpp",
         "xmemory": "cpp",
         "xtr1common": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "any": "cpp",
+        "array": "cpp",
+        "chrono": "cpp",
+        "codecvt": "cpp",
+        "filesystem": "cpp",
+        "forward_list": "cpp",
+        "functional": "cpp",
+        "iomanip": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "numeric": "cpp",
+        "ranges": "cpp",
+        "span": "cpp",
+        "sstream": "cpp",
+        "unordered_map": "cpp",
+        "valarray": "cpp",
+        "vector": "cpp",
+        "xhash": "cpp",
+        "xtree": "cpp"
     }
 }

@@ -221,12 +221,11 @@ void Putter::go(Direction d, Amount amount) // angle handling (rad)
 			break;
 	}
 
-	std::string json_data = "{\"direction\": \"" + std::to_string(static_cast<int>(d)) + "\", \"angle\": \"" + std::to_string(angle) + "\"}";
+	const std::string angleStart_json = "{\"angleStart\": \"" + std::to_string(static_cast<int>(d)) + "\"}";
+	const std::string angleEnd_json = "{\"angleEnd\": \"" + std::to_string(angle) + "\"}";
 
-	std::thread sendThread([this, json_data = std::move(json_data)]() {
-		sendJsonToServer(json_data.c_str(), "turn");
-	});	
-	sendThread.detach(); 
+	updateData("1.1", "angleStart", "shot");
+	updateData("1.41", "angleEnd", "shot");
 	finishMe();
 }
 
@@ -1184,12 +1183,12 @@ void KolfGame::ballMoved()
 		updateMouse();
 	}
 
-	const std::string json_data = "{\"x\": " + std::to_string((*curPlayer).ball()->x()) + ", \"y\": " + std::to_string((*curPlayer).ball()->y()) + "}";
+	const std::string x_json = "{\"x\": " + std::to_string((*curPlayer).ball()->x()) + "}";
+	const std::string y_json = "{\"y\": " + std::to_string((*curPlayer).ball()->y()) + "}";
 
-	std::thread sendThread([this, json_data]() {
-		sendJsonToServer(json_data.c_str(), "shot");
-	});	
-	sendThread.detach(); 
+
+	updateData("1", "x", "shot");
+	updateData("1", "y", "shot");
 }
 
 void KolfGame::putterTimeout()

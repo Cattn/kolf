@@ -666,10 +666,7 @@ void KolfWindow::newPlayersTurn(Player *player)
 		statusBar()->showMessage(tempStatusBarText);
 
 	scoreboard->setCurrentCell(player->id() - 1, game->currentHole() - 1);
-	std::thread sendThread([this, json_data]() {
-		sendJsonToServer(json_data.c_str(), "turn");
-	});	
-	sendThread.detach(); 
+	updateData(json_data.c_str(), "name", "shot");
 }
 
 void KolfWindow::newStatusText(const QString &text)
@@ -730,6 +727,7 @@ void KolfWindow::inPlayEnd()
 	setEditingEnabled(true);
 	setHoleOtherEnabled(true);
 	setHoleMovementEnabled(true);
+	sendTestDataToServer();
 }
 
 void KolfWindow::maxStrokesReached(const QString &name)

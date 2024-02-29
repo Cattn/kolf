@@ -3,6 +3,116 @@
 const int PORT = 3010;
 const char* SERVER_IP = "127.0.0.1";
 
+class ShotClass {
+        public:
+            std::string name;
+            double x;
+            double y;
+            double angleStart;
+            double angleEnd;
+            float startDistance;
+            float endDistance;
+            float magnitude;
+            int aimTime;
+            time_t shotTime;
+            std::string path = "shot";
+    };
+
+ class HoleClass {
+        public:
+            std::string name;
+            int shots;
+            int score;
+            int par;
+            int aimTime;
+            int ranking;
+            std::string path = "hole";
+};
+
+ShotClass shot;
+HoleClass hole;
+
+void updateData(const char* value, const std::string& dataTypeInfo, const std::string& path) {
+    if (path == "shot") {
+        if (dataTypeInfo == "name") {
+            shot.name = value;
+        } else if (dataTypeInfo == "x") {
+            shot.x = std::stod(value);
+        } else if (dataTypeInfo == "y") {
+            shot.y = std::stod(value);
+        } else if (dataTypeInfo == "angleStart") {
+            shot.angleStart = std::stod(value);
+        } else if (dataTypeInfo == "angleEnd") {
+            shot.angleEnd = std::stod(value);
+        } else if (dataTypeInfo == "startDistance") {
+            shot.startDistance = std::stof(value);
+        } else if (dataTypeInfo == "endDistance") {
+            shot.endDistance = std::stof(value);
+        } else if (dataTypeInfo == "magnitude") {
+            shot.magnitude = std::stof(value);
+        } else if (dataTypeInfo == "aimTime") {
+            shot.aimTime = std::stoi(value);
+        } else if (dataTypeInfo == "shotTime") {
+            shot.shotTime = static_cast<time_t>(std::stol(value));
+        }
+    } else if (path == "hole") {
+        if (dataTypeInfo == "name") {
+            hole.name = value;
+        } else if (dataTypeInfo == "shots") {
+            hole.shots = std::stoi(value);
+        } else if (dataTypeInfo == "score") {
+            hole.score = std::stoi(value);
+        } else if (dataTypeInfo == "par") {
+            hole.par = std::stoi(value);
+        } else if (dataTypeInfo == "aimTime") {
+            hole.aimTime = std::stoi(value);
+        } else if (dataTypeInfo == "ranking") {
+            hole.ranking = std::stoi(value);
+        }
+    }
+}
+
+std::string escapeJsonString(const std::string& s) {
+    std::ostringstream o;
+    for (auto c : s) {
+        switch (c) {
+            case '"': o << "\\\""; break;
+            // Add other cases as necessary
+            default: o << c;
+        }
+    }
+    return o.str();
+}
+
+
+void sendTestDataToServer() {
+    nlohmann::json j;
+    j["/turn"]["name"] = shot.name;
+    j["/shot"]["name"] = shot.name;
+    j["/shot"]["x"] = shot.x;
+    j["/shot"]["y"] = shot.y;
+    j["/shot"]["aim-start-angle"] = shot.angleStart;
+    j["/shot"]["aim-end-angle"] = shot.angleEnd;
+    j["/shot"]["aim-start-distance"] = shot.startDistance;
+    j["/shot"]["aim-end-distance"] = shot.endDistance;
+    j["/shot"]["force"] = shot.magnitude;
+    j["/shot"]["aim-time"] = shot.aimTime;
+    j["/shot"]["timestamp"] = shot.shotTime;
+    
+    nlohmann::json holeJson;
+    holeJson["name"] = hole.name;
+    holeJson["shots"] = hole.shots;
+    holeJson["score"] = hole.score;
+    holeJson["par"] = hole.par;
+    holeJson["time"] = hole.aimTime;
+    holeJson["place"] = hole.ranking;
+    
+    j["/hole"].push_back(holeJson);
+
+    std::string jsonStr = j.dump();
+    sendJsonToServer(jsonStr.c_str(), "dev");
+}
+
 void sendJsonToServer(const char* json_data, const char* path) {
 	// if windows
 #ifdef _WIN32

@@ -248,6 +248,7 @@ else()
     target_link_libraries(kolf ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
+
 ########### install files ###############
 
 install(PROGRAMS org.kde.kolf.desktop  DESTINATION  ${KDE_INSTALL_APPDIR})

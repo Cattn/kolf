@@ -1,0 +1,27 @@
+{
+    "/turn": {
+        "name": "player's in-game name"
+    },
+    "/shot": {
+        "name": "player's in-game name",
+        "x": "x coordinate of the shot",
+        "y": "y coordinate of the shot",
+        "aim-start-angle": "angle of the shot at mouse down",
+        "aim-end-angle": "angle of the shot at mouse up",
+        "aim-start-distance": "distance of mouse from ball at mouse down",
+        "aim-end-distance": "distance of mouse from ball at mouse up",
+        "force": "force of the shot",
+        "aim-time": "time taken to aim the shot",
+        "timestamp": "time of the shot"
+    },
+    "/hole": [
+        {
+            "name": "player's in-game name",
+            "shots": "number of shots taken to complete the hole (DOES NOT INCLUDE WATER)",
+            "score": "score of the hole (INCLUDES WATER)",
+            "par": "par of the hole",
+            "time": "time taken to complete the hole",
+            "place": "ranking of the hole"
+        }
+    ]
+}
