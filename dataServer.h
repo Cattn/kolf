@@ -25,5 +25,6 @@ void sendJsonToServer(const char* json_data, const char* path);
 void sendTestDataToServer();
 void updateData(const char* value, const std::string& dataTypeInfo, const std::string& path);
 void resetData();
+void updateDoubleData(const double& value, const std::string& dataTypeInfo, const std::string& path);
 
 #endif

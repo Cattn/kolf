@@ -657,8 +657,6 @@ void KolfWindow::newPlayersTurn(Player *player)
 {
 	tempStatusBarText = i18n("%1's turn", player->name());
 	const std::string playerName = player->name().toStdString(); 
-
-
 	if (showInfoAction->isChecked())
 		statusBar()->showMessage(tempStatusBarText, 5 * 1000);
 	else

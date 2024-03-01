@@ -73,6 +73,24 @@
         "valarray": "cpp",
         "vector": "cpp",
         "xhash": "cpp",
-        "xtree": "cpp"
+        "xtree": "cpp",
+        "cstdarg": "cpp",
+        "cwctype": "cpp",
+        "hash_map": "cpp",
+        "*.tcc": "cpp",
+        "condition_variable": "cpp",
+        "deque": "cpp",
+        "memory_resource": "cpp",
+        "random": "cpp",
+        "source_location": "cpp",
+        "string_view": "cpp",
+        "fstream": "cpp",
+        "future": "cpp",
+        "mutex": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp",
+        "shared_mutex": "cpp",
+        "cinttypes": "cpp",
+        "variant": "cpp"
     }
 }

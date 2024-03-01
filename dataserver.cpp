@@ -53,18 +53,28 @@ class ShotClass {
 ShotClass shot;
 HoleClass hole;
 
+void updateDoubleData(const double& value, const std::string& dataTypeInfo, const std::string& path) {
+    if (path == "shot") {
+        if (dataTypeInfo == "x") {
+            shot.x = value;
+        } else if (dataTypeInfo == "y") {
+            shot.y = value;
+        } else if (dataTypeInfo == "angleStart") {
+            shot.angleStart = value;
+        } else if (dataTypeInfo == "angleEnd") {
+            shot.angleEnd = value;
+        } else if (dataTypeInfo == "startDistance") {
+            shot.startDistance = value;
+        } else if (dataTypeInfo == "endDistance") {
+            shot.endDistance = value;
+        }
+    }
+}
+
 void updateData(const char* value, const std::string& dataTypeInfo, const std::string& path) {
     if (path == "shot") {
         if (dataTypeInfo == "name") {
             shot.name = value;
-        } else if (dataTypeInfo == "x") {
-            shot.x = std::stod(value);
-        } else if (dataTypeInfo == "y") {
-            shot.y = std::stod(value);
-        } else if (dataTypeInfo == "angleStart") {
-            shot.angleStart = std::stod(value);
-        } else if (dataTypeInfo == "angleEnd") {
-            shot.angleEnd = std::stod(value);
         } else if (dataTypeInfo == "startDistance") {
             shot.startDistance = std::stof(value);
         } else if (dataTypeInfo == "endDistance") {

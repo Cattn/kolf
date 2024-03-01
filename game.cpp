@@ -1183,12 +1183,12 @@ void KolfGame::ballMoved()
 		updateMouse();
 	}
 
-	const std::string x_json = "{\"x\": " + std::to_string((*curPlayer).ball()->x()) + "}";
-	const std::string y_json = "{\"y\": " + std::to_string((*curPlayer).ball()->y()) + "}";
+	// const std::string x_json = "{\"x\": " + std::to_string((*curPlayer).ball()->x()) + "}";
+	// const std::string y_json = "{\"y\": " + std::to_string((*curPlayer).ball()->y()) + "}";
 
 
-	updateData("1", "x", "shot");
-	updateData("1", "y", "shot");
+	// updateData("1", "x", "shot");
+	// updateData("1", "y", "shot");
 }
 
 void KolfGame::putterTimeout()
@@ -1394,7 +1394,7 @@ void KolfGame::shotDone() // has shot info in it
 	setFocus();
 
 	Ball *ball = (*curPlayer).ball();
-
+	
 	if(ball->curState() == Rolling) {
 		// This is a bit of a hack, since we have different timers for detecting shotDone and for doing animation, it can happen that at some point we think the shot
 		// was done, do a singleshot 0 call, but then we continue the animation and we realize it's not really done, so here make sure we're realy done
@@ -1407,6 +1407,7 @@ void KolfGame::shotDone() // has shot info in it
 		(*curPlayer).addStrokeToHole(curHole);
 
 	dontAddStroke = false;
+
 
 	// do hack stuff, shouldn't be done here
 
@@ -1474,10 +1475,11 @@ void KolfGame::shotDone() // has shot info in it
 					if ((*it).id == (*curPlayer).id())
 					{
 						if ((*it).beginningOfHole)
+						{
 							ball->setPos(whiteBall->x(), whiteBall->y());
-						else
+						} else {
 							ball->setPos((*it).spot.x(), (*it).spot.y());
-
+						}
 						break;
 					}
 				}
@@ -1545,6 +1547,8 @@ void KolfGame::shotDone() // has shot info in it
 
 	putter->setAngle((*curPlayer).ball());
 	putter->setOrigin((*curPlayer).ball()->x(), (*curPlayer).ball()->y());
+	// bingle
+
 	updateMouse();
 }
 
@@ -1574,6 +1578,9 @@ void KolfGame::startBall(const Vector &velocity)
 
 void KolfGame::shotStart() // has magnitude and angle
 {
+
+	updateDoubleData((*curPlayer).ball()->x(), "x", "shot");
+	updateDoubleData((*curPlayer).ball()->y(), "y", "shot");
 	// ensure we never hit the ball back into the hole which
 	// can cause hole skippage
 	if ((*curPlayer).ball()->curState() == Holed)
@@ -1609,13 +1616,13 @@ void KolfGame::sayWhosGoing()
 	{
 		KMessageBox::information(this, i18n("%1 will start off.", (*curPlayer).name()), i18n("New Hole"), QStringLiteral("newHole"));
 	}
+
 }
 
 void KolfGame::holeDone()
 {
 	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it)
 		(*it).ball()->setVisible(false);
-	resetData();
 	startNextHole();
 	sayWhosGoing();
 }
@@ -1625,7 +1632,7 @@ void KolfGame::holeDone()
 void KolfGame::startNextHole()
 {
 	setFocus();
-
+	
 	bool reset = true;
 	if (askSave(true))
 	{
@@ -1710,7 +1717,7 @@ void KolfGame::startNextHole()
 
 		// this gets set to false when the ball starts
 		// to move by the Mr. Ball himself.
-		(*it).ball()->setBeginningOfHole(true);
+		(*it).ball()->setBeginningOfHole(true); 
 		if ((int)(*it).scores().count() < curHole)
 			(*it).addHole();
 		(*it).ball()->setVelocity(Vector());
@@ -1757,13 +1764,13 @@ void KolfGame::startNextHole()
 		(*curPlayer).ball()->setVisible(true);
 		putter->setOrigin((*curPlayer).ball()->x(), (*curPlayer).ball()->y());
 		updateMouse();
-
 		ballStateList.canUndo = false;
 
-		(*curPlayer).ball()->collisionDetect();
+		(*curPlayer).ball()->collisionDetect();	
 	}
 
 	unPause();
+	
 }
 
 void KolfGame::showInfoDlg(bool addDontShowAgain)
