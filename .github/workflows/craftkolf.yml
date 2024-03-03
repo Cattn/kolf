@@ -15,4 +15,8 @@ jobs:
 
     - name: Set up Craft environment and run Craft command
       run: |
-        source /home/kolf/CraftRoot/craft/craftenv.sh && craft kolf
+        source /home/kolf/CraftRoot/craft/craftenv.sh && cs kolf && git pull && craft --package kolf
+    - uses: actions/upload-artifact@v4
+      with:
+        name: kolf-build-latest-appImage
+        path: path/to/artifact/world.txt
