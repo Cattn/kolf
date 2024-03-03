@@ -1,0 +1,21 @@
+name: Run Craft Commands
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Craft environment
+      run: |
+        source /home/kolf/CraftRoot/craft/craftenv.sh
+
+    - name: Run Craft command
+      run: craft kolf
