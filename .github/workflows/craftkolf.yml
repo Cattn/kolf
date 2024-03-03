@@ -13,9 +13,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Set up Craft environment
+    - name: Set up Craft environment and run Craft command
       run: |
-        source /home/kolf/CraftRoot/craft/craftenv.sh
-
-    - name: Run Craft command
-      run: craft kolf
+        source /home/kolf/CraftRoot/craft/craftenv.sh && craft kolf
