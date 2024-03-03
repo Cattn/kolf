@@ -1557,8 +1557,31 @@ void KolfGame::emitMax()
 	Q_EMIT maxStrokesReached(playerWhoMaxed);
 }
 
-void KolfGame::startBall(const Vector &velocity)
+#include <chrono>
+#include <thread>
+
+using namespace std::chrono_literals;
+
+
+std::chrono::steady_clock::time_point startTime;
+
+
+
+double since(const std::chrono::steady_clock::time_point& start) {
+    auto elapsedDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+    return static_cast<double>(elapsedDuration.count());
+}
+
+void StartTimer() {
+	//clear startTime
+	startTime = std::chrono::steady_clock::time_point();
+    startTime = std::chrono::steady_clock::now();
+}
+
+
+void KolfGame::startBall(const Vector &velocity) // End of the aiming
 {
+	StartTimer();
 	playSound(Sound::Hit);
 	Q_EMIT inPlayStart();
 	putter->setVisible(false);
@@ -1572,13 +1595,15 @@ void KolfGame::startBall(const Vector &velocity)
 		if (citem)
 			citem->shotStarted();
 	}
-
+	
 	inPlay = true;
 }
 
-void KolfGame::shotStart() // has magnitude and angle
+void KolfGame::shotStart() // has magnitude and angle also is the beginning of the stroke
 {
-
+	double elapsed = since(startTime);
+	elapsed /= 1000.0;
+    updateDoubleData(elapsed, "aimTime", "shot");
 	updateDoubleData((*curPlayer).ball()->x(), "x", "shot");
 	updateDoubleData((*curPlayer).ball()->y(), "y", "shot");
 	// ensure we never hit the ball back into the hole which
@@ -1595,7 +1620,9 @@ void KolfGame::shotStart() // has magnitude and angle
 		strength = 1;
 
 	//kDebug(12007) << "Start started. BallX:" << (*curPlayer).ball()->x() << ", BallY:" << (*curPlayer).ball()->y() << ", Putter Angle:" << putter->curAngle() << ", Vector Strength: " << strength;
-
+	updateDoubleData(putter->curAngle(), "angleEnd", "shot");
+	updateDoubleData(strength, "magnitude", "shot");
+	
 	(*curPlayer).ball()->collisionDetect();
 
 	startBall(Vector::fromMagnitudeDirection(strength, -(putter->curAngle() + M_PI)));

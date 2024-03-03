@@ -1,18 +1,18 @@
 {
     "/turn": {
-        "name": "player's in-game name"
+        "name": "player's in-game name" // Done
     },
     "/shot": {
-        "name": "player's in-game name",
-        "x": "x coordinate of the shot",
-        "y": "y coordinate of the shot",
-        "aim-start-angle": "angle of the shot at mouse down",
+        "name": "player's in-game name", // Done
+        "x": "x coordinate of the shot", // Done
+        "y": "y coordinate of the shot", // Done
+        "aim-start-angle": "angle of the shot at mouse down", // Done
         "aim-end-angle": "angle of the shot at mouse up",
         "aim-start-distance": "distance of mouse from ball at mouse down",
         "aim-end-distance": "distance of mouse from ball at mouse up",
-        "force": "force of the shot",
-        "aim-time": "time taken to aim the shot",
-        "timestamp": "time of the shot"
+        "force": "force of the shot", // Done
+        "aim-time": "time taken to aim the shot", // mostly done, deciding on some parts
+        "timestamp": "time of the shot" //ignoring
     },
     "/hole": [
         {

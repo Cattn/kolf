@@ -14,8 +14,8 @@ class ShotClass {
             float startDistance;
             float endDistance;
             float magnitude;
-            int aimTime;
-            time_t shotTime;
+            double aimTime;
+            std::string shotTime;
             std::string path = "shot";
             void clear() {
                 name = "";
@@ -27,7 +27,7 @@ class ShotClass {
                 endDistance = 0;
                 magnitude = 0;
                 aimTime = 0;
-                shotTime = 0;
+                shotTime = "";
             };
     };
 
@@ -67,7 +67,11 @@ void updateDoubleData(const double& value, const std::string& dataTypeInfo, cons
             shot.startDistance = value;
         } else if (dataTypeInfo == "endDistance") {
             shot.endDistance = value;
-        }
+        } else if (dataTypeInfo == "magnitude") {
+            shot.magnitude = value;
+        } else if (dataTypeInfo == "aimTime") {
+            shot.aimTime = value;
+        } 
     }
 }
 
@@ -79,12 +83,8 @@ void updateData(const char* value, const std::string& dataTypeInfo, const std::s
             shot.startDistance = std::stof(value);
         } else if (dataTypeInfo == "endDistance") {
             shot.endDistance = std::stof(value);
-        } else if (dataTypeInfo == "magnitude") {
-            shot.magnitude = std::stof(value);
-        } else if (dataTypeInfo == "aimTime") {
-            shot.aimTime = std::stoi(value);
         } else if (dataTypeInfo == "shotTime") {
-            shot.shotTime = static_cast<time_t>(std::stol(value));
+            shot.shotTime = std::stol(value);
         }
     } else if (path == "hole") {
         if (dataTypeInfo == "name") {
