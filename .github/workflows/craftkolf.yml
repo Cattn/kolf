@@ -19,4 +19,4 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: kolf-build-latest-appImage
-        path: path/to/artifact/world.txt
+        path: /home/kolf/CraftRoot/tmp/kolf-23.08.4-linux-gcc-x86_64.AppImage
