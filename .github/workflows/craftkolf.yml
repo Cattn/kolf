@@ -7,20 +7,13 @@ jobs:
     runs-on: self-hosted
 
     steps:
-#    - name: Checkout repository
-#      uses: actions/checkout@v4
-#
-#    - name: Set up Craft environment and run Craft command
-#      run: |
-#        source /home/kolf/CraftRoot/craft/craftenv.sh && cs kolf && git pull && craft --compile --install --qmerge kolf && craft --package kolf
-#    - uses: actions/upload-artifact@v4
-#      with:
-#        name: kolf-build-latest-appImage
-#        path: /home/kolf/CraftRoot/tmp/kolf-23.08.4-linux-gcc-x86_64.AppImage
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
+    - name: Set up Craft environment and run Craft command
+      run: |
+        source /home/kolf/CraftRoot/craft/craftenv.sh && cs kolf && git pull && craft --compile --install --qmerge kolf && craft --package kolf
+    - uses: actions/upload-artifact@v4
       with:
-        files: /home/kolf/CraftRoot/tmp/kolf-23.08.4-linux-gcc-x86_64.AppImage
-        fail_on_unmatched_files: true
+        name: kolf-build-latest-appImage
+        path: /home/kolf/CraftRoot/tmp/kolf-23.08.4-linux-gcc-x86_64.AppImage
