@@ -31,27 +31,7 @@ class ShotClass {
             };
     };
 
- class HoleClass {
-        public:
-            std::string name;
-            int shots;
-            int score;
-            int par;
-            int aimTime;
-            int ranking;
-            std::string path = "hole";
-            void clear() {
-                name = "";
-                shots = 0;
-                score = 0;
-                par = 0;
-                aimTime = 0;
-                ranking = 0;
-            };
-};
-
 ShotClass shot;
-HoleClass hole;
 
 void updateDoubleData(const double& value, const std::string& dataTypeInfo, const std::string& path) {
     if (path == "shot") {
@@ -86,20 +66,6 @@ void updateData(const char* value, const std::string& dataTypeInfo, const std::s
         } else if (dataTypeInfo == "shotTime") {
             shot.shotTime = std::stol(value);
         }
-    } else if (path == "hole") {
-        if (dataTypeInfo == "name") {
-            hole.name = value;
-        } else if (dataTypeInfo == "shots") {
-            hole.shots = std::stoi(value);
-        } else if (dataTypeInfo == "score") {
-            hole.score = std::stoi(value);
-        } else if (dataTypeInfo == "par") {
-            hole.par = std::stoi(value);
-        } else if (dataTypeInfo == "aimTime") {
-            hole.aimTime = std::stoi(value);
-        } else if (dataTypeInfo == "ranking") {
-            hole.ranking = std::stoi(value);
-        }
     }
 }
 
@@ -116,7 +82,7 @@ std::string escapeJsonString(const std::string& s) {
 }
 
 
-void sendTestDataToServer() {
+void sendShotDataToServer() {
     nlohmann::json j;
     j["/turn"]["name"] = shot.name;
     j["/shot"]["name"] = shot.name;
@@ -130,22 +96,34 @@ void sendTestDataToServer() {
     j["/shot"]["aim-time"] = shot.aimTime;
     j["/shot"]["timestamp"] = shot.shotTime;
     
-    nlohmann::json holeJson;
-    holeJson["name"] = hole.name;
-    holeJson["shots"] = hole.shots;
-    holeJson["score"] = hole.score;
-    holeJson["par"] = hole.par;
-    holeJson["time"] = hole.aimTime;
-    holeJson["place"] = hole.ranking;
-    
-    j["/hole"].push_back(holeJson);
-
     std::string jsonStr = j.dump();
-    sendJsonToServer(jsonStr.c_str(), "dev");
+    sendJsonToServer(jsonStr.c_str(), "shot");
 }
 
+void sendTurnDataToServer() {
+    nlohmann::json j;
+    j["/turn"]["name"] = shot.name;
+    
+    std::string jsonStr = j.dump();
+    sendJsonToServer(jsonStr.c_str(), "turn");
+}
+
+
+void sendHoleDataToServer(HoleClass& hole) {
+    nlohmann::json j;
+    j["/hole"]["name"] = hole.name;
+    j["/hole"]["shots"] = hole.shots;
+    j["/hole"]["score"] = hole.score;
+    j["/hole"]["par"] = hole.par;
+    j["/hole"]["time"] = hole.aimTime;
+    j["/hole"]["place"] = hole.ranking;
+    
+    std::string jsonStr = j.dump();
+    sendJsonToServer(jsonStr.c_str(), "hole");
+}
+
+
 void resetData() {
-    hole.clear();
     shot.clear();
 }
 

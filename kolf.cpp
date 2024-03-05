@@ -724,7 +724,8 @@ void KolfWindow::inPlayEnd()
 	setEditingEnabled(true);
 	setHoleOtherEnabled(true);
 	setHoleMovementEnabled(true);
-	sendTestDataToServer();
+	sendShotDataToServer();
+	sendTurnDataToServer();
 }
 
 void KolfWindow::maxStrokesReached(const QString &name)

@@ -80,8 +80,10 @@ public:
 	Vector vector;
 };
 
+#include <dataServer.h>
+
 class Player
-{
+{	
 public:
 	Player() : m_ball(new Ball(nullptr, Kolf::world())) {}
 	Ball *ball() const { return m_ball; }
@@ -93,11 +95,13 @@ public:
 	int score(int hole) const { return m_scores.at(hole - 1); }
 	int lastScore() const { return m_scores.last(); }
 	int firstScore() const { return m_scores.first(); }
+	HoleClass holeInfo;
+	void clearHole() { holeInfo.clear(); }
 
 	void addStrokeToHole(int hole) { (*(m_scores.begin() + (hole -1)))++; }
 	void setScoreForHole(int score, int hole) { (*(m_scores.begin() + (hole - 1))) = score; }
 	void subtractStrokeFromHole(int hole) { (*(m_scores.begin() + (hole -1))--); }
-	void resetScore(int hole) { (*(m_scores.begin() + (hole - 1))) = 0; }
+	void resetScore(int hole) { (*(m_scores.begin() + (hole - 1))) = 0; clearHole(); }
 	void addHole() { m_scores.append(0); }
 	unsigned int numHoles() const { return m_scores.count(); }
 

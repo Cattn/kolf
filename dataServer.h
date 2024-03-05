@@ -1,6 +1,7 @@
 #ifndef DATASERVER_H
 #define DATASERVER_H
 
+#include <vector>
 #include <iostream>
 #include <string>
 #include <cstring>
@@ -17,14 +18,38 @@
 #define INVALID_SOCKET -1
 #define closesocket close
 #endif
+
 #include <thread>
 #include <sstream>
 #include <json.hpp>
 
-void sendJsonToServer(const char* json_data, const char* path);
-void sendTestDataToServer();
-void updateData(const char* value, const std::string& dataTypeInfo, const std::string& path);
+void sendJsonToServer(const char *json_data, const char *path);
+void sendShotDataToServer();
+void sendTurnDataToServer();
+void updateData(const char *value, const std::string &dataTypeInfo, const std::string &path);
 void resetData();
-void updateDoubleData(const double& value, const std::string& dataTypeInfo, const std::string& path);
+void updateDoubleData(const double &value, const std::string &dataTypeInfo, const std::string &path);
+class HoleClass
+{
+public:
+    std::string name;
+    int shots;
+    int score;
+    int par;
+    int aimTime;
+    int ranking;
+    std::string path = "hole";
 
+    void clear()
+    {
+        name = "";
+        shots = 0;
+        score = 0;
+        par = 0;
+        aimTime = 0;
+        ranking = 0;
+    };
+};
+
+void sendHoleDataToServer(HoleClass& hole);
 #endif

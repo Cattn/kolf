@@ -1648,10 +1648,18 @@ void KolfGame::sayWhosGoing()
 
 void KolfGame::holeDone()
 {
-	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it)
-		(*it).ball()->setVisible(false);
-	startNextHole();
-	sayWhosGoing();
+    for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it) {
+        Player& player = *it; 
+        player.ball()->setVisible(false);
+
+        const std::string playerName = player.name().toStdString();
+        player.holeInfo.score = player.score(curHole);
+        player.holeInfo.name = playerName.c_str();
+        sendHoleDataToServer(player.holeInfo);
+    }
+
+    startNextHole();
+    sayWhosGoing();
 }
 
 // this function is WAY too smart for it's own good
