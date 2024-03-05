@@ -1,6 +1,9 @@
 name: Run Craft Commands
 
-on: push
+on:
+  push:
+    tags:
+      - "v*"
 
 jobs:
   build:
@@ -17,3 +20,9 @@ jobs:
       with:
         name: kolf-build-latest-appImage
         path: /home/kolf/CraftRoot/tmp/kolf-23.08.4-linux-gcc-x86_64.AppImage
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          /home/kolf/CraftRoot/tmp/kolf-23.08.4-linux-gcc-x86_64.AppImage
