@@ -1657,8 +1657,8 @@ void KolfGame::holeDone()
         player.holeInfo.name = playerName.c_str();
         sendHoleDataToServer(player.holeInfo);
     }
-
     startNextHole();
+	Q_EMIT saveGame();
     sayWhosGoing();
 }
 

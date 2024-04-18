@@ -319,6 +319,8 @@ Q_SIGNALS:
 	void checkEditing();
 	void editingStarted();
 	void editingEnded();
+	void saveGame();
+	void saveGameAs();
 	void inPlayStart();
 	void inPlayEnd();
 	void maxStrokesReached(const QString &);

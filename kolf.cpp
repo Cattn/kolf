@@ -282,6 +282,8 @@ void KolfWindow::startNewGame()
 	connect(game, &KolfGame::parChanged, scoreboard, &ScoreBoard::parChanged);
 	connect(game, &KolfGame::modifiedChanged, this, &KolfWindow::updateModified);
 	connect(game, &KolfGame::newPlayersTurn, this, &KolfWindow::newPlayersTurn);
+	connect(game, &KolfGame::saveGame, this, &KolfWindow::saveGame);
+	connect(game, &KolfGame::saveGameAs, this, &KolfWindow::saveGameAs);
 	connect(game, &KolfGame::holesDone, this, &KolfWindow::gameOver);
 	connect(game, &KolfGame::checkEditing, this, &KolfWindow::checkEditing);
 	connect(game, &KolfGame::editingStarted, this, &KolfWindow::editingStarted);

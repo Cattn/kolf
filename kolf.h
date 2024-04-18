@@ -57,9 +57,9 @@ protected Q_SLOTS:
 	void newGame();
 	void save();
 	void saveAs();
+	void newPlayersTurn(Player *);
 	void saveGame();
 	void saveGameAs();
-	void newPlayersTurn(Player *);
 	void gameOver();
 	void editingStarted();
 	void editingEnded();
