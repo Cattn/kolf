@@ -1655,6 +1655,7 @@ void KolfGame::holeDone()
         const std::string playerName = player.name().toStdString();
         player.holeInfo.score = player.score(curHole);
         player.holeInfo.name = playerName.c_str();
+		
         sendHoleDataToServer(player.holeInfo);
     }
     startNextHole();
@@ -1811,7 +1812,7 @@ void KolfGame::startNextHole()
 void KolfGame::showInfoDlg(bool addDontShowAgain)
 {
 	KMessageBox::information(parentWidget(),
-			i18n("Course name: %1", holeInfo.name()) + QStringLiteral("\n")
+			i18n("Course name: %1", holeInfo.name()) + QStringLiteral("\n") // NAME OF HOLE
 			+ i18n("Created by %1", holeInfo.author()) + QStringLiteral("\n")
 			+ i18np("%1 hole", "%1 holes", highestHole),
 			i18nc("@title:window", "Course Information"),
@@ -1846,6 +1847,8 @@ void KolfGame::openFile()
 	cfgGroup = KConfigGroup(cfg->group(QStringLiteral("0-course@-50,-50")));
 	holeInfo.setAuthor(cfgGroup.readEntry("author", holeInfo.author()));
 	holeInfo.setName(cfgGroup.readEntry("Name", holeInfo.name()));
+	const std::string holeInfoName = holeInfo.name().toStdString();
+	updateData(holeInfoName.c_str(), "holeName", "shot");
 	holeInfo.setUntranslatedName(cfgGroup.readEntryUntranslated("Name", holeInfo.untranslatedName()));
 	Q_EMIT titleChanged(holeInfo.name());
 
