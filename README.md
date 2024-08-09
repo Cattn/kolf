@@ -17,6 +17,14 @@ Currently Tracked Stats:
 - timestamp: Time the shot was taken
 - Score of The Hole (Including Water)
 
+## How to play?
+### Step 1: Download a binary
+1. Locate a binary for you platform in the [Releases](https://github.com/Cattn/kolf/releases) tab<br>
+2. Run the installer/binary!
+3. Download The Server [here](https://github.com/Cattn/kolf-server/)
+4. Run it! (Instructions are in the above repository.)
+5. Observe your stats being posted to the console of the server!
+
 ## Running the Server And building
 
 ### Building
