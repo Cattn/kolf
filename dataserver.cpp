@@ -7,6 +7,7 @@ const char* SERVER_IP = "127.0.0.1";
 class ShotClass {
         public:
             std::string name;
+            std::string holeName;
             double x;
             double y;
             double angleStart;
@@ -55,10 +56,12 @@ void updateDoubleData(const double& value, const std::string& dataTypeInfo, cons
     }
 }
 
-void updateData(const char* value, const std::string& dataTypeInfo, const std::string& path) {
+void updateData(const std::string& value, const std::string& dataTypeInfo, const std::string& path) {
     if (path == "shot") {
         if (dataTypeInfo == "name") {
             shot.name = value;
+        } else if (dataTypeInfo == "holeName") {
+            shot.holeName = value;
         } else if (dataTypeInfo == "startDistance") {
             shot.startDistance = std::stof(value);
         } else if (dataTypeInfo == "endDistance") {
@@ -86,6 +89,7 @@ void sendShotDataToServer() {
     nlohmann::json j;
     j["/turn"]["name"] = shot.name;
     j["/shot"]["name"] = shot.name;
+    j["/shot"]["hole"] = shot.holeName;
     j["/shot"]["x"] = shot.x;
     j["/shot"]["y"] = shot.y;
     j["/shot"]["aim-start-angle"] = shot.angleStart;

@@ -665,7 +665,7 @@ void KolfWindow::newPlayersTurn(Player *player)
 		statusBar()->showMessage(tempStatusBarText);
 
 	scoreboard->setCurrentCell(player->id() - 1, game->currentHole() - 1);
-	updateData(playerName.c_str(), "name", "shot");
+	 updateData(playerName.c_str(), "name", "shot");
 }
 
 void KolfWindow::newStatusText(const QString &text)

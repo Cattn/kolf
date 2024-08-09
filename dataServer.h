@@ -26,13 +26,14 @@
 void sendJsonToServer(const char *json_data, const char *path);
 void sendShotDataToServer();
 void sendTurnDataToServer();
-void updateData(const char *value, const std::string &dataTypeInfo, const std::string &path);
+void updateData(const std::string& value, const std::string &dataTypeInfo, const std::string &path);
 void resetData();
 void updateDoubleData(const double &value, const std::string &dataTypeInfo, const std::string &path);
 class HoleClass
 {
 public:
     std::string name;
+    std::string holeName;
     int shots;
     int score;
     int par;
