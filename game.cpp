@@ -1503,6 +1503,12 @@ void KolfGame::shotDone() // has shot info in it
 
 	ball->setVelocity(Vector());
 
+	updateDoubleData((*curPlayer).ball()->x(), "x", "shot");
+	updateDoubleData((*curPlayer).ball()->y(), "y", "shot");
+
+	const std::string playerName = (*curPlayer).name().toStdString(); 
+	updateData(playerName.c_str(), "name", "shot");
+
 	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it)
 	{
 		Ball *ball = (*it).ball();
@@ -1550,6 +1556,8 @@ void KolfGame::shotDone() // has shot info in it
 	// bingle
 
 	updateMouse();
+	sendShotDataToServer();
+	sendTurnDataToServer();
 }
 
 void KolfGame::emitMax()
@@ -1604,8 +1612,6 @@ void KolfGame::shotStart() // has magnitude and angle also is the beginning of t
 	double elapsed = since(startTime);
 	elapsed /= 1000.0;
     updateDoubleData(elapsed, "aimTime", "shot");
-	updateDoubleData((*curPlayer).ball()->x(), "x", "shot");
-	updateDoubleData((*curPlayer).ball()->y(), "y", "shot");
 	// ensure we never hit the ball back into the hole which
 	// can cause hole skippage
 	if ((*curPlayer).ball()->curState() == Holed)
@@ -1655,7 +1661,6 @@ void KolfGame::holeDone()
         const std::string playerName = player.name().toStdString();
         player.holeInfo.score = player.score(curHole);
         player.holeInfo.name = playerName.c_str();
-		
         sendHoleDataToServer(player.holeInfo);
     }
     startNextHole();
@@ -1848,7 +1853,7 @@ void KolfGame::openFile()
 	holeInfo.setAuthor(cfgGroup.readEntry("author", holeInfo.author()));
 	holeInfo.setName(cfgGroup.readEntry("Name", holeInfo.name()));
 	const std::string holeInfoName = holeInfo.name().toStdString();
-	updateData(holeInfoName.c_str(), "holeName", "shot");
+	updateData(holeInfoName.c_str(), "courseName", "shot");
 	holeInfo.setUntranslatedName(cfgGroup.readEntryUntranslated("Name", holeInfo.untranslatedName()));
 	Q_EMIT titleChanged(holeInfo.name());
 

@@ -658,14 +658,12 @@ void KolfWindow::openUrl(const QUrl &url)
 void KolfWindow::newPlayersTurn(Player *player)
 {
 	tempStatusBarText = i18n("%1's turn", player->name());
-	const std::string playerName = player->name().toStdString(); 
 	if (showInfoAction->isChecked())
 		statusBar()->showMessage(tempStatusBarText, 5 * 1000);
 	else
 		statusBar()->showMessage(tempStatusBarText);
 
 	scoreboard->setCurrentCell(player->id() - 1, game->currentHole() - 1);
-	 updateData(playerName.c_str(), "name", "shot");
 }
 
 void KolfWindow::newStatusText(const QString &text)
@@ -726,8 +724,6 @@ void KolfWindow::inPlayEnd()
 	setEditingEnabled(true);
 	setHoleOtherEnabled(true);
 	setHoleMovementEnabled(true);
-	sendShotDataToServer();
-	sendTurnDataToServer();
 }
 
 void KolfWindow::maxStrokesReached(const QString &name)
