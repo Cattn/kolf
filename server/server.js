@@ -2,11 +2,19 @@ const express = require('express');
 const app = express();
 const PORT = 3010;
 const DiscordRPC = require('discord-rpc');
+const WebSocket = require('ws');
 
 let player = "Unknown Player";
 let courseName = "Unknown Course";
 
+
 app.use(express.json());
+
+const httpServer = app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+const wss = new WebSocket.Server({ noServer: true });
 
 app.post('/turn', (req, res) => {
   const receivedData = req.body;
@@ -27,6 +35,11 @@ app.post('/shot', (req, res) => {
 
   if (receivedData['/shot']) {
     courseName = receivedData['/shot'].hole || courseName;
+    wss.clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(receivedData));
+      }
+    });
   }
 
   setActivity(); 
@@ -39,10 +52,6 @@ app.post('/hole', (req, res) => {
   console.log('Received hole data:', receivedData);
 
   res.status(200).send('Data received');
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
 });
 
 const clientId = '1271305657106305075';
@@ -74,3 +83,20 @@ rpc.on('ready', () => {
 });
 
 rpc.login({ clientId }).catch(console.error);
+
+// WS stuff
+
+httpServer.on('upgrade', (req, socket, head) => {
+  wss.handleUpgrade(req, socket, head, (ws) => {
+    wss.emit('connection', ws, req);
+  });
+});
+
+wss.on('connection', (ws) => {
+  ws.on('message', (message) => {
+    console.log('received: %s', message);
+    ws.send(`Hello, you sent -> ${message}`);
+  });
+
+  ws.send('Hi there, I am a WebSocket server');
+});
