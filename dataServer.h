@@ -33,7 +33,8 @@ class HoleClass
 {
 public:
     std::string name;
-    std::string holeName;
+    std::string courseName;
+    std::string holeNum;
     int shots;
     int score;
     int par;
@@ -44,6 +45,8 @@ public:
     void clear()
     {
         name = "";
+        courseName = "";
+        holeNum = "";
         shots = 0;
         score = 0;
         par = 0;
