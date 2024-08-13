@@ -52,6 +52,7 @@ namespace Kolf
 	class Wall : public QGraphicsLineItem, public CanvasItem
 	{
 		public:
+		
 			Wall(QGraphicsItem* parent, b2World* world);
 
 			void load(KConfigGroup* cfgGroup) override;

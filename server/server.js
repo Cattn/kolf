@@ -34,7 +34,7 @@ app.post('/shot', (req, res) => {
   console.log('Received shot data:', receivedData);
 
   if (receivedData['/shot']) {
-    courseName = receivedData['/shot'].hole || courseName;
+    courseName = receivedData['/shot'].course || courseName;
     wss.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify(receivedData));
@@ -43,6 +43,13 @@ app.post('/shot', (req, res) => {
   }
 
   setActivity(); 
+
+  res.status(200).send('Data received');
+});
+
+app.post('/map', (req, res) => {
+  const receivedData = req.body;
+  console.log('Received map data:', receivedData);
 
   res.status(200).send('Data received');
 });

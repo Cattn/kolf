@@ -455,7 +455,7 @@ private:
 	KConfig *cfg;
 	KConfigGroup cfgGroup;
 
-	inline void addBorderWall(const QPoint &start, const QPoint &end);
+	inline void addBorderWall(const QPoint &start, const QPoint &end); 
 	void shotStart();
 	void startBall(const Vector &vector);
 

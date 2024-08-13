@@ -92,5 +92,6 @@
         "shared_mutex": "cpp",
         "cinttypes": "cpp",
         "variant": "cpp"
-    }
+    },
+    "discord.enabled": false
 }

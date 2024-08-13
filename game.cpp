@@ -16,7 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
-
+#include <vector>
 #include "game.h"
 #include "itemfactory.h"
 #include "kcomboboxdialog.h"
@@ -51,6 +51,8 @@
 #include <Box2D/Dynamics/b2Fixture.h>
 #include <Box2D/Dynamics/b2World.h>
 #include <Box2D/Dynamics/b2WorldCallbacks.h>
+
+#include <QDebug>
 
 inline QString makeGroup(int id, int hole, const QString &name, int x, int y)
 {
@@ -1842,6 +1844,10 @@ void KolfGame::openFile()
 		}
 	}
 
+	// send m_toplevelQItems to map json 
+	/* sendMapDataToServer(m_topLevelQItems); */
+
+
 	m_moveableQItems = m_topLevelQItems = newTopLevelQItems;
 	selectedItem = nullptr;
 
@@ -2004,59 +2010,58 @@ void KolfGame::openFile()
 
 void KolfGame::addNewObject(const QString& identifier)
 {
-	QGraphicsItem *newItem = m_factory.createInstance(identifier, courseBoard, g_world);
+    QGraphicsItem *newItem = m_factory.createInstance(identifier, courseBoard, g_world);
 
-	m_topLevelQItems << newItem;
-	m_moveableQItems << newItem;
-	if(!newItem->isVisible())
-		newItem->setVisible(true);
+    m_topLevelQItems << newItem;
+    m_moveableQItems << newItem;
+    if(!newItem->isVisible())
+        newItem->setVisible(true);
 
-	CanvasItem *sceneItem = dynamic_cast<CanvasItem *>(newItem);
-	if (!sceneItem)
-		return;
+    CanvasItem *sceneItem = dynamic_cast<CanvasItem *>(newItem);
+    if (!sceneItem)
+        return;
 
-	// we need to find a number that isn't taken
-	int i = lastDelId > 0? lastDelId : m_topLevelQItems.count() - 30;
-	if (i <= 0)
-		i = 0;
+    // we need to find a number that isn't taken
+    int i = lastDelId > 0? lastDelId : m_topLevelQItems.count() - 30;
+    if (i <= 0)
+        i = 0;
 
-	for (;; ++i)
-	{
-		bool found = false;
-		for (QGraphicsItem* qitem : std::as_const(m_topLevelQItems)) {
-			CanvasItem *citem = dynamic_cast<CanvasItem *>(qitem);
-			if (citem)
-			{
-				if (citem->curId() == i)
-				{
-					found = true;
-					break;
-				}
-			}
-		}
+    for (;; ++i)
+    {
+        bool found = false;
+        for (QGraphicsItem* qitem : std::as_const(m_topLevelQItems)) {
+            CanvasItem *citem = dynamic_cast<CanvasItem *>(qitem);
+            if (citem)
+            {
+                if (citem->curId() == i)
+                {
+                    found = true;
+                    break;
+                }
+            }
+        }
 
+        if (!found)
+            break;
+    }
+    sceneItem->setId(i);
 
-		if (!found)
-			break;
-	}
-	sceneItem->setId(i);
+    sceneItem->setGame(this);
 
-	sceneItem->setGame(this);
+    const auto infoItems = sceneItem->infoItems();
+    for (QGraphicsItem* qitem : infoItems)
+        qitem->setVisible(m_showInfo);
 
-	const auto infoItems = sceneItem->infoItems();
-	for (QGraphicsItem* qitem : infoItems)
-		qitem->setVisible(m_showInfo);
+    sceneItem->editModeChanged(editing);
 
-	sceneItem->editModeChanged(editing);
+    sceneItem->setName(identifier);
+    m_moveableQItems.append(sceneItem->moveableItems());
 
-	sceneItem->setName(identifier);
-	m_moveableQItems.append(sceneItem->moveableItems());
+    newItem->setPos(width/2 - 18, height / 2 - 18);
+    sceneItem->moveBy(0, 0);
+    sceneItem->setSize(newItem->boundingRect().size());
 
-	newItem->setPos(width/2 - 18, height / 2 - 18);
-	sceneItem->moveBy(0, 0);
-	sceneItem->setSize(newItem->boundingRect().size());
-
-	setModified(true);
+    setModified(true);
 }
 
 bool KolfGame::askSave(bool noMoreChances)

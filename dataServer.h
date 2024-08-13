@@ -1,7 +1,6 @@
 #ifndef DATASERVER_H
 #define DATASERVER_H
 
-#include <vector>
 #include <iostream>
 #include <string>
 #include <cstring>
@@ -22,6 +21,12 @@
 #include <thread>
 #include <sstream>
 #include <json.hpp>
+#include <QGraphicsItem>
+#include <QList>
+#include <QDebug>
+#include <vector>
+#include <QPointF>
+
 
 void sendJsonToServer(const char *json_data, const char *path);
 void sendShotDataToServer();

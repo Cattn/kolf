@@ -61,6 +61,8 @@ void updateData(const std::string& value, const std::string& dataTypeInfo, const
     if (path == "shot") {
         if (dataTypeInfo == "name") {
             shot.name = value;
+        } else if (dataTypeInfo == "holeNum") {
+            shot.holeNum = value;
         } else if (dataTypeInfo == "courseName") {
             shot.courseName = value;
         } else if (dataTypeInfo == "startDistance") {
@@ -91,6 +93,7 @@ void sendShotDataToServer() {
     j["/turn"]["name"] = shot.name;
     j["/shot"]["name"] = shot.name;
     j["/shot"]["course"] = shot.courseName;
+    j["/shot"]["hole"] = shot.holeNum;
     j["/shot"]["x"] = shot.x;
     j["/shot"]["y"] = shot.y;
     j["/shot"]["aim-start-angle"] = shot.angleStart;
