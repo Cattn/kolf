@@ -31,6 +31,14 @@ Currently Tracked Stats:
 ### Building
 Good luck... No seriously, ``craft`` KDE's build tool for Kolf sucks. I wish you best of luck in setting it up. Docs are [here](https://community.kde.org/Craft)
 
+Some general tips once craft is set up
+- ``craft kolf``
+- ``cs kolf``
+- Now, delete all files in this folder, and clone the repository to this folder
+- ``craft --compile --install --qmerge kolf``
+- ``craft --run kolf``
+
+
 ### Running the server
 - ``npm i``
 - ``node server/server.js``
