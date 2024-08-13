@@ -82,75 +82,72 @@ function setCanvas(x, y, player, curHole) {
 }
 
 
-function convertKolfMapToCanvas(kolfMap, course, curHole) {
-  let holeConfigStart = "[" + curHole + "-hole@";
-  let holeStartIndex = kolfMap.indexOf(holeConfigStart);
+function convertKolfMapToCanvas(map, course, hole) {
+  let holeConfig = "[" + hole + "-hole@";
+  let holeIndex = map.indexOf(holeConfig);
 
-
-  if (holeStartIndex === -1) {
+  if (holeIndex === -1) {
     console.log("Hole configuration not found!");
     return;
   }
 
-  let configStartIndex = kolfMap.indexOf("\n", holeStartIndex) + 1;
-  let configEndIndex = kolfMap.indexOf("[", configStartIndex);
+  let configStart = map.indexOf("\n", holeIndex) + 1;
+  let configEnd = map.indexOf("[", configStart);
 
-  if (configEndIndex === -1) {
-    configEndIndex = kolfMap.length;
+  if (configEnd === -1) {
+    configEnd = map.length;
   }
 
-
   // Config Handling
-  let configString = kolfMap.substring(configStartIndex, configEndIndex).trim();
+  let configStr = map.substring(configStart, configEnd).trim();
   const regex = /^(\w+)=([\w.-]+)$/gm;
   let match;
   let config = {};
 
-  while ((match = regex.exec(configString)) !== null) {
+  while ((match = regex.exec(configStr)) !== null) {
     config[match[1]] = match[2];
   }
 
-  let curHoleStats = document.getElementById("curHoleStats");
-  curHoleStats.innerHTML = `<br> Course: ${course} <br> Hole: ${curHole} <br> Border Walls: ${config["borderWalls"]} <br> Par: ${config["par"]} <br> Max: ${config["maxstrokes"]}`;
+  let holeStats = document.getElementById("curHoleStats");
+  holeStats.innerHTML = `<br> Course: ${course} <br> Hole: ${hole} <br> Border Walls: ${config["borderWalls"]} <br> Par: ${config["par"]} <br> Max: ${config["maxstrokes"]}`;
 
-  console.log("Configuration found for hole " + curHole + ":");
+  console.log("Configuration found for hole " + hole + ":");
   console.log(config);
 
   // Wall Handling
   let walls = [];
-  let wallConfigPrefix = "[" + curHole + "-wall@";
-  let wallStartIndex = kolfMap.indexOf(wallConfigPrefix);
-  
-  while (wallStartIndex !== -1) {
-    let wallConfigStartIndex = kolfMap.indexOf("\n", wallStartIndex) + 1;
-    let wallConfigEndIndex = kolfMap.indexOf("[", wallConfigStartIndex);
-    if (wallConfigEndIndex === -1) {
-      wallConfigEndIndex = kolfMap.length;
+  let wallConfig = "[" + hole + "-wall@";
+  let wallIndex = map.indexOf(wallConfig);
+
+  while (wallIndex !== -1) {
+    let wallConfigStart = map.indexOf("\n", wallIndex) + 1;
+    let wallConfigEnd = map.indexOf("[", wallConfigStart);
+    if (wallConfigEnd === -1) {
+      wallConfigEnd = map.length;
     }
-  
-    let wallConfigString = kolfMap.substring(wallConfigStartIndex, wallConfigEndIndex).trim();
+
+    let wallConfigStr = map.substring(wallConfigStart, wallConfigEnd).trim();
     const wallRegex = /^(\w+)=([\w.,-]+)$/gm;
     let wall = {};
-    
-    while ((match = wallRegex.exec(wallConfigString)) !== null) {
+
+    while ((match = wallRegex.exec(wallConfigStr)) !== null) {
       if (match[1] === "startPoint") {
-        const numregx = /([^,]+)/g;
-        let nums = match[2].match(numregx);
+        const numRegex = /([^,]+)/g;
+        let nums = match[2].match(numRegex);
         wall.start = {x: nums[0], y: nums[1]};
       } else if (match[1] === "endPoint") {
-        const numregx = /([^,]+)/g;
-        let nums = match[2].match(numregx);
+        const numRegex = /([^,]+)/g;
+        let nums = match[2].match(numRegex);
         wall.end = {x: nums[0], y: nums[1]};
       }
     }
-    
+
     walls.push(wall);
-    
-    wallStartIndex = kolfMap.indexOf(wallConfigPrefix, wallConfigEndIndex);
+
+    wallIndex = map.indexOf(wallConfig, wallConfigEnd);
   }
   console.log("Walls configuration:");
   console.log(walls);
-
 
   let canvas = document.getElementById("kolfMap");
   let ctx = canvas.getContext("2d");
