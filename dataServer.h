@@ -34,6 +34,7 @@ void sendTurnDataToServer();
 void updateData(const std::string& value, const std::string &dataTypeInfo, const std::string &path);
 void resetData();
 void updateDoubleData(const double &value, const std::string &dataTypeInfo, const std::string &path);
+void updateIntData(const int& value, const std::string& dataTypeInfo, const std::string& path);
 class HoleClass
 {
 public:

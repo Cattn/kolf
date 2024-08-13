@@ -3,6 +3,8 @@ const app = express();
 const PORT = 3010;
 const DiscordRPC = require('discord-rpc');
 const WebSocket = require('ws');
+const fs = require('node:fs');
+
 
 let player = "Unknown Player";
 let courseName = "Unknown Course";
@@ -33,16 +35,9 @@ app.post('/shot', (req, res) => {
   const receivedData = req.body;
   console.log('Received shot data:', receivedData);
 
-  if (receivedData['/shot']) {
-    courseName = receivedData['/shot'].course || courseName;
-    wss.clients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(receivedData));
-      }
-    });
-  }
-
   setActivity(); 
+
+  sendCourseToClients(receivedData);
 
   res.status(200).send('Data received');
 });
@@ -107,3 +102,27 @@ wss.on('connection', (ws) => {
 
   ws.send('Hi there, I am a WebSocket server');
 });
+
+async function sendCourseToClients(receivedData) {
+    fs.readFile(receivedData['/shot'].map, 'utf8', (err, data) => {
+        if (err) {
+            console.error(err);
+            return;
+        }
+        let map = {
+            'map': data,
+            'course': receivedData['/shot'].course || courseName,
+            'hole': receivedData['/shot'].hole
+        };
+      
+       if (receivedData['/shot']) {
+        courseName = receivedData['/shot'].course || courseName;
+        wss.clients.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(receivedData));
+            client.send(JSON.stringify(map));
+          }
+        });
+      }
+    });
+}

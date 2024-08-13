@@ -8,7 +8,8 @@ class ShotClass {
         public:
             std::string name;
             std::string courseName;
-            std::string holeNum;
+            std::string map;
+            int holeNum;
             double x;
             double y;
             double angleStart;
@@ -61,8 +62,8 @@ void updateData(const std::string& value, const std::string& dataTypeInfo, const
     if (path == "shot") {
         if (dataTypeInfo == "name") {
             shot.name = value;
-        } else if (dataTypeInfo == "holeNum") {
-            shot.holeNum = value;
+        } else if (dataTypeInfo == "map") {
+            shot.map = value;
         } else if (dataTypeInfo == "courseName") {
             shot.courseName = value;
         } else if (dataTypeInfo == "startDistance") {
@@ -71,6 +72,14 @@ void updateData(const std::string& value, const std::string& dataTypeInfo, const
             shot.endDistance = std::stof(value);
         } else if (dataTypeInfo == "shotTime") {
             shot.shotTime = std::stol(value);
+        }
+    }
+}
+
+void updateIntData(const int& value, const std::string& dataTypeInfo, const std::string& path) {
+    if (path == "shot") {
+        if (dataTypeInfo == "holeNum") {
+            shot.holeNum = value;
         }
     }
 }
@@ -94,6 +103,7 @@ void sendShotDataToServer() {
     j["/shot"]["name"] = shot.name;
     j["/shot"]["course"] = shot.courseName;
     j["/shot"]["hole"] = shot.holeNum;
+    j["/shot"]["map"] = shot.map;
     j["/shot"]["x"] = shot.x;
     j["/shot"]["y"] = shot.y;
     j["/shot"]["aim-start-angle"] = shot.angleStart;

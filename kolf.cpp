@@ -250,7 +250,7 @@ void KolfWindow::startNewGame()
 
 		competition = dialog->competition();
 		filename = filename.isNull()? dialog->course() : filename;
-		updateData(filename.toStdString().c_str(), "holeNum", "shot");
+		updateData(filename.toStdString().c_str(), "map", "shot");
 	}
 	else
 	{
@@ -261,7 +261,7 @@ void KolfWindow::startNewGame()
 			filename = QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("tutorial.kolf"));
 		else
 			filename = configGroup.readEntry("Course", QString());
-			updateData(filename.toStdString().c_str(), "holeNum", "shot");
+			updateData(filename.toStdString().c_str(), "map", "shot");
 
 
 		if (filename.isNull())

@@ -1508,6 +1508,8 @@ void KolfGame::shotDone() // has shot info in it
 	updateDoubleData((*curPlayer).ball()->x(), "x", "shot");
 	updateDoubleData((*curPlayer).ball()->y(), "y", "shot");
 
+	updateIntData(curHole, "holeNum", "shot");
+
 	const std::string playerName = (*curPlayer).name().toStdString(); 
 	updateData(playerName.c_str(), "name", "shot");
 
