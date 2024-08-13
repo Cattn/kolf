@@ -4,6 +4,7 @@
 This fork adds some QOL features, such as:
 - Automatic Saving during gameplay
 - Stat Tracking
+- Discord RPC
 
 Stats are sent as json on port 3010 every shot.
 
@@ -37,6 +38,8 @@ Good luck... No seriously, ``craft`` KDE's build tool for Kolf sucks. I wish you
 ## Extra Info
 A sample json file containing the layout of the data can be found in ``server/format.json``<br>
 The server itself can be found in ``server/server.js`` and can be ran with ``node server.js`` 
+
+Also, discord RPC will show the name of the players, as well as the current course name. An option to disable it will be provided later and this message will be updated 
  
 Modified by Cattn <br>
 Originally by the KDE Team.
