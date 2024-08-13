@@ -4,6 +4,8 @@ ws.onopen = () => {
   ws.send("hello world");
 };
 
+let activeHole = null;
+
 ws.onmessage = (message) => {
   console.log(`message received`, message.data, typeof message.data);
 
@@ -24,6 +26,10 @@ ws.onmessage = (message) => {
       let y = data["/shot"].y;
       let name = data["/shot"].name;
       let hole = data["/shot"].hole;
+
+      if (activeHole !== hole) {
+        cleanCanvas(document.getElementById("kolfMap"));
+      }
 
       setCanvas(x, y, name, hole);
 
@@ -46,7 +52,7 @@ function setCanvas(x, y, player, curHole) {
   let canvas = document.getElementById("kolfMap");
   let ctx = canvas.getContext("2d");
 
-  drawBg(canvas);
+  ctx.globalCompositeOperation = 'source-over';
 
   if (!playerColors[player]) {
     playerColors[player] = getRandomColor();
@@ -54,19 +60,22 @@ function setCanvas(x, y, player, curHole) {
 
   for (let p in playerPositions) {
     let pos = playerPositions[p];
-    ctx.clearRect(pos.x - 1, pos.y - 1, 12, 12);
-  }
-
+    ctx.fillStyle = "green";
+    ctx.fillRect(pos.x, pos.y, 10, 10);
+    ctx.strokeStyle = "green";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(pos.x - 1, pos.y - 1, 12, 12);
+}
   playerPositions[player] = { x, y };
 
   for (let p in playerPositions) {
-    let pos = playerPositions[p];
-    ctx.fillStyle = playerColors[p];
-    ctx.fillRect(pos.x, pos.y, 10, 10);
+      let pos = playerPositions[p];
+      ctx.fillStyle = playerColors[p];
+      ctx.fillRect(pos.x, pos.y, 10, 10);
 
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(pos.x - 1, pos.y - 1, 12, 12);
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(pos.x - 1, pos.y - 1, 12, 12);
   }
 
   currentPlayer = player;
@@ -81,9 +90,20 @@ function setCanvas(x, y, player, curHole) {
   currentHoleDiv.innerHTML = `Hole: ${curHole}`;
 }
 
-
 function convertKolfMapToCanvas(map, course, hole) {
-  let holeConfig = "[" + hole + "-hole@";
+  if (activeHole === hole) {
+    return;
+  }
+  console.log(`Hole: ${hole}, Active Hole: ${activeHole}`);
+  activeHole = hole;
+  
+  let walls = [];
+  let wallConfig = `[${hole}-wall@`;
+  let wallIndex = map.indexOf(wallConfig);
+
+  console.log(`Checking wall configurations for hole: ${hole}`);
+  
+  let holeConfig = `[${hole}-hole@`;
   let holeIndex = map.indexOf(holeConfig);
 
   if (holeIndex === -1) {
@@ -111,14 +131,9 @@ function convertKolfMapToCanvas(map, course, hole) {
   let holeStats = document.getElementById("curHoleStats");
   holeStats.innerHTML = `<br> Course: ${course} <br> Hole: ${hole} <br> Border Walls: ${config["borderWalls"]} <br> Par: ${config["par"]} <br> Max: ${config["maxstrokes"]}`;
 
-  console.log("Configuration found for hole " + hole + ":");
-  console.log(config);
+  console.log(`Configuration found for hole ${hole}:`, config);
 
   // Wall Handling
-  let walls = [];
-  let wallConfig = "[" + hole + "-wall@";
-  let wallIndex = map.indexOf(wallConfig);
-
   while (wallIndex !== -1) {
     let wallConfigStart = map.indexOf("\n", wallIndex) + 1;
     let wallConfigEnd = map.indexOf("[", wallConfigStart);
@@ -134,11 +149,11 @@ function convertKolfMapToCanvas(map, course, hole) {
       if (match[1] === "startPoint") {
         const numRegex = /([^,]+)/g;
         let nums = match[2].match(numRegex);
-        wall.start = {x: nums[0], y: nums[1]};
+        wall.start = { x: parseFloat(nums[0]), y: parseFloat(nums[1]) };
       } else if (match[1] === "endPoint") {
         const numRegex = /([^,]+)/g;
         let nums = match[2].match(numRegex);
-        wall.end = {x: nums[0], y: nums[1]};
+        wall.end = { x: parseFloat(nums[0]), y: parseFloat(nums[1]) };
       }
     }
 
@@ -146,23 +161,37 @@ function convertKolfMapToCanvas(map, course, hole) {
 
     wallIndex = map.indexOf(wallConfig, wallConfigEnd);
   }
-  console.log("Walls configuration:");
-  console.log(walls);
+
+  console.log("Walls configuration:", walls);
 
   let canvas = document.getElementById("kolfMap");
   let ctx = canvas.getContext("2d");
+  drawBg(canvas);
 
-  walls.forEach(wall => {
-    ctx.strokeStyle = "red";
-    ctx.moveTo(wall.start.x, wall.start.y);
-    ctx.lineTo(wall.end.x, wall.end.y);
-    ctx.stroke();
-  });
+  ctx.globalCompositeOperation = 'source-over';
+
+  if (walls.length === 0) {
+    console.log("No walls found for this hole.");
+  } else {
+    walls.forEach(wall => {
+      ctx.strokeStyle = "red";
+      ctx.beginPath();
+      ctx.moveTo(wall.start.x, wall.start.y);
+      ctx.lineTo(wall.end.x, wall.end.y);
+      ctx.stroke();
+    });
+  }
 }
 
 function drawBg(canvas) {
   let ctx = canvas.getContext("2d");
-  ctx.globalCompositeOperation = 'destination-under';
+  ctx.globalCompositeOperation = 'destination-over';
   ctx.fillStyle = "green";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function cleanCanvas(canvas) {
+  let ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBg(canvas);
 }
