@@ -27,6 +27,10 @@ htmlServed.get('/', function(req, res){
   res.sendFile(__dirname + '/index.html');
 });
 
+htmlServed.get('/index.js', function(req, res){
+  res.sendFile(__dirname + '/index.js');
+});
+
 app.post('/turn', (req, res) => {
   const receivedData = req.body;
   console.log('Received turn data:', receivedData);
