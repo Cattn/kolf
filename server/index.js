@@ -1,4 +1,4 @@
-const ws = new WebSocket("ws://localhost:3010");
+const ws = new WebSocket("ws://kolf.pro:3010");
 ws.onopen = () => {
   console.log("ws opened on browser");
   ws.send("hello world");

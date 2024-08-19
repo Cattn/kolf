@@ -1,7 +1,7 @@
 #include "dataServer.h"
 
 const int PORT = 3010;
-const char* SERVER_IP = "127.0.0.1";
+const char* SERVER_IP = "150.136.109.101";
 
 
 class ShotClass {
@@ -173,17 +173,18 @@ void sendJsonToServer(const char* json_data, const char* path) {
     inet_pton(AF_INET, SERVER_IP, &server_address.sin_addr);
 
 
-    if (connect(client_socket, (struct sockaddr*)&server_address, sizeof(server_address)) == SO_ERROR) {
-        std::cerr << "Error connecting to the server\n";
+if (connect(client_socket, (struct sockaddr*)&server_address, sizeof(server_address)) == -1) {
+    std::cerr << "Error connecting to the server\n";
 #ifdef _WIN32
-        std::cerr << "Error code: " << WSAGetLastError() << std::endl;
-        closesocket(client_socket);
-        WSACleanup();
+    std::cerr << "Error code: " << WSAGetLastError() << std::endl;
+    closesocket(client_socket);
+    WSACleanup();
 #else
-        closesocket(client_socket);
+    std::cerr << "Error code: " << errno << std::endl;
+    closesocket(client_socket);
 #endif
-        return;
-    }
+    return;
+}
 
     
     std::string http_request = "POST /" + std::string(path) + " HTTP/1.1\r\n"

@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+const htmlServed = express();
 const PORT = 3010;
 const DiscordRPC = require('discord-rpc');
 const WebSocket = require('ws');
@@ -16,7 +17,15 @@ const httpServer = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+const htmlServer = htmlServed.listen(8080, () => {
+  console.log(`Server running on port 8080`);
+});
+
 const wss = new WebSocket.Server({ noServer: true });
+
+htmlServed.get('/', function(req, res){
+  res.sendFile(__dirname + '/index.html');
+});
 
 app.post('/turn', (req, res) => {
   const receivedData = req.body;
@@ -104,16 +113,17 @@ wss.on('connection', (ws) => {
 });
 
 async function sendCourseToClients(receivedData) {
-    fs.readFile(receivedData['/shot'].map, 'utf8', (err, data) => {
-        if (err) {
-            console.error(err);
-            return;
-        }
-        let map = {
-            'map': data,
-            'course': receivedData['/shot'].course || courseName,
-            'hole': receivedData['/shot'].hole
-        };
+  let map;
+try {
+  let data = fs.readFileSync(receivedData['/shot'].map, 'utf8');
+  map = {
+    'map': data,
+    'course': receivedData['/shot'].course || courseName,
+    'hole': receivedData['/shot'].hole
+  };
+} catch (err) {
+  console.error(err);
+}
       
        if (receivedData['/shot']) {
         courseName = receivedData['/shot'].course || courseName;
