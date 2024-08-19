@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const htmlServed = express();
 const PORT = 3010;
-const DiscordRPC = require('discord-rpc');
+// const DiscordRPC = require('discord-rpc');
 const WebSocket = require('ws');
 const fs = require('node:fs');
 
@@ -65,27 +65,27 @@ app.post('/hole', (req, res) => {
   res.status(200).send('Data received');
 });
 
-const clientId = '1271305657106305075';
-DiscordRPC.register(clientId);
+// const clientId = '1271305657106305075';
+// DiscordRPC.register(clientId);
 
-const rpc = new DiscordRPC.Client({ transport: 'ipc' });
-const startTimestamp = new Date();
+// const rpc = new DiscordRPC.Client({ transport: 'ipc' });
+// const startTimestamp = new Date();
 
 async function setActivity() {
-  try {
-    await rpc.setActivity({
-      details: `Playing a Course`,
-      state: `Current Player: ${player}`,
-      startTimestamp,
-      largeImageKey: 'mainkolf',
-      largeImageText: courseName,
-      instance: false,
-    });
+  // try {
+  //   await rpc.setActivity({
+  //     details: `Playing a Course`,
+  //     state: `Current Player: ${player}`,
+  //     startTimestamp,
+  //     largeImageKey: 'mainkolf',
+  //     largeImageText: courseName,
+  //     instance: false,
+  //   });
 
-    console.log(`Activity set! Player: ${player}, Course: ${courseName}`);
-  } catch (error) {
-    console.error('Error setting activity:', error);
-  }
+  //   console.log(`Activity set! Player: ${player}, Course: ${courseName}`);
+  // } catch (error) {
+  //   console.error('Error setting activity:', error);
+  // }
 }
 
 rpc.on('ready', () => {
