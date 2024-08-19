@@ -101,6 +101,7 @@ function convertKolfMapToCanvas(map, course, hole) {
   let wallConfig = `[${hole}-wall@`;
   let wallIndex = map.indexOf(wallConfig);
 
+
   console.log(`Checking wall configurations for hole: ${hole}`);
   
   let holeConfig = `[${hole}-hole@`;
@@ -160,9 +161,120 @@ function convertKolfMapToCanvas(map, course, hole) {
     walls.push(wall);
 
     wallIndex = map.indexOf(wallConfig, wallConfigEnd);
+    }
+
+// Water Handling
+
+let waters = [];
+let waterConfig = `[${hole}-puddle@`;
+let waterIndex = map.indexOf(waterConfig);
+
+while (waterIndex !== -1) {
+  let waterConfigEnd = map.indexOf("[", waterIndex + 1);
+  if (waterConfigEnd === -1) {
+    waterConfigEnd = map.length;
   }
 
+  let waterConfigStr = map.substring(waterIndex, waterConfigEnd).trim();
+  let lines = waterConfigStr.split("\n");
+  let water = {};
+
+  // Get the coordinates from the first line
+  let coords = lines[0].match(/@(\d+),(\d+)/);
+  if (coords !== null) {
+    water.start = {
+      x: parseInt(coords[1]),
+      y: parseInt(coords[2])
+    };
+  }
+
+  // Get the height and width from the subsequent lines
+  for (let i = 1; i < lines.length; i++) {
+    let match = lines[i].match(/height=(\d+)/);
+    if (match !== null) {
+      water.height = parseInt(match[1]);
+    }
+
+    match = lines[i].match(/width=(\d+)/);
+    if (match !== null) {
+      water.width = parseInt(match[1]);
+    }
+  }
+
+  waters.push(water);
+
+  waterIndex = map.indexOf(waterConfig, waterConfigEnd);
+}
+
+
+// Slope Handling
+
+// Slope Handling
+
+let slopes = [];
+let slopeConfig = `[${hole}-slope@`;
+let slopeIndex = map.indexOf(slopeConfig);
+
+while (slopeIndex !== -1) {
+  let slopeConfigEnd = map.indexOf("[", slopeIndex + 1);
+  if (slopeConfigEnd === -1) {
+    slopeConfigEnd = map.length;
+  }
+
+  let slopeConfigStr = map.substring(slopeIndex, slopeConfigEnd).trim();
+  let lines = slopeConfigStr.split("\n");
+  let slope = {};
+
+  // Get the coordinates from the first line
+  let coords = lines[0].match(/@(\d+),(\d+)/);
+  if (coords !== null) {
+    slope.start = {
+      x: parseInt(coords[1]),
+      y: parseInt(coords[2])
+    };
+  }
+
+  // Get the slope data from the subsequent lines
+  for (let i = 1; i < lines.length; i++) {
+    let match = lines[i].match(/grade=(\d+)/);
+    if (match !== null) {
+      slope.grade = parseInt(match[1]);
+    }
+
+    match = lines[i].match(/gradient=(.*)/);
+    if (match !== null) {
+      slope.gradient = match[1];
+    }
+
+    match = lines[i].match(/height=(\d+)/);
+    if (match !== null) {
+      slope.height = parseInt(match[1]);
+    }
+
+    match = lines[i].match(/reversed=(true|false)/);
+    if (match !== null) {
+      slope.reversed = match[1] === "true";
+    }
+
+    match = lines[i].match(/stuckOnGround=(true|false)/);
+    if (match !== null) {
+      slope.stuckOnGround = match[1] === "true";
+    }
+
+    match = lines[i].match(/width=(\d+)/);
+    if (match !== null) {
+      slope.width = parseInt(match[1]);
+    }
+  }
+
+  slopes.push(slope);
+
+  slopeIndex = map.indexOf(slopeConfig, slopeConfigEnd);
+}
+
   console.log("Walls configuration:", walls);
+  console.log("Water configuration:", waters);
+  console.log("Slope configuration:", slopes);
 
   let canvas = document.getElementById("kolfMap");
   let ctx = canvas.getContext("2d");
@@ -181,6 +293,22 @@ function convertKolfMapToCanvas(map, course, hole) {
       ctx.stroke();
     });
   }
+
+if (waters.length === 0) {
+  console.log("No water found for this hole.");
+} else {
+  waters.forEach(water => {
+    var grd = ctx.createLinearGradient(0, 0, 200, 0);
+    grd.addColorStop(0, "blue");
+    grd.addColorStop(1, "blue");
+
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.ellipse(water.start.x, water.start.y, water.width / 2, water.height / 2, 0, 0, 2 * Math.PI);
+    ctx.fill();
+  });
+}
+
 }
 
 function drawBg(canvas) {
