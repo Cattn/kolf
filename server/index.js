@@ -309,6 +309,70 @@ if (waters.length === 0) {
   });
 }
 
+if (slopes.length === 0) {
+  console.log("No slopes found for this hole.");
+} else {
+  slopes.forEach(slope => {
+    try {
+    if (typeof slope.start.x === undefined || typeof slope.start.y === undefined) {
+      slope.start.x = 0;
+      slope.start.y = 0;
+    }
+    var grd;
+    if (slope.gradient == "Horizontal") {
+      grd = ctx.createLinearGradient(slope.start.x, slope.start.y, slope.start.x + slope.width, slope.start.y);
+      drawArrow(ctx, slope.start.x + slope.width / 2, slope.start.y, slope.start.x + slope.width, slope.start.y);
+    } else if (slope.gradient == "Vertical") {
+      grd = ctx.createLinearGradient(slope.start.x, slope.start.y, slope.start.x, slope.start.y + slope.height);
+      drawArrow(ctx, slope.start.x, slope.start.y + slope.height / 2, slope.start.x, slope.start.y + slope.height);
+    } else if (slope.gradient == "Diagonal") {
+      grd = ctx.createLinearGradient(slope.start.x, slope.start.y, slope.start.x + slope.width, slope.start.y + slope.height);
+      drawArrow(ctx, slope.start.x + slope.width / 2, slope.start.y + slope.height / 2, slope.start.x + slope.width, slope.start.y + slope.height);
+    } else if (slope.gradient == "Opposite Diagonal") {
+      grd = ctx.createLinearGradient(slope.start.x, slope.start.y + slope.height, slope.start.x + slope.width, slope.start.y);
+      drawArrow(ctx, slope.start.x + slope.width / 2, slope.start.y + slope.height / 2, slope.start.x + slope.width, slope.start.y);
+    } else if (slope.gradient == "Elliptic") {
+      grd = ctx.createRadialGradient(slope.start.x, slope.start.y, 0, slope.start.x, slope.start.y, slope.width);
+      drawArrow(ctx, slope.start.x, slope.start.y + slope.height / 2, slope.start.x, slope.start.y);
+      drawArrow(ctx, slope.start.x, slope.start.y - slope.height / 2, slope.start.x, slope.start.y); 
+      drawArrow(ctx, slope.start.x + slope.width / 2, slope.start.y, slope.start.x, slope.start.y); 
+      drawArrow(ctx, slope.start.x - slope.width / 2, slope.start.y, slope.start.x, slope.start.y);
+    } else {
+      console.log("Rewefwefwefal")
+      grd = ctx.createLinearGradient(slope.start.x, slope.start.y, slope.start.x, slope.start.y + slope.height);
+      drawArrow(ctx, slope.start.x, slope.start.y + slope.height / 2, slope.start.x, slope.start.y + slope.height);
+    }
+    grd.addColorStop(0, "red");
+    grd.addColorStop(0.1, "orange");
+    grd.addColorStop(0.5, "yellow");
+    grd.addColorStop(1, "green");
+
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.ellipse(slope.start.x, slope.start.y, slope.width / 2, slope.height / 2, 0, 0, 2 * Math.PI);
+    ctx.fill();
+
+  } catch (error) {
+    console.error(error);
+  }
+  });
+}
+
+}
+
+function drawArrow(ctx, x1, y1, x2, y2) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+
+  var angle = Math.atan2(y2 - y1, x2 - x1);
+  var arrowSize = 10;
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - arrowSize * Math.cos(angle - Math.PI / 6), y2 - arrowSize * Math.sin(angle - Math.PI / 6));
+  ctx.lineTo(x2 - arrowSize * Math.cos(angle + Math.PI / 6), y2 - arrowSize * Math.sin(angle + Math.PI / 6));
+  ctx.fill();
 }
 
 function drawBg(canvas) {
