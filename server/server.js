@@ -88,12 +88,12 @@ async function setActivity() {
   // }
 }
 
-rpc.on('ready', () => {
-  console.log('Discord RPC Client is ready');
-  setActivity(); 
-});
+// rpc.on('ready', () => {
+//   console.log('Discord RPC Client is ready');
+//   setActivity(); 
+// });
 
-rpc.login({ clientId }).catch(console.error);
+// rpc.login({ clientId }).catch(console.error);
 
 // WS stuff
 
