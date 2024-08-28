@@ -1,8 +1,11 @@
+// For use on host/server.
+
 const express = require('express');
 const app = express();
 const htmlServed = express();
 const PORT = 3010;
-// const DiscordRPC = require('discord-rpc');
+var bodyParser = require('body-parser')
+
 const WebSocket = require('ws');
 const fs = require('node:fs');
 
@@ -11,8 +14,11 @@ let player = "Unknown Player";
 let courseName = "Unknown Course";
 
 
-app.use(express.json());
-
+app.use(bodyParser.json({
+  parameterLimit: 100000,
+  limit: '1000mb',
+  extended: true
+}));
 const httpServer = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
@@ -32,7 +38,10 @@ htmlServed.get('/index.js', function(req, res){
 });
 
 app.post('/turn', (req, res) => {
-  const receivedData = req.body;
+  if (typeof req.body !== 'string') {
+    req.body = JSON.stringify(req.body);
+  }
+  const receivedData = JSON.parse(req.body);
   console.log('Received turn data:', receivedData);
 
   if (receivedData['/turn']) {
@@ -45,7 +54,10 @@ app.post('/turn', (req, res) => {
 });
 
 app.post('/shot', (req, res) => {
-  const receivedData = req.body;
+  if (typeof req.body !== 'string') {
+    req.body = JSON.stringify(req.body);
+  }
+  const receivedData = JSON.parse(req.body);
   console.log('Received shot data:', receivedData);
 
   setActivity(); 
@@ -63,7 +75,10 @@ app.post('/map', (req, res) => {
 });
 
 app.post('/hole', (req, res) => {
-  const receivedData = req.body;
+  if (typeof req.body !== 'string') {
+    req.body = JSON.stringify(req.body);
+  }
+  const receivedData = JSON.parse(req.body);
   console.log('Received hole data:', receivedData);
 
   res.status(200).send('Data received');
@@ -116,25 +131,12 @@ wss.on('connection', (ws) => {
   ws.send('Hi there, I am a WebSocket server');
 });
 
-async function sendCourseToClients(receivedData) {
-  let map;
-try {
-  let data = fs.readFileSync(receivedData['/shot'].map, 'utf8');
-  map = {
-    'map': data,
-    'course': receivedData['/shot'].course || courseName,
-    'hole': receivedData['/shot'].hole
-  };
-} catch (err) {
-  console.error(err);
-}
-      
+async function sendCourseToClients(receivedData) {  
        if (receivedData['/shot']) {
         courseName = receivedData['/shot'].course || courseName;
         wss.clients.forEach(client => {
           if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify(receivedData));
-            client.send(JSON.stringify(map));
           }
         });
       }

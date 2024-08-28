@@ -1,4 +1,4 @@
-const ws = new WebSocket("ws://kolf.pro:3010");
+const ws = new WebSocket("ws://localhost:3010");
 ws.onopen = () => {
   console.log("ws opened on browser");
   ws.send("hello world");
@@ -32,6 +32,9 @@ ws.onmessage = (message) => {
       }
 
       setCanvas(x, y, name, hole);
+
+      const course = document.getElementById("course");
+      course.src = data["/shot"].course;
 
       console.log(`x: ${x}, y: ${y}, name: ${name}`);
       console.log(data);

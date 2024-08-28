@@ -1,7 +1,7 @@
 #include "dataServer.h"
 
-const int PORT = 3010;
-const char* SERVER_IP = "150.136.109.101";
+const int PORT = 3030;
+const char* SERVER_IP = "127.0.0.1";
 
 
 class ShotClass {
