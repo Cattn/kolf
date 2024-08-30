@@ -9,6 +9,8 @@ var bodyParser = require('body-parser')
 const WebSocket = require('ws');
 const fs = require('node:fs');
 
+const io = require('socket.io')(3040);
+
 
 let player = "Unknown Player";
 let courseName = "Unknown Course";
@@ -141,3 +143,17 @@ async function sendCourseToClients(receivedData) {
         });
       }
 } 
+
+
+
+// Mouse/Socketio
+
+io.on('connection', socket => {
+  io.emit('broadcast', 'New player connected!');  
+  console.log('a user connected');
+
+  socket.on('message', message => {
+    console.log('received: %s', message);
+    socket.broadcast.emit('broadcast', message);
+  });
+});

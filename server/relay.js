@@ -92,3 +92,28 @@ app.post('/turn', (req, res) => {
   
     res.status(200).send('Data received');
   });
+
+
+  // Mouse Handling
+
+
+var robot = require("@hurdlegroup/robotjs");
+robot.setMouseDelay(2);
+
+var screenSize = robot.getScreenSize();
+var height = (screenSize.height / 2) - 10;
+var width = screenSize.width;
+
+
+const io = require('socket.io-client');
+const socket = io('http://localhost:3040');
+
+socket.on('connect', () => {
+  console.log('connected to server');
+  socket.send('Screen size: '+ width.toString() + 'x' + height.toString());
+});
+
+socket.on('message', (message) => {
+  console.log('received: %s', message);
+  socket.send(`Hello, you sent -> ${message}`);
+});
