@@ -4,7 +4,7 @@
 # Kim Enkovaara <kim.enkovaara@iki.fi>, 2003, 2004.
 # Teemu Rytilahti <teemu.rytilahti@kde-fi.org>, 2003, 2008.
 # Ilpo Kantonen <ilpo@iki.fi>, 2005.
-# Tommi Nieminen <translator@legisign.org>, 2010, 2011, 2020, 2021.
+# SPDX-FileCopyrightText: 2010, 2011, 2020, 2021, 2024 Tommi Nieminen <translator@legisign.org>
 # Lasse Liehu <lasse.liehu@gmail.com>, 2010, 2012, 2013, 2014, 2016.
 #
 # KDE Finnish translation sprint participants:
@@ -13,8 +13,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: kolf\n"
 "Report-Msgid-Bugs-To: https://bugs.kde.org\n"
-"POT-Creation-Date: 2023-10-09 02:38+0000\n"
-"PO-Revision-Date: 2021-08-27 15:08+0300\n"
+"POT-Creation-Date: 2024-05-05 00:37+0000\n"
+"PO-Revision-Date: 2024-10-21 19:38+0300\n"
 "Last-Translator: Tommi Nieminen <translator@legisign.org>\n"
 "Language-Team: Finnish <kde-i18n-doc@kde.org>\n"
 "Language: fi\n"
@@ -22,19 +22,18 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-POT-Import-Date: 2012-12-01 22:24:03+0000\n"
-"X-Generator: Lokalize 20.04.2\n"
+"X-Generator: Lokalize 23.08.5\n"
 
 #, kde-format
 msgctxt "NAME OF TRANSLATORS"
 msgid "Your names"
-msgstr "Teemu Rytilahti,Lasse Liehu,Tommi Nieminen"
+msgstr "Teemu Rytilahti, Lasse Liehu, Tommi Nieminen"
 
 #, kde-format
 msgctxt "EMAIL OF TRANSLATORS"
 msgid "Your emails"
 msgstr ""
-"teemu.rytilahti@kde-fi.org,lasse.liehu@gmail.com,translator@legisign.org"
+"teemu.rytilahti@kde-fi.org, lasse.liehu@gmail.com, translator@legisign.org"
 
 #: config.cpp:51
 #, kde-format
@@ -43,133 +42,148 @@ msgstr "Ei säädettäviä asetuksia"
 
 #: editor.cpp:37
 #, kde-format
+msgctxt "@label:listbox"
 msgid "Add object:"
 msgstr "Lisää kohde:"
 
-#: game.cpp:264
+#: game.cpp:263
 #, kde-format
-msgid "Course name: "
+msgctxt "@label:textbox"
+msgid "Course name:"
 msgstr "Radan nimi:"
 
-#: game.cpp:271
+#: game.cpp:270
 #, kde-format
+msgctxt "@label:textbox"
 msgid "Course author: "
 msgstr "Radan tekijä: "
 
-#: game.cpp:280
+#: game.cpp:279
 #, kde-format
+msgctxt "@label:spinbox"
 msgid "Par:"
 msgstr "Par:"
 
-#: game.cpp:290
+#: game.cpp:289
 #, kde-format
+msgctxt "@label:spinbox"
 msgid "Maximum:"
 msgstr "Enintään:"
 
-#: game.cpp:294
+#: game.cpp:293
 #, kde-format
+msgctxt "@info:whatsthis"
 msgid "Maximum number of strokes player can take on this hole."
 msgstr "Tämän radan lyöntien enimmäismäärä."
 
-#: game.cpp:295
+#: game.cpp:294
 #, kde-format
+msgctxt "@info:tooltip"
 msgid "Maximum number of strokes"
 msgstr "Lyöntien enimmäismäärä"
 
-#: game.cpp:296
+#: game.cpp:295
 #, kde-format
+msgctxt "@item number of strokes"
 msgid "Unlimited"
 msgstr "Rajoittamaton"
 
-#: game.cpp:302
+#: game.cpp:301
 #, kde-format
+msgctxt "@option:check"
 msgid "Show border walls"
 msgstr "Näytä reunavallit"
 
-#: game.cpp:500 game.cpp:2462
+#: game.cpp:499 game.cpp:2432
 #, kde-format
 msgid "Course Author"
 msgstr "Radan tekijä"
 
-#: game.cpp:501 game.cpp:502 game.cpp:2462
+#: game.cpp:500 game.cpp:501 game.cpp:2432
 #, kde-format
 msgid "Course Name"
 msgstr "Radan nimi"
 
+#: game.cpp:1423
+#, kde-format
+msgctxt "@item harzard action"
+msgid "Drop Outside of Hazard"
+msgstr "Pudota pallo esteen ulkopuolelle"
+
 #: game.cpp:1424
 #, kde-format
-msgid "Drop Outside of Hazard"
-msgstr "Pudottaa pallon esteen ulkopuolelle"
-
-#: game.cpp:1425
-#, kde-format
+msgctxt "@item harzard action"
 msgid "Rehit From Last Location"
-msgstr "Lyödä uudestaan edellisestä paikasta"
+msgstr "Lyö uudestaan edellisestä paikasta"
 
-#: game.cpp:1427
+#: game.cpp:1426
 #, kde-format
 msgid "What would you like to do for your next shot?"
 msgstr "Mitä haluat tehdä?"
 
-#: game.cpp:1427
+#: game.cpp:1426
 #, kde-format
-msgid "%1 is in a Hazard"
-msgstr "%1 joutui esteeseen"
+msgctxt "@title:window"
+msgid "%1 in a Hazard"
+msgstr "%1 esteessä"
 
-#: game.cpp:1595
+#: game.cpp:1594
 #, kde-format
 msgid "%1 will start off."
 msgstr "%1 aloittaa."
 
-#: game.cpp:1595
+#: game.cpp:1594
 #, kde-format
+msgctxt "@title:window"
 msgid "New Hole"
 msgstr "Uusi reikä"
 
-#: game.cpp:1756
+#: game.cpp:1755
 #, kde-format
 msgid "Course name: %1"
 msgstr "Radan nimi: %1"
 
-#: game.cpp:1757
+#: game.cpp:1756
 #, kde-format
 msgid "Created by %1"
 msgstr "Tekijä: %1"
 
-#: game.cpp:1758
+#: game.cpp:1757
 #, kde-format
 msgid "%1 hole"
 msgid_plural "%1 holes"
 msgstr[0] "%1 reikää"
 msgstr[1] "%1 reikää"
 
-#: game.cpp:1759
+#: game.cpp:1758
 #, kde-format
 msgctxt "@title:window"
 msgid "Course Information"
 msgstr "Radan tiedot"
 
-#: game.cpp:1890
+#: game.cpp:1876
 #, kde-format
 msgid "This hole uses the following plugins, which you do not have installed:"
 msgstr "Tämä reikä käyttää seuraavia liitännäisiä, joita ei ole asennettu:"
 
-#: game.cpp:2007
+#: game.cpp:1989
 #, kde-format
 msgid "There are unsaved changes to current hole. Save them?"
 msgstr "Reiällä on muutoksia tallentamatta. Tallennetaanko ne?"
 
-#: game.cpp:2008
+#: game.cpp:1990
 #, kde-format
+msgctxt "@title:window"
 msgid "Unsaved Changes"
-msgstr "Tallentamattomia muutoksia"
+msgstr "Muutoksia tallentamatta"
 
-#: game.cpp:2010
+#: game.cpp:1992
 #, kde-format
+msgctxt "@action:button"
 msgid "Save &Later"
 msgstr "Tallenna &myöhemmin"
 
-#: game.cpp:2191 kolf.cpp:550
+#: game.cpp:2165 kolf.cpp:552
 #, kde-format
 msgctxt "@title:window"
 msgid "Pick Kolf Course to Save To"
@@ -177,220 +191,244 @@ msgstr "Valitse Kolf-rata, johon tallennetaan"
 
 #: kcomboboxdialog.cpp:60
 #, kde-format
+msgctxt "@option:check"
 msgid "&Do not ask again"
-msgstr "&Älä kysy uudestaan"
+msgstr "&Älä kysy enää"
 
-#: kolf.cpp:62
+#: kolf.cpp:63
 #, kde-format
 msgid "Slope"
 msgstr "Mäki"
 
-#: kolf.cpp:63
+#: kolf.cpp:64
 #, kde-format
 msgid "Puddle"
 msgstr "Lammikko"
 
-#: kolf.cpp:64
+#: kolf.cpp:65
 #, kde-format
 msgid "Wall"
 msgstr "Seinä"
 
-#: kolf.cpp:65
+#: kolf.cpp:66
 #, kde-format
 msgid "Cup"
 msgstr "Reikä"
 
-#: kolf.cpp:66
+#: kolf.cpp:67
 #, kde-format
 msgid "Sand"
 msgstr "Hiekka"
 
-#: kolf.cpp:67
+#: kolf.cpp:68
 #, kde-format
 msgid "Windmill"
 msgstr "Tuulimylly"
 
-#: kolf.cpp:68
+#: kolf.cpp:69
 #, kde-format
 msgid "Black Hole"
 msgstr "Musta aukko"
 
-#: kolf.cpp:69
+#: kolf.cpp:70
 #, kde-format
 msgid "Floater"
 msgstr "Kelluke"
 
-#: kolf.cpp:70
+#: kolf.cpp:71
 #, kde-format
 msgid "Bridge"
 msgstr "Silta"
 
-#: kolf.cpp:71
+#: kolf.cpp:72
 #, kde-format
 msgid "Sign"
 msgstr "Merkki"
 
-#: kolf.cpp:72
+#: kolf.cpp:73
 #, kde-format
 msgid "Bumper"
 msgstr "Kimmoke"
 
-#: kolf.cpp:95
+#: kolf.cpp:96
 #, kde-format
+msgctxt "@action"
 msgid "Save &Course"
 msgstr "Tallenna &rata"
 
-#: kolf.cpp:97
+#: kolf.cpp:98
 #, kde-format
-msgid "Save &Course As..."
-msgstr "Tallenna r&ata nimellä…"
+msgctxt "@action"
+msgid "Save &Course As…"
+msgstr "Talle&nna rata nimellä…"
 
-#: kolf.cpp:100
+#: kolf.cpp:101
 #, kde-format
+msgctxt "@action"
 msgid "&Save Game"
 msgstr "Tallenna &peli"
 
-#: kolf.cpp:103
+#: kolf.cpp:104
 #, kde-format
-msgid "&Save Game As..."
+msgctxt "@action"
+msgid "&Save Game As…"
 msgstr "Tallenna p&eli nimellä…"
 
-#: kolf.cpp:110
+#: kolf.cpp:111
 #, kde-format
+msgctxt "@option:check"
 msgid "&Edit"
 msgstr "&Muokkaa"
 
-#: kolf.cpp:116
+#: kolf.cpp:117
 #, kde-format
+msgctxt "@action"
 msgid "&New"
 msgstr "&Uusi"
 
-#: kolf.cpp:125
+#: kolf.cpp:126
 #, kde-format
+msgctxt "@action"
 msgid "&Reset"
-msgstr "&Nollaa"
+msgstr "&Palauta"
 
-#: kolf.cpp:130
+#: kolf.cpp:131
 #, kde-format
+msgctxt "@action"
 msgid "&Undo Shot"
 msgstr "&Kumoa lyönti"
 
-#. i18n("&Replay Shot"), 0, this, SLOT(emptySlot()), actionCollection(), "replay");
+#. i18nc("@action", "&Replay Shot"), 0, this, SLOT(emptySlot()), actionCollection(), "replay");
 #. Go
-#: kolf.cpp:134
+#: kolf.cpp:135
 #, kde-format
+msgctxt "@title:menu"
 msgid "Switch to Hole"
 msgstr "Siirry reiälle"
 
-#: kolf.cpp:139
+#: kolf.cpp:140
 #, kde-format
+msgctxt "@action"
 msgid "&Next Hole"
 msgstr "&Seuraavalle reiälle"
 
-#: kolf.cpp:144
+#: kolf.cpp:145
 #, kde-format
+msgctxt "@action"
 msgid "&Previous Hole"
-msgstr "&Edelliselle reiälle"
+msgstr "E&delliselle reiälle"
 
-#: kolf.cpp:149
+#: kolf.cpp:150
 #, kde-format
+msgctxt "@action"
 msgid "&First Hole"
-msgstr "E&nsimmäiselle reiälle"
+msgstr "&Ensimmäiselle reiälle"
 
-#: kolf.cpp:153
+#: kolf.cpp:154
 #, kde-format
+msgctxt "@action"
 msgid "&Last Hole"
 msgstr "&Viimeiselle reiälle"
 
-#: kolf.cpp:158
+#: kolf.cpp:159
 #, kde-format
+msgctxt "@action"
 msgid "&Random Hole"
 msgstr "S&atunnaiselle reiälle"
 
-#: kolf.cpp:162
+#: kolf.cpp:163
 #, kde-format
+msgctxt "@option:check"
 msgid "Enable &Mouse for Moving Putter"
 msgstr "Liikuta putteria &hiirellä"
 
-#: kolf.cpp:169
+#: kolf.cpp:170
 #, kde-format
+msgctxt "@option:check"
 msgid "Enable &Advanced Putting"
 msgstr "Käytä &edistynyttä puttausta"
 
-#: kolf.cpp:175
+#: kolf.cpp:176
 #, kde-format
+msgctxt "@option:check"
 msgid "Show &Info"
-msgstr "Näytä tiet&oja"
+msgstr "&Näytä tietoa"
 
-#: kolf.cpp:182
+#: kolf.cpp:183
 #, kde-format
+msgctxt "@option:check"
 msgid "Show Putter &Guideline"
 msgstr "Näytä &puttausviiva"
 
-#: kolf.cpp:188
+#: kolf.cpp:189
 #, kde-format
+msgctxt "@option:check"
 msgid "Enable All Dialog Boxes"
-msgstr "Aktivoi kaikki keskustelulaatikot"
+msgstr "Käytä kaikki keskustelulaatikoita"
 
-#: kolf.cpp:192
+#: kolf.cpp:194
 #, kde-format
-msgid "Play &Sounds"
-msgstr "Soita &äänet"
+msgctxt "@option:check"
+msgid "Play Sounds"
+msgstr "Käytä ääniä"
 
-#: kolf.cpp:199
+#: kolf.cpp:201
 #, kde-format
-msgid "&About Course..."
-msgstr "&Tietoa radasta…"
+msgctxt "@action"
+msgid "&About Course"
+msgstr "Tietoa &radasta"
 
-#: kolf.cpp:202
+#: kolf.cpp:204
 #, kde-format
+msgctxt "@action"
 msgid "&Tutorial"
-msgstr "&Ohjattu peli"
+msgstr "&Opastus"
 
-#: kolf.cpp:452 kolf.cpp:496 kolf.cpp:523 newgame.cpp:248 scoreboard.cpp:27
+#: kolf.cpp:454 kolf.cpp:498 kolf.cpp:525 newgame.cpp:250
 #, kde-format
 msgid "Par"
 msgstr "Par"
 
-#: kolf.cpp:483
+#: kolf.cpp:485
 #, kde-format
+msgctxt "@item:intext winners"
 msgid " and "
 msgstr " ja "
 
-#: kolf.cpp:484
+#: kolf.cpp:486
 #, kde-format
 msgid "%1 tied"
 msgstr "%1 tasoitti."
 
-#: kolf.cpp:487
+#: kolf.cpp:489
 #, kde-format
 msgid "%1 won!"
 msgstr "%1 voitti!"
 
-#: kolf.cpp:501 kolf.cpp:513 kolf.cpp:528 kolf.cpp:529 newgame.cpp:249
-#: newgame.cpp:250
+#: kolf.cpp:503 kolf.cpp:515 kolf.cpp:530 kolf.cpp:531 newgame.cpp:251
+#: newgame.cpp:252
 #, kde-format
 msgid "High Scores for %1"
 msgstr "Radan ”%1” ennätykset"
 
-#: kolf.cpp:568
+#: kolf.cpp:570
 #, kde-format
 msgctxt "@title:window"
 msgid "Pick Saved Game to Save To"
 msgstr "Valitse tallennettu peli, johon tallennetaan"
 
-#: kolf.cpp:606
+#: kolf.cpp:608
 #, kde-format
 msgctxt "@title:window"
 msgid "Pick Kolf Saved Game"
 msgstr "Valitse tallennettu Kolf-peli"
 
-#: kolf.cpp:654
+#: kolf.cpp:656
 #, kde-format
 msgid "%1's turn"
 msgstr "Vuorossa %1"
 
-#: kolf.cpp:726
+#: kolf.cpp:728
 #, kde-format
 msgid "%1's score has reached the maximum for this hole."
 msgstr "Pelaaja %1 on lyönyt reiän enimmäismäärän."
@@ -409,16 +447,19 @@ msgstr "&Siirry"
 
 #: landscape.cpp:146
 #, kde-format
+msgctxt "@option:check"
 msgid "Enable show/hide"
-msgstr "Aktivoi näytä/piilota"
+msgstr "Käytä ”Näytä / piilota”"
 
-#: landscape.cpp:151 obstacles.cpp:446 obstacles.cpp:464
+#: landscape.cpp:151 obstacles.cpp:450 obstacles.cpp:468
 #, kde-format
+msgctxt "@item:inrange"
 msgid "Slow"
 msgstr "Hidas"
 
-#: landscape.cpp:155 obstacles.cpp:450 obstacles.cpp:468
+#: landscape.cpp:155 obstacles.cpp:454 obstacles.cpp:472
 #, kde-format
+msgctxt "@item:inrange"
 msgid "Fast"
 msgstr "Nopea"
 
@@ -449,152 +490,156 @@ msgstr "Elliptinen"
 
 #: landscape.cpp:571
 #, kde-format
+msgctxt "@option:check"
 msgid "Reverse direction"
 msgstr "Vastakkaissuunta"
 
 #: landscape.cpp:576
 #, kde-format
+msgctxt "@option:check"
 msgid "Unmovable"
 msgstr "Ei liikutettavissa"
 
 #: landscape.cpp:578
 #, kde-format
+msgctxt "@info:whatsthis"
 msgid "Whether or not this slope can be moved by other objects, like floaters."
 msgstr "Voivatko muut kohteet kuten kellukkeet liikuttaa tätä mäkeä."
 
 #: landscape.cpp:582
 #, kde-format
+msgctxt "@lable:spinbox"
 msgid "Grade:"
 msgstr "Aste:"
 
 # pmap: =/gen=Kolfin/
 # pmap: =/elat=Kolfista/
-#: main.cpp:49
+#: main.cpp:45
 #, kde-format
 msgid "Kolf"
 msgstr "Kolf"
 
-#: main.cpp:51
+#: main.cpp:47
 #, kde-format
 msgid "KDE Minigolf Game"
 msgstr "KDE:n pienoisgolfpeli"
 
-#: main.cpp:53
+#: main.cpp:49
 #, kde-format
 msgid "(c) 2002-2010, Kolf developers"
 msgstr "© 2002–2010 Kolf-kehittäjät"
 
-#: main.cpp:57
+#: main.cpp:53
 #, kde-format
 msgid "Stefan Majewsky"
 msgstr "Stefan Majewsky"
 
-#: main.cpp:57
+#: main.cpp:53
 #, kde-format
 msgid "Current maintainer"
 msgstr "Nykyinen ylläpitäjä"
 
-#: main.cpp:58
+#: main.cpp:54
 #, kde-format
 msgid "Jason Katz-Brown"
 msgstr "Jason Katz-Brown"
 
-#: main.cpp:58
+#: main.cpp:54
 #, kde-format
 msgid "Former main author"
 msgstr "Aiempi päätekijä"
 
-#: main.cpp:59
+#: main.cpp:55
 #, kde-format
 msgid "Niklas Knutsson"
 msgstr "Niklas Knutsson"
 
-#: main.cpp:59
+#: main.cpp:55
 #, kde-format
 msgid "Advanced putting mode"
 msgstr "Kehittynyt puttaus-tila"
 
-#: main.cpp:60
+#: main.cpp:56
 #, kde-format
 msgid "Rik Hemsley"
 msgstr "Rik Hemsley"
 
-#: main.cpp:60
+#: main.cpp:56
 #, kde-format
 msgid "Border around course"
 msgstr "Rataa ympäröivät seinämät"
 
-#: main.cpp:61
+#: main.cpp:57
 #, kde-format
 msgid "Timo A. Hummel"
 msgstr "Timo A. Hummel"
 
-#: main.cpp:61
+#: main.cpp:57
 #, kde-format
 msgid "Some good sound effects"
 msgstr "Jotkin hyvät äänitehosteet"
 
-#: main.cpp:63
+#: main.cpp:59
 #, kde-format
 msgid "Rob Renaud"
 msgstr "Rob Renaud"
 
-#: main.cpp:63
+#: main.cpp:59
 #, kde-format
 msgid "Wall-bouncing help"
 msgstr "Seinäkimmoutusapu"
 
-#: main.cpp:64
+#: main.cpp:60
 #, kde-format
 msgid "Aaron Seigo"
 msgstr "Aaron Seigo"
 
-#: main.cpp:64
+#: main.cpp:60
 #, kde-format
 msgid "Suggestions, bug reports"
 msgstr "Ehdotukset, vikailmoitukset"
 
-#: main.cpp:65
+#: main.cpp:61
 #, kde-format
 msgid "Erin Catto"
 msgstr "Erin Catto"
 
-#: main.cpp:65
+#: main.cpp:61
 #, kde-format
 msgid "Developer of Box2D physics engine"
 msgstr "Box2D-fysiikkakoneen kehittäjä"
 
-#: main.cpp:66
+#: main.cpp:62
 #, kde-format
 msgid "Ryan Cumming"
 msgstr "Ryan Cumming"
 
-#: main.cpp:66
+#: main.cpp:62
 #, kde-format
 msgid "Vector class (Kolf 1)"
 msgstr "Vektoriluokka (Kolf 1)"
 
-#: main.cpp:67
+#: main.cpp:63
 #, kde-format
 msgid "Daniel Matza-Brown"
 msgstr "Daniel Matza-Brown"
 
-#: main.cpp:67
+#: main.cpp:63
 #, kde-format
 msgid "Working wall-bouncing algorithm (Kolf 1)"
 msgstr "Toimiva seinästäkimmoitusalgoritmi (Kolf 1)"
 
-#: main.cpp:72
+#: main.cpp:71
 #, kde-format
 msgid "File"
 msgstr "Tiedosto"
 
-#: main.cpp:73
+#: main.cpp:72
 #, kde-format
 msgid "Print course information and exit"
 msgstr "Tulosta ratatiedot ja lopeta"
 
-#: main.cpp:90 newgame.cpp:240
+#: main.cpp:90
 #, kde-format
 msgid "By %1"
 msgstr "Tekijä: %1"
@@ -614,73 +659,84 @@ msgstr "par %1"
 msgid "Course %1 does not exist."
 msgstr "Rataa %1 ei löydy."
 
-#: newgame.cpp:38
+#: newgame.cpp:40
 #, kde-format
 msgctxt "@title:window"
 msgid "New Game"
 msgstr "Uusi peli"
 
-#: newgame.cpp:54
+#: newgame.cpp:56
 #, kde-format
+msgctxt "@title:tab"
 msgid "Players"
 msgstr "Pelaajat"
 
-#: newgame.cpp:58
+#: newgame.cpp:60
 #, kde-format
+msgctxt "@action:button"
 msgid "&New Player"
 msgstr "&Uusi pelaaja"
 
-#: newgame.cpp:93
+#: newgame.cpp:95
 #, kde-format
+msgctxt "@title:tab"
 msgid "Course"
 msgstr "Rata"
 
-#: newgame.cpp:94
+#: newgame.cpp:96
 #, kde-format
+msgctxt "@title"
 msgid "Choose Course to Play"
 msgstr "Valitse pelattava rata"
 
-#: newgame.cpp:133
+#: newgame.cpp:135
 #, kde-format
-msgid "Create New"
-msgstr "Luo uusi"
+msgctxt "@item"
+msgid "<Create New>"
+msgstr "<Luo uusi>"
 
-#: newgame.cpp:134
+#: newgame.cpp:136
 #, kde-format
 msgid "You"
 msgstr "Pelaaja"
 
-#: newgame.cpp:160
+#: newgame.cpp:162
 #, kde-format
+msgctxt "@action:button"
 msgid "Highscores"
 msgstr "Ennätykset"
 
-#: newgame.cpp:170
+#: newgame.cpp:172
 #, kde-format
-msgid "Add..."
+msgctxt "@action:button"
+msgid "Add…"
 msgstr "Lisää…"
 
-#: newgame.cpp:174 newgame.cpp:363
+#: newgame.cpp:176 newgame.cpp:365
 #, kde-format
+msgctxt "@action:button"
 msgid "Remove"
 msgstr "Poista"
 
-#: newgame.cpp:184
+#: newgame.cpp:186
 #, kde-format
+msgctxt "@title:tab"
 msgid "Options"
-msgstr "Asetukset"
+msgstr "Valinnat"
 
-#: newgame.cpp:185
+#: newgame.cpp:187
 #, kde-format
+msgctxt "@title"
 msgid "Game Options"
 msgstr "Peliasetukset"
 
-#: newgame.cpp:190
+#: newgame.cpp:192
 #, kde-format
+msgctxt "@option:check"
 msgid "&Strict mode"
 msgstr "T&iukat säännöt"
 
-#: newgame.cpp:194
+#: newgame.cpp:196
 #, kde-format
 msgid ""
 "In strict mode, undo, editing, and switching holes is not allowed. This is "
@@ -690,34 +746,45 @@ msgstr ""
 "reiän vaihtamista. Tämä asetus on kilpailukäyttöön, ja vain tämän tilan "
 "ennätykset tallennetaan."
 
-#: newgame.cpp:241
+#: newgame.cpp:242
 #, kde-format
+msgctxt "@info author attribution"
+msgid "By %1"
+msgstr "Tekijältä %1"
+
+#: newgame.cpp:243
+#, kde-format
+msgctxt "@info"
 msgid "Par %1"
 msgstr "Par %1"
 
-#: newgame.cpp:242
+#: newgame.cpp:244
 #, kde-format
-msgid "%1 Holes"
-msgstr "%1 reikää"
+msgctxt "@info"
+msgid "1 Hole"
+msgid_plural "%1 Holes"
+msgstr[0] "%1 reikä"
+msgstr[1] "%1 reikää"
 
-#: newgame.cpp:280
+#: newgame.cpp:282
 #, kde-format
 msgctxt "@title:window"
 msgid "Pick Kolf Course"
 msgstr "Valitse Kolf-rata"
 
-#: newgame.cpp:308
+#: newgame.cpp:310
 #, kde-format
 msgid "Chosen course is already on course list."
 msgstr "Valitsemasi rata on jo luettelossa."
 
-#: newgame.cpp:321
+#: newgame.cpp:323
 #, kde-format
 msgid "Player %1"
 msgstr "Pelaaja %1"
 
 #: objects.cpp:244
 #, kde-format
+msgctxt "@item:valuesuffix"
 msgid " degree"
 msgid_plural " degrees"
 msgstr[0] " aste"
@@ -725,64 +792,85 @@ msgstr[1] " astetta"
 
 #: objects.cpp:247
 #, kde-format
+msgctxt "@label:spinbox"
 msgid "Exiting ball angle:"
 msgstr "Pallon poistumiskulma:"
 
 #: objects.cpp:267
 #, kde-format
+msgctxt "@label:spinbox"
 msgid "Minimum exit speed:"
-msgstr "Poistumisnopeus vähintään:"
+msgstr "Vähimmäispoistumisnopeus:"
 
 #: objects.cpp:288
 #, kde-format
+msgctxt "@label:spinbox"
 msgid "Maximum exit speed:"
-msgstr "Poistumisnopeus enintään:"
+msgstr "Enimmäispoistumisnopeus:"
 
 #: obstacles.cpp:412
+msgctxt "@option:check wall on"
 msgid "&Top"
 msgstr "&Ylhäällä"
 
-#: obstacles.cpp:412
+#: obstacles.cpp:413
+msgctxt "@option:check wall on"
 msgid "&Left"
 msgstr "&Vasemmalla"
 
-#: obstacles.cpp:412
+#: obstacles.cpp:414
+msgctxt "@option:check wall on"
 msgid "&Right"
 msgstr "&Oikealla"
 
-#: obstacles.cpp:412
+#: obstacles.cpp:415
+msgctxt "@option:check wall on"
 msgid "&Bottom"
 msgstr "&Alhaalla"
 
-#: obstacles.cpp:421
+#: obstacles.cpp:425
 #, kde-format
+msgctxt "@label:chooser"
 msgid "Walls on:"
 msgstr "Seinämät:"
 
-#: obstacles.cpp:431
+#: obstacles.cpp:435
 #, kde-format
+msgctxt "@label:textbox"
 msgid "Sign HTML:"
 msgstr "Allekirjoita HTML:"
 
-#: obstacles.cpp:440
+#: obstacles.cpp:444
 #, kde-format
+msgctxt "@option:check"
 msgid "Windmill on top"
 msgstr "Tuulimylly ylhäällä"
 
-#: obstacles.cpp:461
+#: obstacles.cpp:465
 #, kde-format
+msgctxt "@label:slider"
 msgid "Moving speed"
 msgstr "Liikenopeus"
 
-#: obstacles.cpp:681
+#: obstacles.cpp:685
 #, kde-format
 msgid "New Text"
 msgstr "Uusi teksti"
 
+#: scoreboard.cpp:27
+#, kde-format
+msgctxt "@title:row"
+msgid "Par"
+msgstr "Par"
+
 #: scoreboard.cpp:28
 #, kde-format
+msgctxt "@title:column"
 msgid "Total"
 msgstr "Yhteensä"
+
+#~ msgid "Add..."
+#~ msgstr "Lisää…"
 
 #~ msgid "(c) 2002-2005, Jason Katz-Brown"
 #~ msgstr "(c) 2002-2005, Jason Katz-Brown"
