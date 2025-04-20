@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: kolf\n"
 "Report-Msgid-Bugs-To: https://bugs.kde.org\n"
-"POT-Creation-Date: 2023-10-09 02:38+0000\n"
-"PO-Revision-Date: 2023-10-08 06:49+0200\n"
+"POT-Creation-Date: 2024-05-05 00:37+0000\n"
+"PO-Revision-Date: 2024-05-05 05:51+0200\n"
 "Last-Translator: Temuri Doghonadze <temuri.doghonadze@gmail.com>\n"
 "Language-Team: Georgian <kde-i18n-doc@kde.org>\n"
 "Language: ka\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.4\n"
+"X-Generator: Poedit 3.3.2\n"
 
 #, kde-format
 msgctxt "NAME OF TRANSLATORS"
@@ -35,133 +35,148 @@ msgstr "კონფიგურაციის პარამეტრებ�
 
 #: editor.cpp:37
 #, kde-format
+msgctxt "@label:listbox"
 msgid "Add object:"
 msgstr "ობიექტის დამატება:"
 
-#: game.cpp:264
+#: game.cpp:263
 #, kde-format
-msgid "Course name: "
-msgstr "კურსის სახელი: "
+msgctxt "@label:textbox"
+msgid "Course name:"
+msgstr "კურსის სახელი:"
 
-#: game.cpp:271
+#: game.cpp:270
 #, kde-format
+msgctxt "@label:textbox"
 msgid "Course author: "
 msgstr "კურსის ავტორი: "
 
-#: game.cpp:280
+#: game.cpp:279
 #, kde-format
+msgctxt "@label:spinbox"
 msgid "Par:"
 msgstr "ქულები:"
 
-#: game.cpp:290
+#: game.cpp:289
 #, kde-format
+msgctxt "@label:spinbox"
 msgid "Maximum:"
 msgstr "მაქსიმუმი:"
 
-#: game.cpp:294
+#: game.cpp:293
 #, kde-format
+msgctxt "@info:whatsthis"
 msgid "Maximum number of strokes player can take on this hole."
 msgstr "მოთამაშის მიერ ამ ნახვრეტში ჩაგდების ცდების მაქსიმალური რაოდენობა."
 
-#: game.cpp:295
+#: game.cpp:294
 #, kde-format
+msgctxt "@info:tooltip"
 msgid "Maximum number of strokes"
 msgstr "დარტყმების მაქსიმალური რაოდენობა"
 
-#: game.cpp:296
+#: game.cpp:295
 #, kde-format
+msgctxt "@item number of strokes"
 msgid "Unlimited"
 msgstr "შეუზღუდავი"
 
-#: game.cpp:302
+#: game.cpp:301
 #, kde-format
+msgctxt "@option:check"
 msgid "Show border walls"
 msgstr "საზღვრის კედლების ჩვენება"
 
-#: game.cpp:500 game.cpp:2462
+#: game.cpp:499 game.cpp:2432
 #, kde-format
 msgid "Course Author"
 msgstr "კურსის ავტორი"
 
-#: game.cpp:501 game.cpp:502 game.cpp:2462
+#: game.cpp:500 game.cpp:501 game.cpp:2432
 #, kde-format
 msgid "Course Name"
 msgstr "კურსის სახელი"
 
-#: game.cpp:1424
+#: game.cpp:1423
 #, kde-format
+msgctxt "@item harzard action"
 msgid "Drop Outside of Hazard"
 msgstr "საშიში ადგილის გარეთ დაგდება"
 
-#: game.cpp:1425
+#: game.cpp:1424
 #, kde-format
+msgctxt "@item harzard action"
 msgid "Rehit From Last Location"
 msgstr "ბოლო მდებარეობიდან"
 
-#: game.cpp:1427
+#: game.cpp:1426
 #, kde-format
 msgid "What would you like to do for your next shot?"
 msgstr "რა გნებავთ ქნათ შემდეგი დარტყმისთვის?"
 
-#: game.cpp:1427
+#: game.cpp:1426
 #, kde-format
-msgid "%1 is in a Hazard"
+msgctxt "@title:window"
+msgid "%1 in a Hazard"
 msgstr "%1 საფრთხეშია"
 
-#: game.cpp:1595
+#: game.cpp:1594
 #, kde-format
 msgid "%1 will start off."
 msgstr "%1 დაიწყებს."
 
-#: game.cpp:1595
+#: game.cpp:1594
 #, kde-format
+msgctxt "@title:window"
 msgid "New Hole"
 msgstr "ახალი ნახვრეტი"
 
-#: game.cpp:1756
+#: game.cpp:1755
 #, kde-format
 msgid "Course name: %1"
 msgstr "კურსის სახელი: %1"
 
-#: game.cpp:1757
+#: game.cpp:1756
 #, kde-format
 msgid "Created by %1"
 msgstr "შექმნილია %1-ის მიერ"
 
-#: game.cpp:1758
+#: game.cpp:1757
 #, kde-format
 msgid "%1 hole"
 msgid_plural "%1 holes"
 msgstr[0] "%1 ნახვრეტი"
 msgstr[1] "%1 ნახვრეტი"
 
-#: game.cpp:1759
+#: game.cpp:1758
 #, kde-format
 msgctxt "@title:window"
 msgid "Course Information"
 msgstr "კურსის ინფორმაცია"
 
-#: game.cpp:1890
+#: game.cpp:1876
 #, kde-format
 msgid "This hole uses the following plugins, which you do not have installed:"
 msgstr "ეს ხვრელი იყენებს შემდეგ დამატებებს, რომლებიც დაყენებული არ გაქვთ:"
 
-#: game.cpp:2007
+#: game.cpp:1989
 #, kde-format
 msgid "There are unsaved changes to current hole. Save them?"
 msgstr "ამ ნახვრეტს შეუნახავი ცვლილებები გააჩნია. შევინახო?"
 
-#: game.cpp:2008
+#: game.cpp:1990
 #, kde-format
+msgctxt "@title:window"
 msgid "Unsaved Changes"
 msgstr "შეუნახავი ცვლილებები"
 
-#: game.cpp:2010
+#: game.cpp:1992
 #, kde-format
+msgctxt "@action:button"
 msgid "Save &Later"
 msgstr "&მოგვიანებით შენახვა"
 
-#: game.cpp:2191 kolf.cpp:550
+#: game.cpp:2165 kolf.cpp:552
 #, kde-format
 msgctxt "@title:window"
 msgid "Pick Kolf Course to Save To"
@@ -169,220 +184,244 @@ msgstr "შესანახი მოედნის არჩევანი"
 
 #: kcomboboxdialog.cpp:60
 #, kde-format
+msgctxt "@option:check"
 msgid "&Do not ask again"
 msgstr "&აღარ მკითხო"
 
-#: kolf.cpp:62
+#: kolf.cpp:63
 #, kde-format
 msgid "Slope"
 msgstr "დახრა"
 
-#: kolf.cpp:63
+#: kolf.cpp:64
 #, kde-format
 msgid "Puddle"
 msgstr "გუბე"
 
-#: kolf.cpp:64
+#: kolf.cpp:65
 #, kde-format
 msgid "Wall"
 msgstr "კედელი"
 
-#: kolf.cpp:65
+#: kolf.cpp:66
 #, kde-format
 msgid "Cup"
 msgstr "ჭიქა"
 
-#: kolf.cpp:66
+#: kolf.cpp:67
 #, kde-format
 msgid "Sand"
 msgstr "ქვიშა"
 
-#: kolf.cpp:67
+#: kolf.cpp:68
 #, kde-format
 msgid "Windmill"
 msgstr "ქარის წისქვილი"
 
-#: kolf.cpp:68
+#: kolf.cpp:69
 #, kde-format
 msgid "Black Hole"
 msgstr "შავი ხვრელი"
 
-#: kolf.cpp:69
+#: kolf.cpp:70
 #, kde-format
 msgid "Floater"
 msgstr "პლატფორმა"
 
-#: kolf.cpp:70
+#: kolf.cpp:71
 #, kde-format
 msgid "Bridge"
 msgstr "ხიდი"
 
-#: kolf.cpp:71
+#: kolf.cpp:72
 #, kde-format
 msgid "Sign"
 msgstr "ხელმოწერა"
 
-#: kolf.cpp:72
+#: kolf.cpp:73
 #, kde-format
 msgid "Bumper"
 msgstr "ამრეკლი"
 
-#: kolf.cpp:95
+#: kolf.cpp:96
 #, kde-format
+msgctxt "@action"
 msgid "Save &Course"
 msgstr "&კურსის შენახვა"
 
-#: kolf.cpp:97
+#: kolf.cpp:98
 #, kde-format
-msgid "Save &Course As..."
-msgstr "კურსის &შენახვა, როგორც..."
+msgctxt "@action"
+msgid "Save &Course As…"
+msgstr "კურსის &შენახვა, როგორც…"
 
-#: kolf.cpp:100
+#: kolf.cpp:101
 #, kde-format
+msgctxt "@action"
 msgid "&Save Game"
 msgstr "&თამაშის შენახვა"
 
-#: kolf.cpp:103
+#: kolf.cpp:104
 #, kde-format
-msgid "&Save Game As..."
-msgstr "&თამაშის შენახვა, როგორც..."
+msgctxt "@action"
+msgid "&Save Game As…"
+msgstr "&თამაშის შენახვა, როგორც…"
 
-#: kolf.cpp:110
+#: kolf.cpp:111
 #, kde-format
+msgctxt "@option:check"
 msgid "&Edit"
 msgstr "&ჩასწორება"
 
-#: kolf.cpp:116
+#: kolf.cpp:117
 #, kde-format
+msgctxt "@action"
 msgid "&New"
 msgstr "&ახალი"
 
-#: kolf.cpp:125
+#: kolf.cpp:126
 #, kde-format
+msgctxt "@action"
 msgid "&Reset"
-msgstr "&საწყისი მნიშვნელობებზე დაბრუნება"
+msgstr "ჩ&ამოყრა"
 
-#: kolf.cpp:130
+#: kolf.cpp:131
 #, kde-format
+msgctxt "@action"
 msgid "&Undo Shot"
 msgstr "&სროლის გაუქმება"
 
-#. i18n("&Replay Shot"), 0, this, SLOT(emptySlot()), actionCollection(), "replay");
+#. i18nc("@action", "&Replay Shot"), 0, this, SLOT(emptySlot()), actionCollection(), "replay");
 #. Go
-#: kolf.cpp:134
+#: kolf.cpp:135
 #, kde-format
+msgctxt "@title:menu"
 msgid "Switch to Hole"
 msgstr "ნახვრეტზე გადართვა"
 
-#: kolf.cpp:139
+#: kolf.cpp:140
 #, kde-format
+msgctxt "@action"
 msgid "&Next Hole"
 msgstr "&შემდეგი ნახვრეტი"
 
-#: kolf.cpp:144
+#: kolf.cpp:145
 #, kde-format
+msgctxt "@action"
 msgid "&Previous Hole"
 msgstr "&წინა ნახვრეტი"
 
-#: kolf.cpp:149
+#: kolf.cpp:150
 #, kde-format
+msgctxt "@action"
 msgid "&First Hole"
 msgstr "&პირველი ნახვრეტი"
 
-#: kolf.cpp:153
+#: kolf.cpp:154
 #, kde-format
+msgctxt "@action"
 msgid "&Last Hole"
 msgstr "&ბოლო ნახვრეტი"
 
-#: kolf.cpp:158
+#: kolf.cpp:159
 #, kde-format
+msgctxt "@action"
 msgid "&Random Hole"
 msgstr "&შემთხვევითი ნახვრეტი"
 
-#: kolf.cpp:162
+#: kolf.cpp:163
 #, kde-format
+msgctxt "@option:check"
 msgid "Enable &Mouse for Moving Putter"
 msgstr "თაგუნას ჩართვა &ფუთერის გადასაადგილებლად"
 
-#: kolf.cpp:169
+#: kolf.cpp:170
 #, kde-format
+msgctxt "@option:check"
 msgid "Enable &Advanced Putting"
 msgstr "რთული &დარტყმების ჩართვა"
 
-#: kolf.cpp:175
+#: kolf.cpp:176
 #, kde-format
+msgctxt "@option:check"
 msgid "Show &Info"
 msgstr "ინფორმაციის &ჩვენება"
 
-#: kolf.cpp:182
+#: kolf.cpp:183
 #, kde-format
+msgctxt "@option:check"
 msgid "Show Putter &Guideline"
 msgstr "ფუთერების &მიმართულების ხაზის ჩვენება"
 
-#: kolf.cpp:188
+#: kolf.cpp:189
 #, kde-format
+msgctxt "@option:check"
 msgid "Enable All Dialog Boxes"
 msgstr "ყველა ფანჯრის ჩართვა"
 
-#: kolf.cpp:192
+#: kolf.cpp:194
 #, kde-format
-msgid "Play &Sounds"
-msgstr "&ხმის დაკვრა"
+msgctxt "@option:check"
+msgid "Play Sounds"
+msgstr "ხმების დაკვრა"
 
-#: kolf.cpp:199
+#: kolf.cpp:201
 #, kde-format
-msgid "&About Course..."
-msgstr "&კურსის შესახებ..."
+msgctxt "@action"
+msgid "&About Course"
+msgstr "&კურსის შესახებ"
 
-#: kolf.cpp:202
+#: kolf.cpp:204
 #, kde-format
+msgctxt "@action"
 msgid "&Tutorial"
 msgstr "&სახელმძღვანელო"
 
-#: kolf.cpp:452 kolf.cpp:496 kolf.cpp:523 newgame.cpp:248 scoreboard.cpp:27
+#: kolf.cpp:454 kolf.cpp:498 kolf.cpp:525 newgame.cpp:250
 #, kde-format
 msgid "Par"
 msgstr "ქულები"
 
-#: kolf.cpp:483
+#: kolf.cpp:485
 #, kde-format
+msgctxt "@item:intext winners"
 msgid " and "
 msgstr " და "
 
-#: kolf.cpp:484
+#: kolf.cpp:486
 #, kde-format
 msgid "%1 tied"
 msgstr "%1-მა წააგო"
 
-#: kolf.cpp:487
+#: kolf.cpp:489
 #, kde-format
 msgid "%1 won!"
 msgstr "%1-მა მოიგო!"
 
-#: kolf.cpp:501 kolf.cpp:513 kolf.cpp:528 kolf.cpp:529 newgame.cpp:249
-#: newgame.cpp:250
+#: kolf.cpp:503 kolf.cpp:515 kolf.cpp:530 kolf.cpp:531 newgame.cpp:251
+#: newgame.cpp:252
 #, kde-format
 msgid "High Scores for %1"
 msgstr "%1-ის უმაღლესი ქულები"
 
-#: kolf.cpp:568
+#: kolf.cpp:570
 #, kde-format
 msgctxt "@title:window"
 msgid "Pick Saved Game to Save To"
 msgstr "აირჩიეთ შენახული თამაში, რომ შეინახოთ"
 
-#: kolf.cpp:606
+#: kolf.cpp:608
 #, kde-format
 msgctxt "@title:window"
 msgid "Pick Kolf Saved Game"
 msgstr "აირჩიეთ Kolf -ის შენახული თამაში"
 
-#: kolf.cpp:654
+#: kolf.cpp:656
 #, kde-format
 msgid "%1's turn"
 msgstr "%1-ის სვლაა"
 
-#: kolf.cpp:726
+#: kolf.cpp:728
 #, kde-format
 msgid "%1's score has reached the maximum for this hole."
 msgstr "%1-ის ქულებმა ამ ნახვრეტისთვის მაქსიმუმს მიაღწია.."
@@ -401,16 +440,19 @@ msgstr "&წავიდა"
 
 #: landscape.cpp:146
 #, kde-format
+msgctxt "@option:check"
 msgid "Enable show/hide"
 msgstr "ჩვენება / დამალვის ჩართვა"
 
-#: landscape.cpp:151 obstacles.cpp:446 obstacles.cpp:464
+#: landscape.cpp:151 obstacles.cpp:450 obstacles.cpp:468
 #, kde-format
+msgctxt "@item:inrange"
 msgid "Slow"
 msgstr "ნელი"
 
-#: landscape.cpp:155 obstacles.cpp:450 obstacles.cpp:468
+#: landscape.cpp:155 obstacles.cpp:454 obstacles.cpp:472
 #, kde-format
+msgctxt "@item:inrange"
 msgid "Fast"
 msgstr "სწრაფი"
 
@@ -441,16 +483,19 @@ msgstr "ოვალური"
 
 #: landscape.cpp:571
 #, kde-format
+msgctxt "@option:check"
 msgid "Reverse direction"
 msgstr "მიმართულების შებრუნება"
 
 #: landscape.cpp:576
 #, kde-format
+msgctxt "@option:check"
 msgid "Unmovable"
 msgstr "გაუნძრეველი"
 
 #: landscape.cpp:578
 #, kde-format
+msgctxt "@info:whatsthis"
 msgid "Whether or not this slope can be moved by other objects, like floaters."
 msgstr ""
 "მიუთითებს, შეიძლება თუ არა ეს დაქანება სხვა ობიექტების, მაგალითად პლატფორმის "
@@ -458,135 +503,136 @@ msgstr ""
 
 #: landscape.cpp:582
 #, kde-format
+msgctxt "@lable:spinbox"
 msgid "Grade:"
 msgstr "დონე:"
 
-#: main.cpp:49
+#: main.cpp:45
 #, kde-format
 msgid "Kolf"
 msgstr "Kolf"
 
-#: main.cpp:51
+#: main.cpp:47
 #, kde-format
 msgid "KDE Minigolf Game"
 msgstr "KDE-ის მინიგოლფის თამაში"
 
-#: main.cpp:53
+#: main.cpp:49
 #, kde-format
 msgid "(c) 2002-2010, Kolf developers"
 msgstr "(c) 2002-2010, Kolf-ის პროგრამისტები"
 
-#: main.cpp:57
+#: main.cpp:53
 #, kde-format
 msgid "Stefan Majewsky"
 msgstr "Stefan Majewsky"
 
-#: main.cpp:57
+#: main.cpp:53
 #, kde-format
 msgid "Current maintainer"
 msgstr "პროექტის მიმდინარე ხელმძღვანელი"
 
-#: main.cpp:58
+#: main.cpp:54
 #, kde-format
 msgid "Jason Katz-Brown"
 msgstr "Jason Katz-Brown"
 
-#: main.cpp:58
+#: main.cpp:54
 #, kde-format
 msgid "Former main author"
 msgstr "ყოფილი მთავარი ავტორი"
 
-#: main.cpp:59
+#: main.cpp:55
 #, kde-format
 msgid "Niklas Knutsson"
 msgstr "Niklas Knutsson"
 
-#: main.cpp:59
+#: main.cpp:55
 #, kde-format
 msgid "Advanced putting mode"
 msgstr "რთული დარტყმების ჩართვა"
 
-#: main.cpp:60
+#: main.cpp:56
 #, kde-format
 msgid "Rik Hemsley"
 msgstr "Rik Hemsley"
 
-#: main.cpp:60
+#: main.cpp:56
 #, kde-format
 msgid "Border around course"
 msgstr "საზღვრები მოედნის გარშემო"
 
-#: main.cpp:61
+#: main.cpp:57
 #, kde-format
 msgid "Timo A. Hummel"
 msgstr "Timo A. Hummel"
 
-#: main.cpp:61
+#: main.cpp:57
 #, kde-format
 msgid "Some good sound effects"
 msgstr "კარგი ხმოვანი ეფექტები"
 
-#: main.cpp:63
+#: main.cpp:59
 #, kde-format
 msgid "Rob Renaud"
 msgstr "Rob Renaud"
 
-#: main.cpp:63
+#: main.cpp:59
 #, kde-format
 msgid "Wall-bouncing help"
 msgstr "დაგვეხმარა კედლიდან არეკვლაში"
 
-#: main.cpp:64
+#: main.cpp:60
 #, kde-format
 msgid "Aaron Seigo"
 msgstr "აარონ სეიგო"
 
-#: main.cpp:64
+#: main.cpp:60
 #, kde-format
 msgid "Suggestions, bug reports"
 msgstr "რჩევები, შეცდომის ანგარიშები"
 
-#: main.cpp:65
+#: main.cpp:61
 #, kde-format
 msgid "Erin Catto"
 msgstr "Erin Catto"
 
-#: main.cpp:65
+#: main.cpp:61
 #, kde-format
 msgid "Developer of Box2D physics engine"
 msgstr "Box2D ფიზიკის ძრავის პროგრამისთი"
 
-#: main.cpp:66
+#: main.cpp:62
 #, kde-format
 msgid "Ryan Cumming"
 msgstr "Ryan Cumming"
 
-#: main.cpp:66
+#: main.cpp:62
 #, kde-format
 msgid "Vector class (Kolf 1)"
 msgstr "ვექტორის კლასი (Kolf 1)"
 
-#: main.cpp:67
+#: main.cpp:63
 #, kde-format
 msgid "Daniel Matza-Brown"
 msgstr "Daniel Matza-Brown"
 
-#: main.cpp:67
+#: main.cpp:63
 #, kde-format
 msgid "Working wall-bouncing algorithm (Kolf 1)"
 msgstr "კედლიდან არეკვლის ალგორითმი (Kolf 1)"
 
-#: main.cpp:72
+#: main.cpp:71
 #, kde-format
 msgid "File"
 msgstr "ფაილი"
 
-#: main.cpp:73
+#: main.cpp:72
 #, kde-format
 msgid "Print course information and exit"
 msgstr "კურსის ინფორმაციის გამოტანა და გასვლა"
 
-#: main.cpp:90 newgame.cpp:240
+#: main.cpp:90
 #, kde-format
 msgid "By %1"
 msgstr "%1-სგან"
@@ -606,73 +652,84 @@ msgstr "ქულა%1"
 msgid "Course %1 does not exist."
 msgstr "კურსი %1 არ არსებობს."
 
-#: newgame.cpp:38
+#: newgame.cpp:40
 #, kde-format
 msgctxt "@title:window"
 msgid "New Game"
 msgstr "დაიწყეთ ახალი თამაში"
 
-#: newgame.cpp:54
+#: newgame.cpp:56
 #, kde-format
+msgctxt "@title:tab"
 msgid "Players"
 msgstr "მოთამაშეები"
 
-#: newgame.cpp:58
+#: newgame.cpp:60
 #, kde-format
+msgctxt "@action:button"
 msgid "&New Player"
 msgstr "ახალი &მოთამაშე"
 
-#: newgame.cpp:93
+#: newgame.cpp:95
 #, kde-format
+msgctxt "@title:tab"
 msgid "Course"
 msgstr "კურსი"
 
-#: newgame.cpp:94
+#: newgame.cpp:96
 #, kde-format
+msgctxt "@title"
 msgid "Choose Course to Play"
 msgstr "აირჩიეთ დასაკრავი კურსი"
 
-#: newgame.cpp:133
+#: newgame.cpp:135
 #, kde-format
-msgid "Create New"
-msgstr "ახლის შექმნა"
+msgctxt "@item"
+msgid "<Create New>"
+msgstr "<ახლის შექმნა>"
 
-#: newgame.cpp:134
+#: newgame.cpp:136
 #, kde-format
 msgid "You"
 msgstr "თქვენ"
 
-#: newgame.cpp:160
+#: newgame.cpp:162
 #, kde-format
+msgctxt "@action:button"
 msgid "Highscores"
 msgstr "უმაღლეს ქულები"
 
-#: newgame.cpp:170
+#: newgame.cpp:172
 #, kde-format
-msgid "Add..."
-msgstr "დამატება..."
+msgctxt "@action:button"
+msgid "Add…"
+msgstr "დამატება…"
 
-#: newgame.cpp:174 newgame.cpp:363
+#: newgame.cpp:176 newgame.cpp:365
 #, kde-format
+msgctxt "@action:button"
 msgid "Remove"
 msgstr "წაშლა"
 
-#: newgame.cpp:184
+#: newgame.cpp:186
 #, kde-format
+msgctxt "@title:tab"
 msgid "Options"
 msgstr "პარამეტრები"
 
-#: newgame.cpp:185
+#: newgame.cpp:187
 #, kde-format
+msgctxt "@title"
 msgid "Game Options"
 msgstr "თამაშის მორგება"
 
-#: newgame.cpp:190
+#: newgame.cpp:192
 #, kde-format
+msgctxt "@option:check"
 msgid "&Strict mode"
 msgstr "&მკაცრი რეჟიმი"
 
-#: newgame.cpp:194
+#: newgame.cpp:196
 #, kde-format
 msgid ""
 "In strict mode, undo, editing, and switching holes is not allowed. This is "
@@ -681,34 +738,45 @@ msgstr ""
 "მკაცრ რეჟიმში გაუქმება, ჩასწორება და ნახვრეტების გადაცვლა დაშვებული არაა. ეს "
 "ძირითადად შეჯიბრებებისთვისაა. ქულების შენახვა კი მხოლოდ მკაცრ რეჟიმში ხდება."
 
-#: newgame.cpp:241
+#: newgame.cpp:242
 #, kde-format
+msgctxt "@info author attribution"
+msgid "By %1"
+msgstr "%1-სგან"
+
+#: newgame.cpp:243
+#, kde-format
+msgctxt "@info"
 msgid "Par %1"
 msgstr "ქულა %1"
 
-#: newgame.cpp:242
+#: newgame.cpp:244
 #, kde-format
-msgid "%1 Holes"
-msgstr "%1 ნახვრეტი"
+msgctxt "@info"
+msgid "1 Hole"
+msgid_plural "%1 Holes"
+msgstr[0] "%1 ნახვრეტი"
+msgstr[1] "%1 ნახვრეტი"
 
-#: newgame.cpp:280
+#: newgame.cpp:282
 #, kde-format
 msgctxt "@title:window"
 msgid "Pick Kolf Course"
 msgstr "აირჩიეთ Kolf-ის კურსი"
 
-#: newgame.cpp:308
+#: newgame.cpp:310
 #, kde-format
 msgid "Chosen course is already on course list."
 msgstr "არჩეული კურსი უკვე კურსების სიაშია."
 
-#: newgame.cpp:321
+#: newgame.cpp:323
 #, kde-format
 msgid "Player %1"
 msgstr "მოთამაშე %1"
 
 #: objects.cpp:244
 #, kde-format
+msgctxt "@item:valuesuffix"
 msgid " degree"
 msgid_plural " degrees"
 msgstr[0] " გრადუსი"
@@ -716,61 +784,82 @@ msgstr[1] " გრადუსი"
 
 #: objects.cpp:247
 #, kde-format
+msgctxt "@label:spinbox"
 msgid "Exiting ball angle:"
 msgstr "გასვლისას ბურთის კუთხე:"
 
 #: objects.cpp:267
 #, kde-format
+msgctxt "@label:spinbox"
 msgid "Minimum exit speed:"
 msgstr "მინიმალური გასვლის სიჩქარე:"
 
 #: objects.cpp:288
 #, kde-format
+msgctxt "@label:spinbox"
 msgid "Maximum exit speed:"
 msgstr "მაქსიმალური გასვლის სიჩქარე:"
 
 #: obstacles.cpp:412
+msgctxt "@option:check wall on"
 msgid "&Top"
 msgstr "&ზედა"
 
-#: obstacles.cpp:412
+#: obstacles.cpp:413
+msgctxt "@option:check wall on"
 msgid "&Left"
 msgstr "მარ&ცხნივ"
 
-#: obstacles.cpp:412
+#: obstacles.cpp:414
+msgctxt "@option:check wall on"
 msgid "&Right"
 msgstr "მარჯვენა"
 
-#: obstacles.cpp:412
+#: obstacles.cpp:415
+msgctxt "@option:check wall on"
 msgid "&Bottom"
 msgstr "ქ&ვედა"
 
-#: obstacles.cpp:421
+#: obstacles.cpp:425
 #, kde-format
+msgctxt "@label:chooser"
 msgid "Walls on:"
 msgstr "კედლები:"
 
-#: obstacles.cpp:431
+#: obstacles.cpp:435
 #, kde-format
+msgctxt "@label:textbox"
 msgid "Sign HTML:"
 msgstr "HTML ხელმოწერა:"
 
-#: obstacles.cpp:440
+#: obstacles.cpp:444
 #, kde-format
+msgctxt "@option:check"
 msgid "Windmill on top"
 msgstr "ქარის წისქვილი ზემოთ"
 
-#: obstacles.cpp:461
+#: obstacles.cpp:465
 #, kde-format
+msgctxt "@label:slider"
 msgid "Moving speed"
 msgstr "გადაადგილების სიჩქარე"
 
-#: obstacles.cpp:681
+#: obstacles.cpp:685
 #, kde-format
 msgid "New Text"
 msgstr "ახალი ტექსტი"
 
+#: scoreboard.cpp:27
+#, kde-format
+msgctxt "@title:row"
+msgid "Par"
+msgstr "ქულები"
+
 #: scoreboard.cpp:28
 #, kde-format
+msgctxt "@title:column"
 msgid "Total"
 msgstr "ჯამში"
+
+#~ msgid "Add..."
+#~ msgstr "დამატება..."
