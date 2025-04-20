@@ -1,0 +1,900 @@
+# Translation for kolf.po to Euskara/Basque (eu).
+# Copyright (C) 2003-2024 This file is copyright:
+# This file is distributed under the same license as de kolf package.
+# SPDX-FileCopyrightText: 2024 KDE euskaratzeko proiektuko arduraduna <xalba@ni.eus>
+#
+# Translators:
+# Marcos  <marcos@euskalgnu.org>, 2003.
+# Ion Gaztañaga <igaztanaga@gmail.com>, 2005, 2006.
+# Iñaki Larrañaga Murgoitio <dooteo@euskalgnu.org>, 2009.
+# Jon Intxaurbe <joinzar@gmail.com>, 2022.
+msgid ""
+msgstr ""
+"Project-Id-Version: kolf\n"
+"Report-Msgid-Bugs-To: https://bugs.kde.org\n"
+"POT-Creation-Date: 2024-05-05 00:37+0000\n"
+"PO-Revision-Date: 2024-07-17 07:26+0200\n"
+"Last-Translator: Iñigo Salvador Azurmendi <xalba@ni.eus>\n"
+"Language-Team: Basque <kde-i18n-eu@kde.org>\n"
+"Language: eu\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Lokalize 24.05.2\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#, kde-format
+msgctxt "NAME OF TRANSLATORS"
+msgid "Your names"
+msgstr "Marcos,Ion Gaztañaga,Iñaki Larrañaga Murgoitio,Jon Intxaurbe"
+
+#, kde-format
+msgctxt "EMAIL OF TRANSLATORS"
+msgid "Your emails"
+msgstr ""
+"marcos@euskalgnu.org,igaztanaga@gmail.com,dooteo@euskalgnu.org,joinzar@gmail."
+"com"
+
+#: config.cpp:51
+#, kde-format
+msgid "No configuration options"
+msgstr "Konfigurazioaren aukerarik ez"
+
+#: editor.cpp:37
+#, kde-format
+msgctxt "@label:listbox"
+msgid "Add object:"
+msgstr "Gehitu objektua:"
+
+#: game.cpp:263
+#, kde-format
+msgctxt "@label:textbox"
+msgid "Course name:"
+msgstr "Zelaiaren izena:"
+
+#: game.cpp:270
+#, kde-format
+msgctxt "@label:textbox"
+msgid "Course author: "
+msgstr "Zelaiaren egilea:"
+
+#: game.cpp:279
+#, kde-format
+msgctxt "@label:spinbox"
+msgid "Par:"
+msgstr "Parea:"
+
+#: game.cpp:289
+#, kde-format
+msgctxt "@label:spinbox"
+msgid "Maximum:"
+msgstr "Maximoa:"
+
+#: game.cpp:293
+#, kde-format
+msgctxt "@info:whatsthis"
+msgid "Maximum number of strokes player can take on this hole."
+msgstr "Zulo honetan jokalariak erabil dezakeen kolpe kopuru maximoa."
+
+#: game.cpp:294
+#, kde-format
+msgctxt "@info:tooltip"
+msgid "Maximum number of strokes"
+msgstr "Kolpe kopuru maximoa"
+
+#: game.cpp:295
+#, kde-format
+msgctxt "@item number of strokes"
+msgid "Unlimited"
+msgstr "Mugagabea"
+
+#: game.cpp:301
+#, kde-format
+msgctxt "@option:check"
+msgid "Show border walls"
+msgstr "Erakutsi ertzeko hormak"
+
+#: game.cpp:499 game.cpp:2432
+#, kde-format
+msgid "Course Author"
+msgstr "Zelaiaren egilea"
+
+#: game.cpp:500 game.cpp:501 game.cpp:2432
+#, kde-format
+msgid "Course Name"
+msgstr "Zelaiaren izena"
+
+#: game.cpp:1423
+#, kde-format
+msgctxt "@item harzard action"
+msgid "Drop Outside of Hazard"
+msgstr "Arriskutik kanpo atera"
+
+#: game.cpp:1424
+#, kde-format
+msgctxt "@item harzard action"
+msgid "Rehit From Last Location"
+msgstr "Kolpea berriro azken kokalekutik"
+
+#: game.cpp:1426
+#, kde-format
+msgid "What would you like to do for your next shot?"
+msgstr "Zer egin nahi duzun hurrengo kolpean?"
+
+#: game.cpp:1426
+#, kde-format
+msgctxt "@title:window"
+msgid "%1 in a Hazard"
+msgstr "%1 arriskuan dago"
+
+#: game.cpp:1594
+#, kde-format
+msgid "%1 will start off."
+msgstr "%1 hasiko da."
+
+#: game.cpp:1594
+#, kde-format
+msgctxt "@title:window"
+msgid "New Hole"
+msgstr "Zulo berria"
+
+#: game.cpp:1755
+#, kde-format
+msgid "Course name: %1"
+msgstr "Zelaiaren izena. %1"
+
+#: game.cpp:1756
+#, kde-format
+msgid "Created by %1"
+msgstr "Egilea: %1"
+
+#: game.cpp:1757
+#, kde-format
+msgid "%1 hole"
+msgid_plural "%1 holes"
+msgstr[0] "%1 zulo"
+msgstr[1] "%1 zulo"
+
+#: game.cpp:1758
+#, kde-format
+msgctxt "@title:window"
+msgid "Course Information"
+msgstr "Zelaiaren informazioa"
+
+#: game.cpp:1876
+#, kde-format
+msgid "This hole uses the following plugins, which you do not have installed:"
+msgstr ""
+"Zulo honek ondorengo pluginak erabiltzen ditu, eta ez dituzu instalatuta:"
+
+#: game.cpp:1989
+#, kde-format
+msgid "There are unsaved changes to current hole. Save them?"
+msgstr "Gorde gabeko aldaketak dituzu uneko zuloan. Gorde?"
+
+#: game.cpp:1990
+#, kde-format
+msgctxt "@title:window"
+msgid "Unsaved Changes"
+msgstr "Gorde gabeko aldaketak"
+
+#: game.cpp:1992
+#, kde-format
+msgctxt "@action:button"
+msgid "Save &Later"
+msgstr "Gorde &beranduago"
+
+#: game.cpp:2165 kolf.cpp:552
+#, kde-format
+msgctxt "@title:window"
+msgid "Pick Kolf Course to Save To"
+msgstr "Hautatu Kolf-en zelaia honela gordetzeko "
+
+#: kcomboboxdialog.cpp:60
+#, kde-format
+msgctxt "@option:check"
+msgid "&Do not ask again"
+msgstr "&Ez berriro galdetu"
+
+#: kolf.cpp:63
+#, kde-format
+msgid "Slope"
+msgstr "Aldapa"
+
+#: kolf.cpp:64
+#, kde-format
+msgid "Puddle"
+msgstr "Putzua"
+
+#: kolf.cpp:65
+#, kde-format
+msgid "Wall"
+msgstr "Horma"
+
+#: kolf.cpp:66
+#, kde-format
+msgid "Cup"
+msgstr "Kopa"
+
+#: kolf.cpp:67
+#, kde-format
+msgid "Sand"
+msgstr "Hondarra"
+
+#: kolf.cpp:68
+#, kde-format
+msgid "Windmill"
+msgstr "Errota"
+
+#: kolf.cpp:69
+#, kde-format
+msgid "Black Hole"
+msgstr "Zulo beltza"
+
+#: kolf.cpp:70
+#, kde-format
+msgid "Floater"
+msgstr "Flotatzailea"
+
+#: kolf.cpp:71
+#, kde-format
+msgid "Bridge"
+msgstr "Zubia"
+
+#: kolf.cpp:72
+#, kde-format
+msgid "Sign"
+msgstr "Seinalea"
+
+#: kolf.cpp:73
+#, kde-format
+msgid "Bumper"
+msgstr "Kolpe leungailua"
+
+#: kolf.cpp:96
+#, kde-format
+msgctxt "@action"
+msgid "Save &Course"
+msgstr "Gorde &zelaia"
+
+#: kolf.cpp:98
+#, kde-format
+msgctxt "@action"
+msgid "Save &Course As…"
+msgstr "Gorde &zelaia honela..."
+
+#: kolf.cpp:101
+#, kde-format
+msgctxt "@action"
+msgid "&Save Game"
+msgstr "&Gorde jokoa"
+
+#: kolf.cpp:104
+#, kde-format
+msgctxt "@action"
+msgid "&Save Game As…"
+msgstr "&Gorde jokoa honela..."
+
+#: kolf.cpp:111
+#, kde-format
+msgctxt "@option:check"
+msgid "&Edit"
+msgstr "&Editatu"
+
+#: kolf.cpp:117
+#, kde-format
+msgctxt "@action"
+msgid "&New"
+msgstr "&Berria"
+
+#: kolf.cpp:126
+#, kde-format
+msgctxt "@action"
+msgid "&Reset"
+msgstr "Be&rrezarri"
+
+#: kolf.cpp:131
+#, kde-format
+msgctxt "@action"
+msgid "&Undo Shot"
+msgstr "&Desegin kolpea"
+
+#. i18nc("@action", "&Replay Shot"), 0, this, SLOT(emptySlot()), actionCollection(), "replay");
+#. Go
+#: kolf.cpp:135
+#, kde-format
+msgctxt "@title:menu"
+msgid "Switch to Hole"
+msgstr "Aldatu zulora"
+
+#: kolf.cpp:140
+#, kde-format
+msgctxt "@action"
+msgid "&Next Hole"
+msgstr "&Hurrengo zuloa"
+
+#: kolf.cpp:145
+#, kde-format
+msgctxt "@action"
+msgid "&Previous Hole"
+msgstr "&Aurreko zuloa"
+
+#: kolf.cpp:150
+#, kde-format
+msgctxt "@action"
+msgid "&First Hole"
+msgstr "&Lehenengo zuloa"
+
+#: kolf.cpp:154
+#, kde-format
+msgctxt "@action"
+msgid "&Last Hole"
+msgstr "&Azken zuloa"
+
+#: kolf.cpp:159
+#, kde-format
+msgctxt "@action"
+msgid "&Random Hole"
+msgstr "Ausa&zko zuloa"
+
+#: kolf.cpp:163
+#, kde-format
+msgctxt "@option:check"
+msgid "Enable &Mouse for Moving Putter"
+msgstr "Gaitu &sagua makila mugitzeko"
+
+#: kolf.cpp:170
+#, kde-format
+msgctxt "@option:check"
+msgid "Enable &Advanced Putting"
+msgstr "Gaitu kolpe &aurreratua"
+
+#: kolf.cpp:176
+#, kde-format
+msgctxt "@option:check"
+msgid "Show &Info"
+msgstr "Erakutsi &informazioa"
+
+#: kolf.cpp:183
+#, kde-format
+msgctxt "@option:check"
+msgid "Show Putter &Guideline"
+msgstr "Erakutsi kolpeen &jarraibidea"
+
+#: kolf.cpp:189
+#, kde-format
+msgctxt "@option:check"
+msgid "Enable All Dialog Boxes"
+msgstr "Gaitu elkarrizketa-lauki denak"
+
+#: kolf.cpp:194
+#, kde-format
+msgctxt "@option:check"
+msgid "Play Sounds"
+msgstr "Soinuak jo"
+
+#: kolf.cpp:201
+#, kde-format
+msgctxt "@action"
+msgid "&About Course"
+msgstr "Zelaiari &buruz"
+
+#: kolf.cpp:204
+#, kde-format
+msgctxt "@action"
+msgid "&Tutorial"
+msgstr "&Tutoretza"
+
+#: kolf.cpp:454 kolf.cpp:498 kolf.cpp:525 newgame.cpp:250
+#, kde-format
+msgid "Par"
+msgstr "Parea"
+
+#: kolf.cpp:485
+#, kde-format
+msgctxt "@item:intext winners"
+msgid " and "
+msgstr " eta "
+
+#: kolf.cpp:486
+#, kde-format
+msgid "%1 tied"
+msgstr "%1 berdinketa"
+
+#: kolf.cpp:489
+#, kde-format
+msgid "%1 won!"
+msgstr "%1 iragazle!"
+
+#: kolf.cpp:503 kolf.cpp:515 kolf.cpp:530 kolf.cpp:531 newgame.cpp:251
+#: newgame.cpp:252
+#, kde-format
+msgid "High Scores for %1"
+msgstr "%1-(r)en puntuazio onenak"
+
+#: kolf.cpp:570
+#, kde-format
+msgctxt "@title:window"
+msgid "Pick Saved Game to Save To"
+msgstr "Hautatu gordetako jokoa honela gordetzeko"
+
+#: kolf.cpp:608
+#, kde-format
+msgctxt "@title:window"
+msgid "Pick Kolf Saved Game"
+msgstr "Hautatu Kolf-en gordetako jokoa"
+
+#: kolf.cpp:656
+#, kde-format
+msgid "%1's turn"
+msgstr "%1-(r)en txanda"
+
+#: kolf.cpp:728
+#, kde-format
+msgid "%1's score has reached the maximum for this hole."
+msgstr "%1-(e)n puntuazioa zulo honen maximora iritsi da."
+
+#. i18n: ectx: Menu (hole)
+#: kolfui.rc:17
+#, kde-format
+msgid "Ho&le"
+msgstr "Zu&loa"
+
+#. i18n: ectx: Menu (go_course)
+#: kolfui.rc:31
+#, kde-format
+msgid "&Go"
+msgstr "&Joan"
+
+#: landscape.cpp:146
+#, kde-format
+msgctxt "@option:check"
+msgid "Enable show/hide"
+msgstr "Gaitu erakutsi/ezkutatu"
+
+#: landscape.cpp:151 obstacles.cpp:450 obstacles.cpp:468
+#, kde-format
+msgctxt "@item:inrange"
+msgid "Slow"
+msgstr "Mantso"
+
+#: landscape.cpp:155 obstacles.cpp:454 obstacles.cpp:472
+#, kde-format
+msgctxt "@item:inrange"
+msgid "Fast"
+msgstr "Azkar"
+
+#: landscape.cpp:238
+#, kde-format
+msgid "Vertical"
+msgstr "Bertikala"
+
+#: landscape.cpp:239
+#, kde-format
+msgid "Horizontal"
+msgstr "Horizontala"
+
+#: landscape.cpp:240
+#, kde-format
+msgid "Diagonal"
+msgstr "Diagonala"
+
+#: landscape.cpp:241
+#, kde-format
+msgid "Opposite Diagonal"
+msgstr "Aurkako diagonala"
+
+#: landscape.cpp:242
+#, kde-format
+msgid "Elliptic"
+msgstr "Eliptikoa"
+
+#: landscape.cpp:571
+#, kde-format
+msgctxt "@option:check"
+msgid "Reverse direction"
+msgstr "Aurkako noranzkoa"
+
+#: landscape.cpp:576
+#, kde-format
+msgctxt "@option:check"
+msgid "Unmovable"
+msgstr "Mugiezina"
+
+#: landscape.cpp:578
+#, kde-format
+msgctxt "@info:whatsthis"
+msgid "Whether or not this slope can be moved by other objects, like floaters."
+msgstr ""
+"Aldapa hau beste objektuek mugi dezaketen ala ez, adibidez flotagailuek."
+
+#: landscape.cpp:582
+#, kde-format
+msgctxt "@lable:spinbox"
+msgid "Grade:"
+msgstr "Gradua:"
+
+#: main.cpp:45
+#, kde-format
+msgid "Kolf"
+msgstr "Kolf"
+
+#: main.cpp:47
+#, kde-format
+msgid "KDE Minigolf Game"
+msgstr "KDE-ren minigolf jokoa"
+
+#: main.cpp:49
+#, kde-format
+msgid "(c) 2002-2010, Kolf developers"
+msgstr "(c) 2002-2010, Kolf garatzaileak"
+
+#: main.cpp:53
+#, kde-format
+msgid "Stefan Majewsky"
+msgstr "Stefan Majewsky"
+
+#: main.cpp:53
+#, kde-format
+msgid "Current maintainer"
+msgstr "Oraingo mantentzailea"
+
+#: main.cpp:54
+#, kde-format
+msgid "Jason Katz-Brown"
+msgstr "Jason Katz-Brown"
+
+#: main.cpp:54
+#, kde-format
+msgid "Former main author"
+msgstr "Egile nagusia"
+
+#: main.cpp:55
+#, kde-format
+msgid "Niklas Knutsson"
+msgstr "Niklas Knutsson"
+
+#: main.cpp:55
+#, kde-format
+msgid "Advanced putting mode"
+msgstr "Kolpe aurreratuen modua"
+
+#: main.cpp:56
+#, kde-format
+msgid "Rik Hemsley"
+msgstr "Rik Hemsley"
+
+#: main.cpp:56
+#, kde-format
+msgid "Border around course"
+msgstr "Zelaiaren inguruko ertza"
+
+#: main.cpp:57
+#, kde-format
+msgid "Timo A. Hummel"
+msgstr "Timo A. Hummel"
+
+#: main.cpp:57
+#, kde-format
+msgid "Some good sound effects"
+msgstr "Soinu-efektu on batzuk"
+
+#: main.cpp:59
+#, kde-format
+msgid "Rob Renaud"
+msgstr "Rob Renaud"
+
+#: main.cpp:59
+#, kde-format
+msgid "Wall-bouncing help"
+msgstr "Hormetako erreboteekin laguntza"
+
+#: main.cpp:60
+#, kde-format
+msgid "Aaron Seigo"
+msgstr "Aaron Seigo"
+
+#: main.cpp:60
+#, kde-format
+msgid "Suggestions, bug reports"
+msgstr "Iradokizunak, programa-arazoen jakinarazpenak"
+
+#: main.cpp:61
+#, kde-format
+msgid "Erin Catto"
+msgstr "Erin Catto"
+
+#: main.cpp:61
+#, kde-format
+msgid "Developer of Box2D physics engine"
+msgstr "Box2D motor fisikoaren garatzaile"
+
+#: main.cpp:62
+#, kde-format
+msgid "Ryan Cumming"
+msgstr "Ryan Cumming"
+
+#: main.cpp:62
+#, kde-format
+msgid "Vector class (Kolf 1)"
+msgstr "Bektore klasea (Kolf 1)"
+
+#: main.cpp:63
+#, kde-format
+msgid "Daniel Matza-Brown"
+msgstr "Daniel Matza-Brown"
+
+#: main.cpp:63
+#, kde-format
+msgid "Working wall-bouncing algorithm (Kolf 1)"
+msgstr "Hormetako erreboteen lana egiteko algoritmoa (Kolf 1)"
+
+#: main.cpp:71
+#, kde-format
+msgid "File"
+msgstr "Fitxategia"
+
+#: main.cpp:72
+#, kde-format
+msgid "Print course information and exit"
+msgstr "Inprimatu zelaiaren informazioa eta irten"
+
+#: main.cpp:90
+#, kde-format
+msgid "By %1"
+msgstr "Egilea: %1"
+
+#: main.cpp:91
+#, kde-format
+msgid "%1 holes"
+msgstr "%1 zulo"
+
+#: main.cpp:92
+#, kde-format
+msgid "par %1"
+msgstr "parea %1"
+
+#: main.cpp:99
+#, kde-format
+msgid "Course %1 does not exist."
+msgstr "%1 zelaia ez da existitzen."
+
+#: newgame.cpp:40
+#, kde-format
+msgctxt "@title:window"
+msgid "New Game"
+msgstr "Joko berria"
+
+#: newgame.cpp:56
+#, kde-format
+msgctxt "@title:tab"
+msgid "Players"
+msgstr "Jokalariak"
+
+#: newgame.cpp:60
+#, kde-format
+msgctxt "@action:button"
+msgid "&New Player"
+msgstr "Jokalari &berria"
+
+#: newgame.cpp:95
+#, kde-format
+msgctxt "@title:tab"
+msgid "Course"
+msgstr "Zelaia"
+
+#: newgame.cpp:96
+#, kde-format
+msgctxt "@title"
+msgid "Choose Course to Play"
+msgstr "Hautatu jokatzeko zelaia"
+
+#: newgame.cpp:135
+#, kde-format
+msgctxt "@item"
+msgid "<Create New>"
+msgstr "<Sortu berria>"
+
+#: newgame.cpp:136
+#, kde-format
+msgid "You"
+msgstr "Zu"
+
+#: newgame.cpp:162
+#, kde-format
+msgctxt "@action:button"
+msgid "Highscores"
+msgstr "Puntuazio onenak"
+
+#: newgame.cpp:172
+#, kde-format
+msgctxt "@action:button"
+msgid "Add…"
+msgstr "Gehitu…"
+
+#: newgame.cpp:176 newgame.cpp:365
+#, kde-format
+msgctxt "@action:button"
+msgid "Remove"
+msgstr "Kendu"
+
+#: newgame.cpp:186
+#, kde-format
+msgctxt "@title:tab"
+msgid "Options"
+msgstr "Aukerak"
+
+#: newgame.cpp:187
+#, kde-format
+msgctxt "@title"
+msgid "Game Options"
+msgstr "Jokoaren aukerak"
+
+#: newgame.cpp:192
+#, kde-format
+msgctxt "@option:check"
+msgid "&Strict mode"
+msgstr "Modu &zorrotza"
+
+#: newgame.cpp:196
+#, kde-format
+msgid ""
+"In strict mode, undo, editing, and switching holes is not allowed. This is "
+"generally for competition. Only in strict mode are highscores kept."
+msgstr ""
+"Modu zorrotzean, desegite, edizio eta zuloak aldatzea ez dago baimenduta. "
+"Hau lehiaketarako da. Puntuazio onenak modu zorrotzean bakarrik gordetzen "
+"dira."
+
+#: newgame.cpp:242
+#, kde-format
+msgctxt "@info author attribution"
+msgid "By %1"
+msgstr "%1(e)k egina"
+
+#: newgame.cpp:243
+#, kde-format
+msgctxt "@info"
+msgid "Par %1"
+msgstr "%1 parea"
+
+#: newgame.cpp:244
+#, kde-format
+msgctxt "@info"
+msgid "1 Hole"
+msgid_plural "%1 Holes"
+msgstr[0] "Zulo 1"
+msgstr[1] "%1 zulo"
+
+#: newgame.cpp:282
+#, kde-format
+msgctxt "@title:window"
+msgid "Pick Kolf Course"
+msgstr "Hautatu Kolf-en zelaia"
+
+#: newgame.cpp:310
+#, kde-format
+msgid "Chosen course is already on course list."
+msgstr "Hautatutako zelaia dagoeneko zelaien zerrendan dago."
+
+#: newgame.cpp:323
+#, kde-format
+msgid "Player %1"
+msgstr "%1 jokalaria"
+
+#: objects.cpp:244
+#, kde-format
+msgctxt "@item:valuesuffix"
+msgid " degree"
+msgid_plural " degrees"
+msgstr[0] " gradu"
+msgstr[1] " gradu"
+
+#: objects.cpp:247
+#, kde-format
+msgctxt "@label:spinbox"
+msgid "Exiting ball angle:"
+msgstr "Pilotaren irteerako angelua:"
+
+#: objects.cpp:267
+#, kde-format
+msgctxt "@label:spinbox"
+msgid "Minimum exit speed:"
+msgstr "Irteerako abiadura minimoa:"
+
+#: objects.cpp:288
+#, kde-format
+msgctxt "@label:spinbox"
+msgid "Maximum exit speed:"
+msgstr "Irteerako abiadura maximoa:"
+
+#: obstacles.cpp:412
+msgctxt "@option:check wall on"
+msgid "&Top"
+msgstr "&Goian"
+
+#: obstacles.cpp:413
+msgctxt "@option:check wall on"
+msgid "&Left"
+msgstr "E&zkerrean"
+
+#: obstacles.cpp:414
+msgctxt "@option:check wall on"
+msgid "&Right"
+msgstr "E&skuinean"
+
+#: obstacles.cpp:415
+msgctxt "@option:check wall on"
+msgid "&Bottom"
+msgstr "&Behean"
+
+#: obstacles.cpp:425
+#, kde-format
+msgctxt "@label:chooser"
+msgid "Walls on:"
+msgstr "Hormak hemen:"
+
+#: obstacles.cpp:435
+#, kde-format
+msgctxt "@label:textbox"
+msgid "Sign HTML:"
+msgstr "Sinatu HTMLa:"
+
+#: obstacles.cpp:444
+#, kde-format
+msgctxt "@option:check"
+msgid "Windmill on top"
+msgstr "Haize-errota gainean"
+
+#: obstacles.cpp:465
+#, kde-format
+msgctxt "@label:slider"
+msgid "Moving speed"
+msgstr "Mugitzeko abiadura"
+
+#: obstacles.cpp:685
+#, kde-format
+msgid "New Text"
+msgstr "Testu berria"
+
+#: scoreboard.cpp:27
+#, kde-format
+msgctxt "@title:row"
+msgid "Par"
+msgstr "Parea"
+
+#: scoreboard.cpp:28
+#, kde-format
+msgctxt "@title:column"
+msgid "Total"
+msgstr "Guztira"
+
+#~ msgid "Add..."
+#~ msgstr "Gehitu..."
+
+#~ msgid "(c) 2002-2005, Jason Katz-Brown"
+#~ msgstr "(c) 2002-2005, Jason Katz-Brown"
+
+#~ msgid "Circular"
+#~ msgstr "Zirkularra"
+
+#~ msgid "%1 - Hole %2; by %3"
+#~ msgstr "%1 - zuloa %2; %3"
+
+#~ msgid "Kolf Options"
+#~ msgstr "Kolf-en aukerak"
+
+#~ msgid "Draw title text"
+#~ msgstr "Marraztu izenburuaren testua"
+
+#~ msgid "Print %1 - Hole %2"
+#~ msgstr "Inprimatu %1 - %2 zuloa"
+
+#~ msgid "Currently Loaded Plugins"
+#~ msgstr "Uneko kargatutako pluginak"
+
+#~ msgid "by %1"
+#~ msgstr "egilea: %1"
+
+#~ msgid "Plugins"
+#~ msgstr "Pluginak"
