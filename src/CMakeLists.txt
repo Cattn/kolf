@@ -7,6 +7,7 @@ add_library(kolfprivate STATIC)
 
 # we have a static copy of Box2D in our source tree
 target_include_directories(kolfprivate PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
 )
 
@@ -98,6 +99,8 @@ target_sources(kolfprivate PRIVATE
 )
 
 target_sources(kolfprivate PRIVATE
+    dataserver.cpp
+    dataServer.h
     ball.cpp
     ball.h
     canvasitem.cpp
@@ -151,6 +154,7 @@ target_link_libraries(kolfprivate
     KF6::KIOCore
     KF6::TextWidgets
     KF6::XmlGui
+    KF6::IconThemes
     Qt6::Gui
     Qt6::Widgets
 )
@@ -162,10 +166,29 @@ target_sources(kolf PRIVATE
     kolf.qrc
 )
 
+if(APPLE)
+    set_target_properties(kolf PROPERTIES
+           MACOSX_BUNDLE_DISPLAY_NAME "Kolf"
+        MACOSX_BUNDLE_BUNDLE_NAME "Kolf"
+        MACOSX_BUNDLE_LONG_VERSION_STRING "Kolf ${RELEASE_SERVICE_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${RELEASE_SERVICE_VERSION_MAJOR}.${RELEASE_SERVICE_VERSION_MINOR}"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${RELEASE_SERVICE_VERSION}"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "org.kde.kolf"
+        MACOSX_BUNDLE_COPYRIGHT "2024 The Kolf Developers")
+endif()
+
+
 file(GLOB ICONS_SRCS "${CMAKE_SOURCE_DIR}/pics/*-apps-kolf.png")
 ecm_add_app_icon(kolf ICONS ${ICONS_SRCS})
 
-target_link_libraries(kolf kolfprivate)
+target_link_libraries(kolf PRIVATE kolfprivate)
+
+if(WIN32)
+    target_link_libraries(kolf PRIVATE wsock32 ws2_32)
+else()
+    find_package(Threads REQUIRED)
+    target_link_libraries(kolf PRIVATE Threads::Threads)
+endif()
 
 install(TARGETS kolf  ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <component type="desktop-application">
-  <id>org.kde.kolf.desktop</id>
+  <id>org.kde.kolf</id>
   <metadata_license>FSFAP</metadata_license>
   <project_license>GPL-2.0+</project_license>
   <developer id="org.kde">
@@ -39,6 +39,7 @@
   <name xml:lang="pt-BR">Kolf</name>
   <name xml:lang="ro">Kolf</name>
   <name xml:lang="ru">Kolf</name>
+  <name xml:lang="sa">बट्</name>
   <name xml:lang="sk">Kolf</name>
   <name xml:lang="sl">Kolf</name>
   <name xml:lang="sr">Колф</name>
@@ -48,7 +49,6 @@
   <name xml:lang="sv">Kolf</name>
   <name xml:lang="tr">Kolf</name>
   <name xml:lang="uk">Kolf</name>
-  <name xml:lang="x-test">xxKolfxx</name>
   <name xml:lang="zh-CN">Kolf</name>
   <name xml:lang="zh-TW">Kolf</name>
   <summary>Miniature Golf</summary>
@@ -81,6 +81,7 @@
   <summary xml:lang="pt-BR">Mini-Golf</summary>
   <summary xml:lang="ro">Golf în miniatură</summary>
   <summary xml:lang="ru">Гольф в миниатюре</summary>
+  <summary xml:lang="sa">लघु गोल्फ</summary>
   <summary xml:lang="sk">Miniatúrny golf</summary>
   <summary xml:lang="sl">Miniaturni golf</summary>
   <summary xml:lang="sr">Минијатурни голф</summary>
@@ -90,7 +91,6 @@
   <summary xml:lang="sv">Minigolf</summary>
   <summary xml:lang="tr">Minyatür Golf</summary>
   <summary xml:lang="uk">Мініатюрний гольф</summary>
-  <summary xml:lang="x-test">xxMiniature Golfxx</summary>
   <summary xml:lang="zh-CN">迷你高尔夫</summary>
   <summary xml:lang="zh-TW">迷你高爾夫</summary>
   <description>
@@ -102,6 +102,7 @@
     <p xml:lang="ar">غولف هي لعبة غولف مصغرة. تُلعب اللعبة من منظور علوي، مع شريط هورت يمثل نادي الغولف. يتميز غولف بالعديد من الأنواع المختلفة من الأشياء، مثل مخاطر المياه، والمنحدرات، والفخاخ الرملية، والثقوب السوداء (الاعوجاج)، وغيرها.</p>
     <p xml:lang="ca">El Kolf és un joc de golf en miniatura. El joc es juga amb una vista des de dalt, amb una barra curta que representa el club de golf. El Kolf disposa de diferents tipus d'objectes, com paranys d'aigua, desnivells, trampes de sorra, forats negres, entre altres.</p>
     <p xml:lang="ca-valencia">Kolf és un joc de golf en miniatura. El joc es juga amb una vista des de dalt, amb una barra curta que representa el club de golf. Kolf disposa de diferents tipus d'objectes, com paranys d'aigua, desnivells, trampes d'arena, forats negres, entre altres.</p>
+    <p xml:lang="cs">Kolf je minigolfová hra. Hraje se z ptačí perspektivy, přičemž golfovou hůl představuje krátká lišta. Ve hře Kolf se vyskytuje mnoho různých překážek, jako jsou například vodní překážky, svahy, pískoviště a černé díry (teleporty).</p>
     <p xml:lang="de">Kolf ist ein Minigolf-Spiel. Das Spiel wird aus der Vogelperspektive gespielt, mit einem Balken, der den Golfschläger darstellt. Kolf verfügt über viele verschiedene Arten von Objekten, wie Wasserlöcher, Hänge, Sandbunker und Schwarze Löcher (Verwerfungen), und noch mehr.</p>
     <p xml:lang="el">Το Kolf είναι μια μινιατούρα παιχνιδιού γκολφ. Το παιχνίδι παίζεται με την πίστα σε κάτοψη και με μία ράβδο που αναπαριστά το μπαστούνι του γκολφ. Το Kolf περιλαμβάνει πολλούς τύπους αντικειμένων, όπως υδάτινα εμπόδια, κλίσεις, αμμοπαγίδες και μαύρες τρύπες (παραμορφώσεις) μεταξύ άλλων.</p>
     <p xml:lang="en-GB">Kolf is a miniature golf game. The game is played from an overhead view, with a short bar representing the golf club. Kolf features many different types of objects, such water hazards, slopes, sand traps, and black holes (warps), among others.</p>
@@ -113,6 +114,7 @@
     <p xml:lang="gl">Kolf é un xogo de golf en miniatura. Xógase cunha vista aérea, cunha barra curta que representa o pau de golf. Kolf goza de moitos tipos distintos de obxectos, como obstáculos de auga, ramplas, trampas de area, e buratos negros (teleportación), entre outros.</p>
     <p xml:lang="he">‏Kolf הוא משחק מיני־גולף. את המשחק משחקים ממתצוגת על, עם סרגל קצר שמייצג את מחבט הגולף. ל־Kolf יש מגוון סוגים של עצמים כגון סכנות מים, שיפועים, מלכודות חול וחורים שחורים (עיוות מקום), לצד עוד כמה כאלה.</p>
     <p xml:lang="hu">A Kolf egy minigolf játék. A játékot felülnézetből játsszák, a golfütőt egy rövid sáv jelképezi. A Kolf számos különböző típusú objektumot tartalmaz, többek között vízakadályokat, lejtőket, homokcsapdákat és fekete lyukakat.</p>
+    <p xml:lang="is">Kolf er mínígolf-leikur. Leikurinn er spilaður í yfirlitssýn með stuttri slá sem táknar golfkylfuna. Kolf inniheldur margar mismunandi gerðir hluta, á borð við tjarnir, fláa, glompur og svarthol (ormagöng), auk annars.</p>
     <p xml:lang="it">Kolf è un gioco di di golf in miniatura. Il gioco si gioca da un punto di vista sopraelevato, con una barra che rappresenta la mazza da golf. Kolf contiene molti tipi di oggetti diversi, tra cui ostacoli d'acqua, pendenze, trappole di sabbia e buchi neri (deformazioni).</p>
     <p xml:lang="ka">Kolf მინიატურული გოლფის თამაშია. თამაში ზემოდან ხდება, სადაც მოკლე ზოლი გოლფის ყვანჯია. Kolf-ს მრავალი სხვადასხვანაირი ობიექტი გააჩნია, მაგ: წყლის საშიშროებები, დაღმართები, ქვიშის ხაფანგები, შავი ხვრელები და სხვ.</p>
     <p xml:lang="ko">Kolf는 모형 골프 게임입니다. 게임은 오버헤드 뷰로 진행되며 골프 클럽은 막대기로 표시됩니다. Kolf는 물 해저드, 슬로프, 모래 트랩, 블랙홀 등 특수 객체를 지원합니다.</p>
@@ -123,12 +125,12 @@
     <p xml:lang="pt">O Kolf é um jogo de golfe em miniatura. O jogo é executado numa perspectiva de cima, com uma barra que representa o taco de golfe. O Kolf oferece diversos tipos de objectos, como poças de água, rampas, armadilhas de areia e buracos negros (portais), entre outros.</p>
     <p xml:lang="pt-BR">Kolf é um jogo de mini-golfe. É jogado de uma vista aérea com uma barra curta representando o clube de golfe. Kolf possui muitos tipos diferentes de objetos, como riscos de água, encostas, armadilhas de areia, buracos negros (empenamento), entre outros.</p>
     <p xml:lang="ru">Kolf — игра в гольф в миниатюре. Во время игры игрок смотрит на площадку сверху. В Kolf предусмотрены различные типы объектов, в том числе водные преграды, склоны, песчаные ловушки и чёрные дыры (тоннели).</p>
+    <p xml:lang="sa">कोल्फ् इति लघुगोल्फक्रीडा । क्रीडा उपरि दृश्यात् क्रीड्यते, यत्र गोल्फक्लबस्य प्रतिनिधित्वं कृत्वा लघुः बारः भवति । कोल्फ् इत्यत्र जलस्य खतराणि, सानुः, वालुकाजालानि, कृष्णरन्ध्राणि (वार्प्स्) इत्यादीनि अनेकानि विविधानि वस्तूनि सन्ति ।</p>
     <p xml:lang="sk">Kolf je miniatúrna golfová hra. Hra sa hrá pohľadom zhora. Obsahuje mnoho rôznych typov objektov, ako vodné prekážky, stĺpy, pieskové pasce, čierne diery a iné.</p>
     <p xml:lang="sl">Kolf je igra miniaturnega golfa. Igrate iz ptičje perspektive, palico pa predstavlja deščica. V Kolfu boste našli številne predmete, kot so med drugimi vodne nevarnosti, klance, peščene pasti in črne luknje.</p>
     <p xml:lang="sv">Kolf är ett minigolfspel. Spelet visas ovanifrån, med ett kort streck som representerar golfklubban. Kolf har många olika hinder, bland annat vattenhinder, sluttningar, bunkrar och svarta hål.</p>
     <p xml:lang="tr">Kolf minyatür bir golf oyunudur. Oyun, golf sopasını temsil eden kısa bir çubukla yukarıdan oynanır. Kolf, diğerlerinin yanı sıra su tehlikeleri, eğimler, kum tuzakları ve kara delikler (bükümler) gibi birçok farklı nesne türüne sahiptir.</p>
     <p xml:lang="uk">Kolf — мініатюрна гра у гольф. Під час гри гравець дивиться на майданчик згори. У Kolf передбачено різні типи об’єктів-перешкод, зокрема водяні пастки, схили, піскові пастки і чорні діри (тунелі).</p>
-    <p xml:lang="x-test">xxKolf is a miniature golf game. The game is played from an overhead view, with a short bar representing the golf club. Kolf features many different types of objects, such water hazards, slopes, sand traps, and black holes (warps), among others.xx</p>
     <p xml:lang="zh-TW">Kolf 是迷你高爾夫球的遊戲。遊戲以俯瞰視角進行，用一個短桿代表高爾夫球桿。Kolf 中有各種不同的障礙物，像是水障礙、斜坡、沙子陷阱、黑洞（傳送門）等等。</p>
     <p>Features:</p>
     <p xml:lang="ar">الميزات:</p>
@@ -162,6 +164,7 @@
     <p xml:lang="pt-BR">Recursos:</p>
     <p xml:lang="ro">Caracteristici:</p>
     <p xml:lang="ru">Возможности:</p>
+    <p xml:lang="sa">गुणाः:</p>
     <p xml:lang="sk">Funkcie:</p>
     <p xml:lang="sl">Zmožnosti:</p>
     <p xml:lang="sr">Могућности:</p>
@@ -171,7 +174,6 @@
     <p xml:lang="sv">Funktioner:</p>
     <p xml:lang="tr">Özellikler:</p>
     <p xml:lang="uk">Можливості:</p>
-    <p xml:lang="x-test">xxFeatures:xx</p>
     <p xml:lang="zh-CN">功能：</p>
     <p xml:lang="zh-TW">功能：</p>
     <ul>
@@ -179,6 +181,7 @@
       <li xml:lang="ar">نمط لاعب واحد و نمط عدة لاعبين (حتى عشرة)</li>
       <li xml:lang="ca">Modes individual i multijugador (fins a 10 jugadors)</li>
       <li xml:lang="ca-valencia">Modes individual i multijugador (fins a 10 jugadors)</li>
+      <li xml:lang="cs">Režimy pro jednoho hráče a pro více hráčů (až deset hráčů)</li>
       <li xml:lang="de">Einzel- und Mehrspielermodi, bis zu 10 Spielern</li>
       <li xml:lang="el">Απλή και με πολλούς (έως 10) παίκτες λειτουργία</li>
       <li xml:lang="en-GB">Single and Multi-player (up to ten players) modes</li>
@@ -203,6 +206,7 @@
       <li xml:lang="pt">Modos para um ou vários jogadores (até dez jogadores)</li>
       <li xml:lang="pt-BR">Modos único jogador e multijogadores (até 10 jogadores)</li>
       <li xml:lang="ru">Однопользовательский и многопользовательский (не более десяти игроков) режимы игры</li>
+      <li xml:lang="sa">एकल-बहु-क्रीडक (दश-क्रीडकपर्यन्तं) मोड्</li>
       <li xml:lang="sk">Režimy jedného a viacerých hráčov (do 10 hráčov)</li>
       <li xml:lang="sl">Načina za enega in več igralcev (do deset)</li>
       <li xml:lang="sr">Режим за једног и више играча (до десет).</li>
@@ -212,7 +216,6 @@
       <li xml:lang="sv">En eller flera spelare (upp till tio stycken)</li>
       <li xml:lang="tr">Tek Oyunculu ve Çok Oyunculu (10 oyuncuya kadar)</li>
       <li xml:lang="uk">Режими одного та декількох гравців (до десяти учасників змагань)</li>
-      <li xml:lang="x-test">xxSingle and Multi-player (up to ten players) modesxx</li>
       <li xml:lang="zh-CN">单人模式及多人 (最高十位玩家) 模式</li>
       <li xml:lang="zh-TW">單人與多人模式（最多 10 名玩家）</li>
       <li>High scores table</li>
@@ -244,6 +247,7 @@
       <li xml:lang="pt">Tabela de recordes</li>
       <li xml:lang="pt-BR">Tabela de recordes</li>
       <li xml:lang="ru">Таблица рекордов</li>
+      <li xml:lang="sa">उच्चाङ्कसारणी</li>
       <li xml:lang="sk">Tabuľka najvyššieho skóre</li>
       <li xml:lang="sl">Razpredelnica najboljših rezultatov</li>
       <li xml:lang="sr">Табела најрезултата.</li>
@@ -253,7 +257,6 @@
       <li xml:lang="sv">Tabell över bästa resultat</li>
       <li xml:lang="tr">Yüksek puanlar tablosu</li>
       <li xml:lang="uk">Таблиця найкращих результатів</li>
-      <li xml:lang="x-test">xxHigh scores tablexx</li>
       <li xml:lang="zh-CN">高分表</li>
       <li xml:lang="zh-TW">高分表</li>
       <li>Dynamic courses</li>
@@ -285,6 +288,7 @@
       <li xml:lang="pt">Campos dinâmicos</li>
       <li xml:lang="pt-BR">Cursos dinâmicos</li>
       <li xml:lang="ru">Динамические площадки</li>
+      <li xml:lang="sa">गतिशील पाठ्यक्रम</li>
       <li xml:lang="sk">Dynamické kurzy</li>
       <li xml:lang="sl">Dinamična igrišča</li>
       <li xml:lang="sr">Динамички терени.</li>
@@ -294,7 +298,6 @@
       <li xml:lang="sv">Dynamiska banor</li>
       <li xml:lang="tr">Devingen sahalar</li>
       <li xml:lang="uk">Динамічні майданчики</li>
-      <li xml:lang="x-test">xxDynamic coursesxx</li>
       <li xml:lang="zh-CN">动态高尔夫球场</li>
       <li xml:lang="zh-TW">動態關卡</li>
       <li>Third-party courses</li>
@@ -326,6 +329,7 @@
       <li xml:lang="pt">Campos criados por terceiros</li>
       <li xml:lang="pt-BR">Cursos de terceiros</li>
       <li xml:lang="ru">Сторонние площадки</li>
+      <li xml:lang="sa">तृतीयपक्षीयपाठ्यक्रमाः</li>
       <li xml:lang="sk">Kurzy tretích strán</li>
       <li xml:lang="sl">Igrišča tretjih oseb</li>
       <li xml:lang="sr">Терени са стране.</li>
@@ -335,7 +339,6 @@
       <li xml:lang="sv">Tredjepartsbanor</li>
       <li xml:lang="tr">Sonradan eklenebilen sahalar</li>
       <li xml:lang="uk">Можливість використання сторонніх майданчиків</li>
-      <li xml:lang="x-test">xxThird-party coursesxx</li>
       <li xml:lang="zh-CN">第三方高尔夫球场</li>
       <li xml:lang="zh-TW">自訂關卡</li>
       <li>Course editor</li>
@@ -367,6 +370,7 @@
       <li xml:lang="pt">Editor de campos</li>
       <li xml:lang="pt-BR">Editor de curso</li>
       <li xml:lang="ru">Редактор площадок</li>
+      <li xml:lang="sa">पाठ्यक्रम सम्पादक</li>
       <li xml:lang="sk">Editor kurzov</li>
       <li xml:lang="sl">Urejevalnik igrišč</li>
       <li xml:lang="sr">Уређивач терена.</li>
@@ -376,7 +380,6 @@
       <li xml:lang="sv">Baneditor</li>
       <li xml:lang="tr">Saha düzenleyici</li>
       <li xml:lang="uk">Редактор майданчиків</li>
-      <li xml:lang="x-test">xxCourse editorxx</li>
       <li xml:lang="zh-CN">高尔夫球场编辑器</li>
       <li xml:lang="zh-TW">關卡編輯器</li>
     </ul>
@@ -416,12 +419,12 @@
       <caption xml:lang="pt">Ecrã inicial do Kolf</caption>
       <caption xml:lang="pt-BR">Tela inicial do Kolf</caption>
       <caption xml:lang="ru">Начальное окно Kolf</caption>
+      <caption xml:lang="sa">कोल्फस्य प्रारम्भिकपर्दे</caption>
       <caption xml:lang="sk">Úvodná obrazovka v Kolf</caption>
       <caption xml:lang="sl">Začetni zaslon Kolfa</caption>
       <caption xml:lang="sv">Inledande skärm i Kolf</caption>
       <caption xml:lang="tr">Kolf başlangıç ekranı</caption>
       <caption xml:lang="uk">Початкове вікно Kolf</caption>
-      <caption xml:lang="x-test">xxInitial screen of Kolfxx</caption>
       <caption xml:lang="zh-CN">Kolf 的初始界面</caption>
       <caption xml:lang="zh-TW">Kolf 的初始畫面</caption>
       <image>https://cdn.kde.org/screenshots/kolf/kolf.png</image>
@@ -433,6 +436,20 @@
     <binary>kolf</binary>
   </provides>
   <releases>
+    <release version="26.04.1" date="2026-05-07"/>
+    <release version="26.04.0" date="2026-04-16"/>
+    <release version="25.12.3" date="2026-03-05"/>
+    <release version="25.12.2" date="2026-02-05"/>
+    <release version="25.12.1" date="2026-01-08"/>
+    <release version="25.12.0" date="2025-12-11"/>
+    <release version="25.08.3" date="2025-11-06"/>
+    <release version="25.08.2" date="2025-10-09"/>
+    <release version="25.08.1" date="2025-09-11"/>
+    <release version="25.08.0" date="2025-08-14"/>
+    <release version="25.04.3" date="2025-07-03"/>
+    <release version="25.04.2" date="2025-06-05"/>
+    <release version="25.04.1" date="2025-05-08"/>
+    <release version="25.04.0" date="2025-04-17"/>
     <release version="24.12.3" date="2025-03-06"/>
     <release version="24.12.2" date="2025-02-06"/>
     <release version="24.12.1" date="2025-01-09"/>

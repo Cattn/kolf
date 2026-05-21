@@ -32,13 +32,30 @@
 #include <KCrash>
 #include <KDBusService>
 #include <KLocalizedString>
+#define HAVE_KICONTHEME __has_include(<KIconTheme>)
+#if HAVE_KICONTHEME
+#include <KIconTheme>
+#endif
 
+#define HAVE_STYLE_MANAGER __has_include(<KStyleManager>)
+#if HAVE_STYLE_MANAGER
+#include <KStyleManager>
+#endif
 using namespace std;
 
 int main(int argc, char **argv)
 {
+#if HAVE_KICONTHEME
+    KIconTheme::initTheme();
+#endif
     QApplication app(argc, argv);
-
+#if HAVE_STYLE_MANAGER
+    KStyleManager::initStyle();
+#else // !HAVE_STYLE_MANAGER
+#if defined(Q_OS_MACOS) || defined(Q_OS_WIN)
+    QApplication::setStyle(QStringLiteral("breeze"));
+#endif // defined(Q_OS_MACOS) || defined(Q_OS_WIN)
+#endif // HAVE_STYLE_MANAGER
     KLocalizedString::setApplicationDomain(QByteArrayLiteral("kolf"));
 
     KAboutData aboutData( QStringLiteral("kolf"),
@@ -46,7 +63,7 @@ int main(int argc, char **argv)
 			  QStringLiteral(KOLF_VERSION_STRING),
 			  i18n("KDE Minigolf Game"),
 			  KAboutLicense::GPL,
-			  i18n("(c) 2002-2010, Kolf developers"),
+			  i18n("(c) 2002-2010, Kolf & Cattn developers"),
 			  QString(),
 			  QStringLiteral("https://apps.kde.org/kolf"));
 
@@ -55,6 +72,8 @@ int main(int argc, char **argv)
 	aboutData.addAuthor(i18n("Niklas Knutsson"), i18n("Advanced putting mode"));
 	aboutData.addAuthor(i18n("Rik Hemsley"), i18n("Border around course"));
 	aboutData.addAuthor(i18n("Timo A. Hummel"), i18n("Some good sound effects"), QStringLiteral("timo.hummel@gmx.net"));
+	aboutData.addAuthor(i18n("Cattn"), i18n("Kolf modder!"), QStringLiteral("timo.hummel@gmx.net"));
+	aboutData.addAuthor(i18n("Vape"), i18n("idk he's there"), QStringLiteral("timo.hummel@gmx.net"));
 
 	aboutData.addCredit(i18n("Rob Renaud"), i18n("Wall-bouncing help"));
 	aboutData.addCredit(i18n("Aaron Seigo"), i18n("Suggestions, bug reports"));

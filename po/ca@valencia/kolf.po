@@ -2,16 +2,16 @@
 # Copyright (C) 2002-2024 This_file_is_part_of_KDE
 #
 # SPDX-FileCopyrightText: 2002, 2003, 2007, 2010, 2011, 2012, 2015, 2017, 2018, 2019, 2021, 2023, 2024 Josep M. Ferrer <txemaq@gmail.com>
-# Albert Astals Cid <aacid@kde.org>, 2004, 2005.
-# Miquel Oliete <ktalanet@yahoo.es>, 2007.
-# Manuel Tortosa <manutortosa@gmail.com>, 2009.
-# Manuel Tortosa Moreno <manutortosa@chakra-project.org>, 2010.
-# Antoni Bella Pérez <antonibella5@yahoo.com>, 2020, 2021.
+# SPDX-FileCopyrightText: 2004, 2005 Albert Astals Cid <aacid@kde.org>
+# SPDX-FileCopyrightText: 2007 Miquel Oliete <ktalanet@yahoo.es>
+# SPDX-FileCopyrightText: 2009 Manuel Tortosa <manutortosa@gmail.com>
+# SPDX-FileCopyrightText: 2010 Manuel Tortosa Moreno <manutortosa@chakra-project.org>
+# SPDX-FileCopyrightText: 2020, 2021 Antoni Bella Pérez <antonibella5@yahoo.com>
 msgid ""
 msgstr ""
 "Project-Id-Version: kolf\n"
 "Report-Msgid-Bugs-To: https://bugs.kde.org\n"
-"POT-Creation-Date: 2024-05-05 00:37+0000\n"
+"POT-Creation-Date: 2025-11-17 11:50+0000\n"
 "PO-Revision-Date: 2024-10-26 18:28+0200\n"
 "Last-Translator: Josep M. Ferrer <txemaq@gmail.com>\n"
 "Language-Team: Catalan <kde-i18n-ca@kde.org>\n"
@@ -72,13 +72,13 @@ msgstr "Màxim:"
 #, kde-format
 msgctxt "@info:whatsthis"
 msgid "Maximum number of strokes player can take on this hole."
-msgstr "Nombre màxim de colps que el jugador pot donar en este forat."
+msgstr "Nombre màxim de vegades que el jugador pot donar en este forat."
 
 #: game.cpp:294
 #, kde-format
 msgctxt "@info:tooltip"
 msgid "Maximum number of strokes"
-msgstr "Nombre màxim de colps"
+msgstr "Nombre màxim de vegades"
 
 #: game.cpp:295
 #, kde-format
@@ -186,7 +186,7 @@ msgstr "Guarda més &tard"
 #, kde-format
 msgctxt "@title:window"
 msgid "Pick Kolf Course to Save To"
-msgstr "Trieu un camp de Kolf per a guardar a"
+msgstr "Tria un camp de Kolf per a guardar a"
 
 #: kcomboboxdialog.cpp:60
 #, kde-format
@@ -414,13 +414,13 @@ msgstr "Puntuacions màximes per a %1"
 #, kde-format
 msgctxt "@title:window"
 msgid "Pick Saved Game to Save To"
-msgstr "Trieu una partida guardada per a guardar a"
+msgstr "Tria una partida guardada per a guardar a"
 
 #: kolf.cpp:608
 #, kde-format
 msgctxt "@title:window"
 msgid "Pick Kolf Saved Game"
-msgstr "Trieu una partida guardada de Kolf"
+msgstr "Tria una partida guardada de Kolf"
 
 #: kolf.cpp:656
 #, kde-format
@@ -511,147 +511,147 @@ msgctxt "@lable:spinbox"
 msgid "Grade:"
 msgstr "Grau:"
 
-#: main.cpp:45
+#: main.cpp:62
 #, kde-format
 msgid "Kolf"
 msgstr "Kolf"
 
-#: main.cpp:47
+#: main.cpp:64
 #, kde-format
 msgid "KDE Minigolf Game"
 msgstr "Joc de minigolf de KDE"
 
-#: main.cpp:49
+#: main.cpp:66
 #, kde-format
 msgid "(c) 2002-2010, Kolf developers"
 msgstr "(c) 2002-2010, els desenvolupadors de Kolf"
 
-#: main.cpp:53
+#: main.cpp:70
 #, kde-format
 msgid "Stefan Majewsky"
 msgstr "Stefan Majewsky"
 
-#: main.cpp:53
+#: main.cpp:70
 #, kde-format
 msgid "Current maintainer"
 msgstr "Mantenidor actual"
 
-#: main.cpp:54
+#: main.cpp:71
 #, kde-format
 msgid "Jason Katz-Brown"
 msgstr "Jason Katz-Brown"
 
-#: main.cpp:54
+#: main.cpp:71
 #, kde-format
 msgid "Former main author"
 msgstr "Antic autor principal"
 
-#: main.cpp:55
+#: main.cpp:72
 #, kde-format
 msgid "Niklas Knutsson"
 msgstr "Niklas Knutsson"
 
-#: main.cpp:55
+#: main.cpp:72
 #, kde-format
 msgid "Advanced putting mode"
 msgstr "Mode llançament avançat"
 
-#: main.cpp:56
+#: main.cpp:73
 #, kde-format
 msgid "Rik Hemsley"
 msgstr "Rik Hemsley"
 
-#: main.cpp:56
+#: main.cpp:73
 #, kde-format
 msgid "Border around course"
 msgstr "Vora al voltant del camp"
 
-#: main.cpp:57
+#: main.cpp:74
 #, kde-format
 msgid "Timo A. Hummel"
 msgstr "Timo A. Hummel"
 
-#: main.cpp:57
+#: main.cpp:74
 #, kde-format
 msgid "Some good sound effects"
 msgstr "Alguns bons efectes de sons"
 
-#: main.cpp:59
+#: main.cpp:76
 #, kde-format
 msgid "Rob Renaud"
 msgstr "Rob Renaud"
 
-#: main.cpp:59
+#: main.cpp:76
 #, kde-format
 msgid "Wall-bouncing help"
 msgstr "Ajuda sobre el rebot en murs"
 
-#: main.cpp:60
+#: main.cpp:77
 #, kde-format
 msgid "Aaron Seigo"
 msgstr "Aaron Seigo"
 
-#: main.cpp:60
+#: main.cpp:77
 #, kde-format
 msgid "Suggestions, bug reports"
 msgstr "Suggeriments i informes d'error"
 
-#: main.cpp:61
+#: main.cpp:78
 #, kde-format
 msgid "Erin Catto"
 msgstr "Erin Catto"
 
-#: main.cpp:61
+#: main.cpp:78
 #, kde-format
 msgid "Developer of Box2D physics engine"
 msgstr "Desenvolupador del motor de física Box2D"
 
-#: main.cpp:62
+#: main.cpp:79
 #, kde-format
 msgid "Ryan Cumming"
 msgstr "Ryan Cumming"
 
-#: main.cpp:62
+#: main.cpp:79
 #, kde-format
 msgid "Vector class (Kolf 1)"
 msgstr "Classe de vector (Kolf 1)"
 
-#: main.cpp:63
+#: main.cpp:80
 #, kde-format
 msgid "Daniel Matza-Brown"
 msgstr "Daniel Matza-Brown"
 
-#: main.cpp:63
+#: main.cpp:80
 #, kde-format
 msgid "Working wall-bouncing algorithm (Kolf 1)"
 msgstr "Algorisme funcional de rebot als murs (Kolf 1)"
 
-#: main.cpp:71
+#: main.cpp:88
 #, kde-format
 msgid "File"
 msgstr "Fitxer"
 
-#: main.cpp:72
+#: main.cpp:89
 #, kde-format
 msgid "Print course information and exit"
 msgstr "Mostra la informació del camp i ix"
 
-#: main.cpp:90
+#: main.cpp:107
 #, kde-format
 msgid "By %1"
 msgstr "Per %1"
 
-#: main.cpp:91
+#: main.cpp:108
 #, kde-format
 msgid "%1 holes"
 msgstr "%1 forats"
 
-#: main.cpp:92
+#: main.cpp:109
 #, kde-format
 msgid "par %1"
 msgstr "par %1"
 
-#: main.cpp:99
+#: main.cpp:116
 #, kde-format
 msgid "Course %1 does not exist."
 msgstr "El camp %1 no existix."
@@ -684,7 +684,7 @@ msgstr "Camp"
 #, kde-format
 msgctxt "@title"
 msgid "Choose Course to Play"
-msgstr "Trieu un camp per a jugar"
+msgstr "Tria un camp per a jugar"
 
 #: newgame.cpp:135
 #, kde-format
@@ -767,7 +767,7 @@ msgstr[1] "%1 forats"
 #, kde-format
 msgctxt "@title:window"
 msgid "Pick Kolf Course"
-msgstr "Trieu un camp de Kolf"
+msgstr "Tria un camp de Kolf"
 
 #: newgame.cpp:310
 #, kde-format
