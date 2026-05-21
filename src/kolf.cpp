@@ -24,6 +24,7 @@
 #include "objects.h"
 #include "obstacles.h"
 #include "scoreboard.h"
+#include "dataServer.h"
 
 #include <KGameHighScoreDialog>
 #include <KGameStandardAction>
@@ -247,6 +248,7 @@ void KolfWindow::startNewGame()
 
 		competition = dialog->competition();
 		filename = filename.isNull()? dialog->course() : filename;
+		updateData(filename.toStdString().c_str(), "map", "shot");
 	}
 	else
 	{
@@ -257,6 +259,7 @@ void KolfWindow::startNewGame()
 			filename = QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("tutorial.kolf"));
 		else
 			filename = configGroup.readEntry("Course", QString());
+		updateData(filename.toStdString().c_str(), "map", "shot");
 
 		if (filename.isNull())
 			return;
@@ -282,6 +285,8 @@ void KolfWindow::startNewGame()
 	connect(game, &KolfGame::parChanged, scoreboard, &ScoreBoard::parChanged);
 	connect(game, &KolfGame::modifiedChanged, this, &KolfWindow::updateModified);
 	connect(game, &KolfGame::newPlayersTurn, this, &KolfWindow::newPlayersTurn);
+	connect(game, &KolfGame::saveGame, this, &KolfWindow::saveGame);
+	connect(game, &KolfGame::saveGameAs, this, &KolfWindow::saveGameAs);
 	connect(game, &KolfGame::holesDone, this, &KolfWindow::gameOver);
 	connect(game, &KolfGame::checkEditing, this, &KolfWindow::checkEditing);
 	connect(game, &KolfGame::editingStarted, this, &KolfWindow::editingStarted);

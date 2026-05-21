@@ -11,4 +11,3 @@ CMakeLists.txt.user*
 .cache
 .idea
 /cmake-build*
-node_modules/*

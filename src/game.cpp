@@ -25,6 +25,8 @@
 
 #include "tagaro/board.h"
 
+#include "dataServer.h"
+
 #include <QHBoxLayout>
 #include <QApplication>
 #include <QCheckBox>
@@ -218,6 +220,8 @@ void Putter::go(Direction d, Amount amount)
 			break;
 	}
 
+	updateData("1.1", "angleStart", "shot");
+	updateData("1.41", "angleEnd", "shot");
 	finishMe();
 }
 
@@ -1485,6 +1489,14 @@ void KolfGame::shotDone()
 
 	ball->setVelocity(Vector());
 
+	updateDoubleData((*curPlayer).ball()->x(), "x", "shot");
+	updateDoubleData((*curPlayer).ball()->y(), "y", "shot");
+
+	updateIntData(curHole, "holeNum", "shot");
+
+	const std::string playerName = (*curPlayer).name().toStdString();
+	updateData(playerName.c_str(), "name", "shot");
+
 	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it)
 	{
 		Ball *ball = (*it).ball();
@@ -1530,6 +1542,8 @@ void KolfGame::shotDone()
 	putter->setAngle((*curPlayer).ball());
 	putter->setOrigin((*curPlayer).ball()->x(), (*curPlayer).ball()->y());
 	updateMouse();
+	sendShotDataToServer();
+	sendTurnDataToServer();
 }
 
 void KolfGame::emitMax()
@@ -1537,8 +1551,23 @@ void KolfGame::emitMax()
 	Q_EMIT maxStrokesReached(playerWhoMaxed);
 }
 
+#include <chrono>
+
+std::chrono::steady_clock::time_point startTime;
+
+double since(const std::chrono::steady_clock::time_point& start) {
+    auto elapsedDuration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+    return static_cast<double>(elapsedDuration.count());
+}
+
+void StartTimer() {
+	startTime = std::chrono::steady_clock::time_point();
+    startTime = std::chrono::steady_clock::now();
+}
+
 void KolfGame::startBall(const Vector &velocity)
 {
+	StartTimer();
 	playSound(Sound::Hit);
 	Q_EMIT inPlayStart();
 	putter->setVisible(false);
@@ -1558,6 +1587,9 @@ void KolfGame::startBall(const Vector &velocity)
 
 void KolfGame::shotStart()
 {
+	double elapsed = since(startTime);
+	elapsed /= 1000.0;
+    updateDoubleData(elapsed, "aimTime", "shot");
 	// ensure we never hit the ball back into the hole which
 	// can cause hole skippage
 	if ((*curPlayer).ball()->curState() == Holed)
@@ -1572,6 +1604,8 @@ void KolfGame::shotStart()
 		strength = 1;
 
 	//kDebug(12007) << "Start started. BallX:" << (*curPlayer).ball()->x() << ", BallY:" << (*curPlayer).ball()->y() << ", Putter Angle:" << putter->curAngle() << ", Vector Strength: " << strength;
+	updateDoubleData(putter->curAngle(), "angleEnd", "shot");
+	updateDoubleData(strength, "magnitude", "shot");
 
 	(*curPlayer).ball()->collisionDetect();
 
@@ -1597,10 +1631,18 @@ void KolfGame::sayWhosGoing()
 
 void KolfGame::holeDone()
 {
-	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it)
-		(*it).ball()->setVisible(false);
-	startNextHole();
-	sayWhosGoing();
+    for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it) {
+        Player& player = *it;
+        player.ball()->setVisible(false);
+
+        const std::string playerName = player.name().toStdString();
+        player.holeInfo.score = player.score(curHole);
+        player.holeInfo.name = playerName.c_str();
+        sendHoleDataToServer(player.holeInfo);
+    }
+    startNextHole();
+	Q_EMIT saveGame();
+    sayWhosGoing();
 }
 
 // this function is WAY too smart for it's own good
@@ -1787,6 +1829,8 @@ void KolfGame::openFile()
 	cfgGroup = KConfigGroup(cfg->group(QStringLiteral("0-course@-50,-50")));
 	holeInfo.setAuthor(cfgGroup.readEntry("author", holeInfo.author()));
 	holeInfo.setName(cfgGroup.readEntry("Name", holeInfo.name()));
+	const std::string holeInfoName = holeInfo.name().toStdString();
+	updateData(holeInfoName.c_str(), "courseName", "shot");
 	holeInfo.setUntranslatedName(cfgGroup.readEntryUntranslated("Name", holeInfo.untranslatedName()));
 	Q_EMIT titleChanged(holeInfo.name());
 
