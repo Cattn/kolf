@@ -181,7 +181,7 @@ endif()
 file(GLOB ICONS_SRCS "${CMAKE_SOURCE_DIR}/pics/*-apps-kolf.png")
 ecm_add_app_icon(kolf ICONS ${ICONS_SRCS})
 
-target_link_libraries(kolf kolfprivate)
+target_link_libraries(kolf PRIVATE kolfprivate)
 
 if(WIN32)
     target_link_libraries(kolf PRIVATE wsock32 ws2_32)

@@ -1,7 +1,7 @@
 #include "dataServer.h"
 
 const int PORT = 3010;
-const char* SERVER_IP = "150.136.109.101";
+const char* SERVER_IP = "127.0.0.1";
 
 
 class ShotClass {
@@ -188,7 +188,7 @@ if (connect(client_socket, (struct sockaddr*)&server_address, sizeof(server_addr
 
     
     std::string http_request = "POST /" + std::string(path) + " HTTP/1.1\r\n"
-                               "Host: " + std::string(SERVER_IP) + "\r\n"
+                               "Host: " + std::string(SERVER_IP) + ":" + std::to_string(PORT) + "\r\n"
                                "Content-Type: application/json\r\n"
                                "Content-Length: " + std::to_string(strlen(json_data)) + "\r\n"
                                "\r\n" + std::string(json_data);
