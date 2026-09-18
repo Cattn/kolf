@@ -26,6 +26,7 @@ public:
     QString failure() const { return m_failure; }
 Q_SIGNALS:
     void transition(const QString &phase);
+    void failed(const QString &reason);
 private:
     void settle();
     void continueResolution();

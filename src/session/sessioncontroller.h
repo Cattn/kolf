@@ -53,8 +53,9 @@ private:
     QString m_choiceId;
     int m_choiceSlot = -1;
     int m_revision = 0, m_generation = 1, m_turn = 1, m_lastHole = 1, m_slot = -1;
+    int m_syncId = 0;
     int m_frameSeq = 0, m_receivedFrame = 0;
-    bool m_ready = false, m_interrupted = false;
+    bool m_ready = false, m_interrupted = false, m_awaitingResync = false;
     bool m_testFaultScheduled = false;
     QJsonObject m_pendingMessage;
     QTimer m_retry;

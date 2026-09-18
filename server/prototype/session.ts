@@ -11,8 +11,10 @@ export class Session {
   ready = new Map<Role, Message>();
   state?: Message;
   eventSeq = 0;
+  syncId = 0;
   interrupted = false;
   barrier = true;
+  private barrierPublished = false;
   pending?: string;
   pendingAt = 0;
   choicePending?: string;
@@ -106,7 +108,7 @@ export class Session {
         const key = JSON.stringify(m.state);
         if (this.state && m.state.stateRevision === this.state.stateRevision) {
           if (key !== this.lastCommit) throw Error('conflicting revision');
-          peer.send(envelope('TransitionCommitted', { state: this.state, eventSeq: this.eventSeq })); return;
+          peer.send(envelope('TransitionCommitted', { state: this.state, eventSeq: this.eventSeq, syncId: this.syncId })); return;
         }
         if (m.state.stateRevision !== (this.state?.stateRevision ?? 0) + 1) throw Error('revision gap');
         if (!this.started) throw Error('state before loading barrier');
@@ -125,27 +127,32 @@ export class Session {
         if (this.state && (m.state.turnId < this.state.turnId || m.state.holeGeneration < this.state.holeGeneration)) throw Error('regressed state');
         const wasPending = this.pending;
         this.state = m.state; this.lastCommit = key; this.lastFrame = 0;
-        this.barrier = true; this.pendingAt = this.now(); this.choicePending = undefined;
+        this.barrier = true; this.barrierPublished = true; ++this.syncId;
+        this.pendingAt = this.now(); this.choicePending = undefined;
+        for (const entry of this.ready.values()) entry.applied = 0;
         if (['AwaitingShot', 'Finished'].includes(m.state.phase) && wasPending) {
           this.admissions.get(wasPending)!.status = envelope('ShotResolved', { commandId: wasPending, stateRevision: m.state.stateRevision });
           this.pending = undefined;
         }
-        this.broadcast(envelope('TransitionCommitted', { state: m.state, eventSeq: ++this.eventSeq }));
+        this.broadcast(envelope('TransitionCommitted', { state: m.state, eventSeq: ++this.eventSeq, syncId: this.syncId }));
         return;
       }
       case 'StateApplied': {
-        if (this.state && m.stateRevision < this.state.stateRevision) return;
-        if (!this.state || m.stateRevision !== this.state.stateRevision || m.manifestHash !== this.state.manifestHash) throw Error('state acknowledgement mismatch');
-        this.ready.get(peer.role)!.applied = m.stateRevision;
-        if ([...this.ready.values()].every(r => r.applied === m.stateRevision)) {
+        if (this.state && ((integer(m.syncId, 1) && m.syncId < this.syncId) || m.stateRevision < this.state.stateRevision)) return;
+        if (!this.state || !integer(m.syncId, 1) || m.syncId !== this.syncId || m.stateRevision !== this.state.stateRevision
+          || m.manifestHash !== this.state.manifestHash) throw Error('state acknowledgement mismatch');
+        if (!this.barrier || !this.barrierPublished) return;
+        this.ready.get(peer.role)!.applied = m.syncId;
+        if ([...this.ready.values()].every(r => r.applied === this.syncId)) {
           this.barrier = false;
-          this.broadcast(envelope('InputReady', { stateRevision: m.stateRevision }));
+          this.broadcast(envelope('InputReady', { stateRevision: m.stateRevision, syncId: this.syncId }));
         }
         return;
       }
       case 'StateFrame': {
-        if (peer.role !== 'authority' || !validState(m.state) || !integer(m.frameSeq, 1)) throw Error('invalid frame');
-        if (!this.state || this.barrier || m.state.stateRevision !== this.state.stateRevision || m.state.holeGeneration !== this.state.holeGeneration) return;
+        if (peer.role !== 'authority' || !validState(m.state) || !integer(m.frameSeq, 1) || !integer(m.syncId, 1)) throw Error('invalid frame');
+        if (!this.state || this.barrier || m.syncId !== this.syncId || m.state.stateRevision !== this.state.stateRevision
+          || m.state.holeGeneration !== this.state.holeGeneration) return;
         this.checkMetadata(m.state);
         if (m.frameSeq <= this.lastFrame) return;
         this.lastFrame = m.frameSeq;
@@ -154,18 +161,27 @@ export class Session {
       case 'ChooseHazardAction': {
         const s = this.state;
         if (!s || this.barrier || s.phase !== 'AwaitingHazardChoice' || s.choiceSlot !== (peer.role === 'authority' ? 0 : 1)
-          || m.choiceId !== s.choiceId || m.stateRevision !== s.stateRevision || !['drop', 'rehit'].includes(m.action)) return reject('invalid hazard choice');
+          || m.choiceId !== s.choiceId || m.stateRevision !== s.stateRevision || m.syncId !== this.syncId
+          || !['drop', 'rehit'].includes(m.action)) return reject('invalid hazard choice');
         if (this.choicePending === m.choiceId) return;
         this.choicePending = m.choiceId;
         this.peers.get('authority')!.send(envelope('AdmitHazardAction', m)); return;
       }
       case 'RequestResync':
-        if (this.state) { this.barrier = true; this.pendingAt = this.now(); this.peers.get('authority')!.send(envelope('RequestResync')); }
+        if (this.state) {
+          this.barrier = true; this.barrierPublished = false; ++this.syncId; this.lastFrame = 0;
+          this.pendingAt = this.now();
+          for (const entry of this.ready.values()) entry.applied = 0;
+          this.peers.get('authority')!.send(envelope('RequestResync', { syncId: this.syncId }));
+        }
         return;
       case 'FullState':
-        if (peer.role !== 'authority' || !validState(m.state) || m.state.stateRevision !== this.state?.stateRevision) throw Error('invalid resync');
+        if (peer.role !== 'authority' || !validState(m.state) || !integer(m.syncId, 1)) throw Error('invalid resync');
+        if (m.syncId < this.syncId) return;
+        if (!this.barrier || m.syncId !== this.syncId || m.state.stateRevision !== this.state?.stateRevision) throw Error('invalid resync');
         this.checkMetadata(m.state);
-        this.broadcast(envelope('FullState', { state: m.state, eventSeq: this.eventSeq })); return;
+        this.barrierPublished = true;
+        this.broadcast(envelope('FullState', { state: m.state, eventSeq: this.eventSeq, syncId: this.syncId })); return;
       case 'MatchInterrupted': return this.interrupt('client reported invalid state');
       default: throw Error('unexpected message');
     }

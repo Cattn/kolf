@@ -181,11 +181,12 @@ void GameSessionAdapter::settle() {
     if (!m_scored) {
         if (!g->dontAddStroke) g->curPlayer->addStrokeToHole(hole());
         g->dontAddStroke = false;
-        for (auto &p : *g->players) {
-            for (int i = 0; i < p.ball()->addStroke(); ++i) p.addStrokeToHole(hole());
-            p.ball()->setAddStroke(0);
-        }
         m_scored = true;
+    }
+    // A placement collision can add another penalty after the original shot was scored.
+    for (auto &p : *g->players) {
+        for (int i = 0; i < p.ball()->addStroke(); ++i) p.addStrokeToHole(hole());
+        p.ball()->setAddStroke(0);
     }
     continueResolution();
 }
@@ -217,7 +218,12 @@ void GameSessionAdapter::continueResolution() {
                 if (a != b) { if (a < b) starter = i; break; }
             }
         }
-        loadHole(hole() + 1);
+        if (!loadHole(hole() + 1)) {
+            m_failure = QStringLiteral("next hole could not be loaded");
+            enableSimulation(false);
+            Q_EMIT failed(m_failure);
+            return;
+        }
         g->curBall()->setVisible(false); g->curPlayer = g->players->begin() + starter;
     } else {
         do { ++g->curPlayer; if (g->curPlayer == g->players->end()) g->curPlayer = g->players->begin(); }
@@ -230,6 +236,9 @@ void GameSessionAdapter::continueResolution() {
 bool GameSessionAdapter::choose(const QString &action) {
     if (!g->maySimulate() || m_choiceSlot < 0 || (action != QLatin1String("drop") && action != QLatin1String("rehit"))) return false;
     auto *ball = (*g->players)[m_choiceSlot].ball();
+    const int resolvedSlot = m_choiceSlot;
+    // Moving through the hazard must not trigger collisions at intermediate positions.
+    ball->setDoDetect(false);
     if (action == QLatin1String("rehit")) {
         const auto saved = g->ballStateList[m_choiceSlot];
         ball->setPos(saved.beginningOfHole ? g->whiteBall->pos() : QPointF(saved.spot));
@@ -244,10 +253,23 @@ bool GameSessionAdapter::choose(const QString &action) {
             if (!inHazard) { outside = true; break; }
             ball->setPos(ball->pos() - direction * 3.0);
         }
-        if (!outside) { m_failure = QStringLiteral("hazard drop exceeded search limit"); return false; }
+        if (!outside) {
+            ball->setDoDetect(true);
+            m_failure = QStringLiteral("hazard drop exceeded search limit"); return false;
+        }
     }
     ball->setPlaceOnGround(false); ball->setVisible(true); ball->setState(Stopped); ball->setVelocity(Vector());
-    m_choiceSlot = -1; m_choiceId.clear(); ++m_resolutionIndex;
-    continueResolution();
+    ball->setDoDetect(true);
+    // Offline shotDone() detects collisions at the restored position. A slope,
+    // bumper, cup, or another hazard can change the outcome of this same shot.
+    ball->collisionDetect();
+    m_choiceSlot = -1; m_choiceId.clear();
+    m_resolutionIndex = resolvedSlot;
+    if (ball->forceStillGoing() || ball->curState() == Rolling) {
+        m_resolutionIndex = 0;
+        Q_EMIT transition(QStringLiteral("Simulating"));
+    } else {
+        settle();
+    }
     return true;
 }

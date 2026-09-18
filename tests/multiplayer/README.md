@@ -68,6 +68,11 @@ The source fingerprint hashes source bytes: different checkout line endings can
 reject an otherwise equivalent build. Snapshot resync restores presentation, not
 an authority's hidden physics state; authority migration is not supported.
 
+Each committed state and full resync now has a separate `syncId`. State
+acknowledgements, visual frames, input-ready notifications, and hazard choices
+must belong to the current round. A same-revision resync clears earlier
+acknowledgements and does not reopen input before its full state is applied.
+
 ## Repeatable checks
 
 ```powershell
@@ -78,6 +83,7 @@ cd ../..
 node tests/multiplayer/run-native.ts static
 node tests/multiplayer/run-native.ts water rehit
 node tests/multiplayer/run-native.ts water drop
+node tests/multiplayer/run-native.ts water-slope drop
 node tests/multiplayer/run-native.ts teleport
 node tests/multiplayer/run-native.ts dynamics
 $env:KOLF_DELAY_MS = '100'
@@ -87,7 +93,9 @@ node tests/multiplayer/run-native.ts teleport rehit disconnect
 ```
 
 Each native run has a 120-second deadline and launches both clients through Craft.
-Use distinct `KOLF_PORT` values for concurrent runs. The delay is applied on each
+The runner chooses a free localhost port unless `KOLF_PORT` is set. It verifies
+both native processes exit and both scenes are destroyed, then stops only its own
+remaining Craft launchers. The delay is applied on each
 relay receive/send leg, not an estimate of network RTT. Native golden decoder
 fixtures can be run by setting `KOLF_PROTOCOL_TESTS` to the absolute path of
 `protocol/shot-fixtures.json`, then initializing Craft and using `craft --run kolf`.
@@ -113,7 +121,19 @@ offline gameplay regression, cross-platform/two-machine testing, repeated hazard
 and moving-obstacle edge cases, disconnects in every phase, and resource/endurance
 measurement. The requested 30-minute endurance run was intentionally skipped.
 The dynamics fixture includes every built-in object type but does not prove every
-collision interaction. Online hazard drop currently places the ball outside the
-hazard and continues turn resolution; parity with offline post-drop collisions
-on overlapping obstacles still needs work. This is a tested prototype, not a
+collision interaction. Online hazard placement now checks collisions at the
+chosen point and resumes simulation when a slope starts motion. The
+`water-slope` fixture exercises this path; other overlaps and full offline
+parity still need targeted checks. This is a tested prototype, not a
 claim that all original acceptance criteria or the larger multiplayer plan are done.
+
+## Continuation evidence, 2026-09-18
+
+The checks in [evidence/2026-09-18-p0.json](evidence/2026-09-18-p0.json)
+were run after the changes above; the earlier evidence file remains unchanged.
+Craft compile/install/qmerge passed. All 15 relay tests and TypeScript checking
+passed. Native `water-slope drop` and delayed `teleport rehit resync` completed
+with matching committed states, zero guest mutation counters, and clean native
+scene/process shutdown. The native runner still uses scripted canonical shots;
+human mouse/keyboard and advanced-meter coverage remains open. The full lobby,
+multi-slot, results/rematch, test-kit and cross-platform goals remain open.

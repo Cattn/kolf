@@ -44,8 +44,8 @@ function setup() {
     balls: [0, 1].map(i => ({id: `ball/${i}`, kind: 'sprite', x: 100, y: 200, z: 1, visible: true, rotation: 0, opacity: 1, sprite: 'ball', frame: -1, state: 1})),
     objects: [], scores: [[0], [0]], ...fields });
   const apply = (revision = 1) => {
-    send(authority, 'StateApplied', { stateRevision: revision, manifestHash: 'b'.repeat(64) });
-    send(guest, 'StateApplied', { stateRevision: revision, manifestHash: 'b'.repeat(64) });
+    send(authority, 'StateApplied', { stateRevision: revision, syncId: session.syncId, manifestHash: 'b'.repeat(64) });
+    send(guest, 'StateApplied', { stateRevision: revision, syncId: session.syncId, manifestHash: 'b'.repeat(64) });
   };
   send(authority, 'InitialState', { state: state() }); apply();
   const shot = (fields: Message = {}) => ({ commandId: 'shot-1', holeGeneration: 1, turnId: 1, playerSlot: 0,
@@ -102,7 +102,7 @@ test('remote hazard retry admits one choice and rejects the wrong owner', () => 
   h.send(h.authority, 'ShotAccepted', { commandId: 'shot-1' });
   h.send(h.authority, 'CommitTransition', { state: h.state({ stateRevision: 2, phase: 'Simulating' }) }); h.apply(2);
   h.send(h.authority, 'CommitTransition', { state: h.state({ stateRevision: 3, phase: 'AwaitingHazardChoice', choiceId: 'water-1', choiceSlot: 1 }) }); h.apply(3);
-  const choice = { choiceId: 'water-1', stateRevision: 3, action: 'rehit' };
+  const choice = { choiceId: 'water-1', stateRevision: 3, syncId: h.session.syncId, action: 'rehit' };
   h.send(h.authority, 'ChooseHazardAction', choice);
   h.send(h.guest, 'ChooseHazardAction', choice); h.send(h.guest, 'ChooseHazardAction', choice);
   h.send(h.guest, 'ChooseHazardAction', { ...choice, stateRevision: 1 });
@@ -112,12 +112,51 @@ test('resync does not re-admit shots and disconnect is terminal', () => {
   const h = setup();
   h.send(h.authority, 'SubmitShot', h.shot());
   h.send(h.guest, 'RequestResync');
-  h.send(h.authority, 'FullState', { state: h.state() }); h.apply();
+  h.send(h.authority, 'FullState', { state: h.state(), syncId: h.session.syncId }); h.apply();
   h.send(h.authority, 'SubmitShot', h.shot());
   assert.equal(h.messages.authority.filter(m => m.type === 'AdmitShot').length, 1);
   h.session.disconnect(h.guest);
   assert(h.session.interrupted);
   assert.throws(() => h.session.join(h.guest, h.hello('guest')));
+});
+test('a same-revision resync needs a fresh acknowledgement from both peers', () => {
+  const h = setup();
+  h.send(h.guest, 'RequestResync');
+  assert(h.session.barrier);
+  // These acknowledgements belong to the original commit, not the new resync.
+  h.send(h.authority, 'StateApplied', { stateRevision: 1, syncId: 1, manifestHash: 'b'.repeat(64) });
+  h.send(h.guest, 'StateApplied', { stateRevision: 1, syncId: 1, manifestHash: 'b'.repeat(64) });
+  assert(h.session.barrier, 'Old acknowledgements must not reopen input before FullState');
+  h.send(h.authority, 'FullState', { state: h.state(), syncId: h.session.syncId });
+  h.apply();
+  assert.equal(h.session.barrier, false);
+});
+test('rapid completion supersedes an older state barrier', () => {
+  const h = setup();
+  h.send(h.authority, 'SubmitShot', h.shot());
+  h.send(h.authority, 'ShotAccepted', { commandId: 'shot-1' });
+  h.send(h.authority, 'CommitTransition', { state: h.state({ stateRevision: 2, phase: 'Simulating' }) });
+  h.send(h.authority, 'StateApplied', { stateRevision: 2, syncId: 2, manifestHash: 'b'.repeat(64) });
+  h.send(h.authority, 'CommitTransition', { state: h.state({ stateRevision: 3, turnId: 2, activeSlot: 1, scores: [[1], [0]] }) });
+  h.send(h.guest, 'StateApplied', { stateRevision: 2, syncId: 2, manifestHash: 'b'.repeat(64) });
+  assert(h.session.barrier);
+  assert.equal(h.messages.guest.filter(m => m.type === 'InputReady' && m.stateRevision === 3).length, 0);
+  h.apply(3);
+  assert.equal(h.session.barrier, false);
+});
+test('an old visual frame cannot cross a hole transition', () => {
+  const h = setup();
+  h.send(h.authority, 'SubmitShot', h.shot());
+  h.send(h.authority, 'ShotAccepted', { commandId: 'shot-1' });
+  const moving = h.state({ stateRevision: 2, phase: 'Simulating' });
+  h.send(h.authority, 'CommitTransition', { state: moving }); h.apply(2);
+  const nextHole = h.state({ stateRevision: 3, holeGeneration: 2, hole: 2, turnId: 2, scores: [[1, 0], [0, 0]] });
+  h.send(h.authority, 'CommitTransition', { state: nextHole });
+  const before = h.messages.guest.filter(m => m.type === 'StateFrame').length;
+  h.send(h.authority, 'StateFrame', { state: moving, frameSeq: 1, syncId: 2 });
+  assert.equal(h.messages.guest.filter(m => m.type === 'StateFrame').length, before);
+  h.apply(3);
+  assert.equal(h.session.state?.hole, 2);
 });
 test('malformed envelopes and bounded messages', () => {
   for (const raw of ['null', '[]', '{}', '{', JSON.stringify(envelope('Hello', { v: 2 })).replace('"v":1', '"v":2'), ' '.repeat(MAX_BYTES + 1)]) assert.throws(() => decode(raw));

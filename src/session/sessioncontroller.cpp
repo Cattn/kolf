@@ -39,11 +39,13 @@ SessionController::SessionController(const QJsonObject &config)
     m_scores->setVerticalHeaderLabels({QStringLiteral("Authority"), QStringLiteral("Guest")}); m_layout->addWidget(m_scores);
     connect(advanced, &QCheckBox::toggled, this, [this](bool on) { if (m_game) m_game->setUseAdvancedPutting(on); });
     connect(mouse, &QCheckBox::toggled, this, [this](bool on) { if (m_game) m_game->setUseMouse(on); });
-    connect(resync, &QPushButton::clicked, this, [this] { if (!m_interrupted) { m_ready = false; refresh(); m_network.send(envelope(QStringLiteral("RequestResync"))); } });
+    connect(resync, &QPushButton::clicked, this, [this] { if (!m_interrupted) {
+        m_ready = false; m_awaitingResync = true; refresh(); m_network.send(envelope(QStringLiteral("RequestResync")));
+    } });
     const auto choose = [this](const QString &action) {
         m_drop->setEnabled(false); m_rehit->setEnabled(false);
         m_network.send(envelope(QStringLiteral("ChooseHazardAction"), {{QStringLiteral("choiceId"), m_choiceId},
-            {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("action"), action}}));
+            {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId}, {QStringLiteral("action"), action}}));
     };
     connect(m_drop, &QPushButton::clicked, this, [choose] { choose(QStringLiteral("drop")); });
     connect(m_rehit, &QPushButton::clicked, this, [choose] { choose(QStringLiteral("rehit")); });
@@ -92,7 +94,8 @@ SessionController::SessionController(const QJsonObject &config)
     }
     const QUrl url(config[QStringLiteral("endpoint")].toString());
     if ((url.scheme() != QLatin1String("ws") && url.scheme() != QLatin1String("wss")) || url.host().isEmpty()) { interrupt(QStringLiteral("Invalid WebSocket endpoint")); return; }
-    log(QStringLiteral("connect"), {{QStringLiteral("courseHash"), m_hash}, {QStringLiteral("buildId"), QStringLiteral(KOLF_PROTOTYPE_BUILD)}});
+    log(QStringLiteral("connect"), {{QStringLiteral("courseHash"), m_hash}, {QStringLiteral("buildId"), QStringLiteral(KOLF_PROTOTYPE_BUILD)},
+        {QStringLiteral("processId"), double(QCoreApplication::applicationPid())}});
     m_network.open(url, envelope(QStringLiteral("Hello"), {{QStringLiteral("role"), config[QStringLiteral("role")]},
         {QStringLiteral("credential"), config[QStringLiteral("credential")]}, {QStringLiteral("courseHash"), m_hash},
         {QStringLiteral("buildId"), QStringLiteral(KOLF_PROTOTYPE_BUILD)}}));
@@ -102,7 +105,8 @@ SessionController::SessionController(const QJsonObject &config)
         const auto bytes = QJsonDocument(s).toJson(QJsonDocument::Compact).size();
         m_frameBytes += bytes; ++m_frameCount;
         if (m_config[QStringLiteral("logFrames")].toBool()) log(QStringLiteral("frame"), {{QStringLiteral("state"), s}, {QStringLiteral("frameSeq"), m_frameSeq + 1}});
-        m_network.send(envelope(QStringLiteral("StateFrame"), {{QStringLiteral("state"), s}, {QStringLiteral("frameSeq"), ++m_frameSeq}, {QStringLiteral("hostMs"), double(m_clock.elapsed())}}), true);
+        m_network.send(envelope(QStringLiteral("StateFrame"), {{QStringLiteral("state"), s}, {QStringLiteral("syncId"), m_syncId},
+            {QStringLiteral("frameSeq"), ++m_frameSeq}, {QStringLiteral("hostMs"), double(m_clock.elapsed())}}), true);
     });
     m_frames.start(qBound(25, config[QStringLiteral("frameIntervalMs")].toInt(67), 1000));
     resize(850, 700);
@@ -130,6 +134,7 @@ void SessionController::load() {
     m_adapter = new GameSessionAdapter(m_game); m_layout->insertWidget(1, m_game, 1);
     connect(m_game, &KolfGame::shotIntentReady, this, &SessionController::submit);
     connect(m_adapter, &GameSessionAdapter::transition, this, &SessionController::commit);
+    connect(m_adapter, &GameSessionAdapter::failed, this, &SessionController::interrupt);
     if (!m_adapter->prepareCourse()) { interrupt(QStringLiteral("Scene registry failed")); return; }
     m_network.send(envelope(QStringLiteral("CourseReady"), {{QStringLiteral("manifestHash"), m_adapter->manifestHash()}}));
     refresh();
@@ -198,19 +203,28 @@ void SessionController::receive(const QJsonObject &m) {
     }
     if (type == QLatin1String("AdmitHazardAction") && m_role == Role::Authority) {
         if (m_phase != QLatin1String("AwaitingHazardChoice") || m[QStringLiteral("choiceId")].toString() != m_adapter->choiceId()
-            || m[QStringLiteral("stateRevision")].toInt() != m_revision) return;
+            || m[QStringLiteral("stateRevision")].toInt() != m_revision || m[QStringLiteral("syncId")].toInt() != m_syncId) return;
         if (!m_adapter->choose(m[QStringLiteral("action")].toString())) interrupt(QStringLiteral("Hazard continuation failed")); return;
     }
     if (type == QLatin1String("RequestResync") && m_role == Role::Authority) {
-        m_ready = false; refresh();
-        m_network.send(envelope(QStringLiteral("FullState"), {{QStringLiteral("state"), state()}})); return;
+        const int syncId = m[QStringLiteral("syncId")].toInt();
+        if (syncId <= m_syncId) return;
+        m_syncId = syncId; m_ready = false; refresh();
+        m_network.send(envelope(QStringLiteral("FullState"), {{QStringLiteral("state"), state()}, {QStringLiteral("syncId"), m_syncId}})); return;
     }
     if (type == QLatin1String("TransitionCommitted") || type == QLatin1String("FullState") || type == QLatin1String("StateFrame")) {
         const auto s = m[QStringLiteral("state")].toObject();
         const int revision = s[QStringLiteral("stateRevision")].toInt(), generation = s[QStringLiteral("holeGeneration")].toInt();
         const bool frame = type == QLatin1String("StateFrame");
+        const int syncId = m[QStringLiteral("syncId")].toInt();
+        if (syncId <= 0) { interrupt(QStringLiteral("Invalid synchronization round")); return; }
+        if (syncId < m_syncId || (frame && syncId != m_syncId)) return;
+        if (m_awaitingResync && type == QLatin1String("TransitionCommitted")
+            && syncId == m_syncId && revision == m_revision) return;
         if (revision < m_revision || generation < m_generation) return;
-        if (frame && (revision != m_revision || generation != m_generation)) { m_network.send(envelope(QStringLiteral("RequestResync"))); return; }
+        if (frame && (revision != m_revision || generation != m_generation)) {
+            m_awaitingResync = true; m_ready = false; m_network.send(envelope(QStringLiteral("RequestResync"))); return;
+        }
         if (frame && m[QStringLiteral("frameSeq")].toInt() <= m_receivedFrame) return;
         if (s[QStringLiteral("courseHash")].toString() != m_hash) { interrupt(QStringLiteral("Snapshot course mismatch")); return; }
         if (m_role == Role::Guest && frame) {
@@ -226,11 +240,13 @@ void SessionController::receive(const QJsonObject &m) {
             if (!m_adapter->apply(s, error)) { interrupt(error); return; }
         }
         m_revision = revision; m_generation = generation; m_turn = s[QStringLiteral("turnId")].toInt();
+        m_syncId = syncId;
         m_phase = s[QStringLiteral("phase")].toString(); m_choiceId = s[QStringLiteral("choiceId")].toString(); m_choiceSlot = s[QStringLiteral("choiceSlot")].toInt(-1);
         if (frame) m_receivedFrame = m[QStringLiteral("frameSeq")].toInt();
         else {
-            m_receivedFrame = 0; m_ready = false;
-            m_network.send(envelope(QStringLiteral("StateApplied"), {{QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("manifestHash"), m_adapter->manifestHash()}}));
+            m_receivedFrame = 0; m_ready = false; m_awaitingResync = false;
+            m_network.send(envelope(QStringLiteral("StateApplied"), {{QStringLiteral("stateRevision"), m_revision},
+                {QStringLiteral("syncId"), m_syncId}, {QStringLiteral("manifestHash"), m_adapter->manifestHash()}}));
             const auto actual = m_role == Role::Guest ? state() : s;
             if (m_role == Role::Guest && actual != s) { interrupt(QStringLiteral("Applied snapshot differs from authoritative state")); return; }
             if (m_role == Role::Guest && m_config[QStringLiteral("verifySnapshots")].toBool()) {
@@ -249,7 +265,8 @@ void SessionController::receive(const QJsonObject &m) {
         return;
     }
     if (type == QLatin1String("InputReady")) {
-        if (m[QStringLiteral("stateRevision")].toInt() != m_revision) return;
+        if (m_awaitingResync || m[QStringLiteral("stateRevision")].toInt() != m_revision
+            || m[QStringLiteral("syncId")].toInt() != m_syncId) return;
         m_ready = true;
         m_adapter->enableSimulation(m_phase != QLatin1String("Finished")); refresh();
         const auto faultPhase = m_config[QStringLiteral("faultPhase")].toString();
@@ -260,7 +277,7 @@ void SessionController::receive(const QJsonObject &m) {
                 if (m_config[QStringLiteral("fault")].toString() == QLatin1String("disconnect")) {
                     m_network.close(); interrupt(QStringLiteral("Injected transport disconnect"));
                 } else {
-                    m_ready = false; refresh();
+                    m_ready = false; m_awaitingResync = true; refresh();
                     log(QStringLiteral("requestResync"));
                     m_network.send(envelope(QStringLiteral("RequestResync")));
                 }
@@ -278,7 +295,9 @@ void SessionController::receive(const QJsonObject &m) {
             }
         }
         if (m_phase == QLatin1String("AwaitingHazardChoice") && m_choiceSlot == m_slot && m_config.contains(QStringLiteral("scriptedHazardAction"))) {
-            m_network.send(envelope(QStringLiteral("ChooseHazardAction"), {{QStringLiteral("choiceId"), m_choiceId}, {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("action"), m_config[QStringLiteral("scriptedHazardAction")]}}));
+            m_network.send(envelope(QStringLiteral("ChooseHazardAction"), {{QStringLiteral("choiceId"), m_choiceId},
+                {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
+                {QStringLiteral("action"), m_config[QStringLiteral("scriptedHazardAction")]}}));
         }
         if (m_phase == QLatin1String("Finished") && m_config[QStringLiteral("exitWhenFinished")].toBool()) QTimer::singleShot(700, qApp, &QApplication::quit);
         return;

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "sourceBase": "5f5e5518bef9359f75536041aac77d7f77fc615e",
+  "nativeBuildId": "81f099587787cacfede23f710300e66b017e8089fd93da7267e6106c4ce95d86",
+  "platform": "Windows, MSVC 2022, KDE Craft",
+  "freshChecks": {
+    "craftCompileInstallQmerge": "passed",
+    "relayTests": { "passed": 15, "failed": 0, "todo": 0 },
+    "typescriptCheck": "passed",
+    "scenarios": [
+      {
+        "name": "water-slope drop",
+        "courseSha256": "dec06c6c941a7a7d64712f0c4399764c02f822f923018b1927eca7e4098b3b2f",
+        "outcome": "completed",
+        "transitions": 19,
+        "hazardChoices": 3,
+        "postDropSimulationObserved": true,
+        "scores": [[5], [5]],
+        "guestPhysicsSteps": 0,
+        "guestCollisionCalls": 0,
+        "nativeSceneDestroyed": [true, true],
+        "nativeProcessesExited": [true, true]
+      },
+      {
+        "name": "teleport rehit resync",
+        "relayLegDelayMs": 100,
+        "courseSha256": "ecb35f87c6528278bc3e38e80ec81337a8a24021d7dba216fe76ec7456bf400e",
+        "outcome": "completed",
+        "transitions": 6,
+        "guestResyncRequests": 1,
+        "scores": [[1], [1]],
+        "guestPhysicsSteps": 0,
+        "guestCollisionCalls": 0,
+        "nativeSceneDestroyed": [true, true],
+        "nativeProcessesExited": [true, true]
+      }
+    ]
+  },
+  "notVerified": [
+    "interactive mouse and keyboard input",
+    "advanced meter",
+    "offline save/load and hazard parity beyond the new fixture",
+    "cross-platform clients",
+    "lobby and multi-slot lifecycle"
+  ]
+}
