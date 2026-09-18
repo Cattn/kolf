@@ -5,6 +5,11 @@ TypeScript WebSocket relay admits commands for exactly two fixed player slots,
 orders transitions, and waits for both clients to apply each committed state.
 This is the development milestone before a lobby, persistent service, or release.
 
+For a person playing and checking this build, follow
+[HUMAN-TESTING.md](HUMAN-TESTING.md). It gives the exact launch steps, controls,
+checks to perform, and a report template. The status and evidence sections below
+distinguish scripted runs from play by a person.
+
 ## Build and launch on Windows
 
 Requires the existing Craft Kolf environment, Qt Network/WebSockets, and Node
@@ -16,7 +21,12 @@ PowerShell process:
 craft --compile --install --qmerge kolf
 ```
 
-In `server/prototype`, run `npm ci` once, then:
+To play a shipped course on one PC, build as above, then from the repository
+root run `./tests/multiplayer/play.ps1` (defaults to Easy). Use `-Course Medium`,
+`-Course Hard`, or `-Course Classic` for the other bundled maps.
+
+For a fixture map or a manual launch, in `server/prototype` run `npm ci` once,
+then:
 
 ```powershell
 $env:KOLF_COURSE = (Resolve-Path ../../tests/multiplayer/fixtures/static.kolf).Path
@@ -137,3 +147,21 @@ with matching committed states, zero guest mutation counters, and clean native
 scene/process shutdown. The native runner still uses scripted canonical shots;
 human mouse/keyboard and advanced-meter coverage remains open. The full lobby,
 multi-slot, results/rematch, test-kit and cross-platform goals remain open.
+
+## Sync-round follow-up, 2026-09-18
+
+The relay now coalesces resync requests while a full state is pending and
+queues an immediate retry for one second so the requester receives a fresh
+round. A newer committed state supersedes a queued or pending resync. The relay
+suite has 18 passing tests, including close requests, stale acknowledgements,
+a commit during resync, a queued retry, and a late full state. TypeScript
+checking passed. Native `water-slope drop` and `teleport rehit resync`
+completed through Craft using the installed build; their committed states
+matched, the guests performed no gameplay simulation, and both scenes were
+destroyed. See [evidence/2026-09-18-sync-followup.json](evidence/2026-09-18-sync-followup.json).
+
+The native runner now reports a Craft launcher failure during the run instead
+of waiting for the match timeout. Craft compilation was not needed for these
+TypeScript and test-runner changes. This does not close P0: actual mouse and
+keyboard normal/advanced putting, offline save/load and multi-hole behavior,
+and the remaining hazard overlaps still require checks.

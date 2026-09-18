@@ -21,6 +21,9 @@ export class Session {
   admissions = new Map<string, Admission>();
   private lastCommit = '';
   private lastFrame = 0;
+  private resyncRound = 0;
+  private nextResyncAt = 0;
+  private queuedResync = false;
   private started = false;
   readonly credentials: Record<Role, string>;
   readonly now: () => number;
@@ -49,8 +52,16 @@ export class Session {
     this.interrupt(`${peer.role} disconnected`);
   }
   tick() {
+    if (!this.interrupted && this.queuedResync && this.now() >= this.nextResyncAt) this.startResync(this.now());
     if (this.pending && this.now() - this.pendingAt > 300_000) this.interrupt('shot/choice watchdog expired');
     if (this.barrier && this.state && this.now() - this.pendingAt > 30_000) this.interrupt('state application timed out');
+  }
+  private startResync(now: number) {
+    this.queuedResync = false;
+    this.barrier = true; this.barrierPublished = false; ++this.syncId; this.resyncRound = this.syncId;
+    this.nextResyncAt = now + 1000; this.lastFrame = 0; this.pendingAt = now;
+    for (const entry of this.ready.values()) entry.applied = 0;
+    this.peers.get('authority')!.send(envelope('RequestResync', { syncId: this.syncId }));
   }
   receive(peer: Peer, raw: string) {
     const m = decode(raw);
@@ -127,6 +138,7 @@ export class Session {
         if (this.state && (m.state.turnId < this.state.turnId || m.state.holeGeneration < this.state.holeGeneration)) throw Error('regressed state');
         const wasPending = this.pending;
         this.state = m.state; this.lastCommit = key; this.lastFrame = 0;
+        this.queuedResync = false;
         this.barrier = true; this.barrierPublished = true; ++this.syncId;
         this.pendingAt = this.now(); this.choicePending = undefined;
         for (const entry of this.ready.values()) entry.applied = 0;
@@ -169,14 +181,19 @@ export class Session {
       }
       case 'RequestResync':
         if (this.state) {
-          this.barrier = true; this.barrierPublished = false; ++this.syncId; this.lastFrame = 0;
-          this.pendingAt = this.now();
-          for (const entry of this.ready.values()) entry.applied = 0;
-          this.peers.get('authority')!.send(envelope('RequestResync', { syncId: this.syncId }));
+          // Coalesce every request until the full-state barrier has completed.
+          // A request during cooldown is queued so its client cannot wait forever.
+          if (this.queuedResync || (this.barrier && this.resyncRound === this.syncId)) return;
+          const now = this.now();
+          if (now < this.nextResyncAt) {
+            this.queuedResync = true; this.barrier = true; this.barrierPublished = false; this.pendingAt = now;
+            for (const entry of this.ready.values()) entry.applied = 0;
+          } else this.startResync(now);
         }
         return;
       case 'FullState':
         if (peer.role !== 'authority' || !validState(m.state) || !integer(m.syncId, 1)) throw Error('invalid resync');
+        if (this.queuedResync) return;
         if (m.syncId < this.syncId) return;
         if (!this.barrier || m.syncId !== this.syncId || m.state.stateRevision !== this.state?.stateRevision) throw Error('invalid resync');
         this.checkMetadata(m.state);

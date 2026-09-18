@@ -83,6 +83,14 @@ try {
   }
   for (let i = 0; ; ++i) {
     await pause(500);
+    const failedClient = clients.findIndex((client, index) =>
+      (exited(client) && client.exitCode !== 0)
+      || (exited(client) && !nativeEvents(index === 0 ? 'authority' : 'guest').some(e => e.event === 'connect')));
+    if (failedClient >= 0) {
+      const role = failedClient === 0 ? 'authority' : 'guest';
+      throw Error(`${role} Craft launcher exited before the match (code ${clients[failedClient].exitCode})`);
+    }
+    if (exited(relay)) throw Error(`Relay exited before the match: ${relayLog.join('')}`);
     const results = ['authority', 'guest'].map(nativeEvents);
     const interrupted = results.flat().find(e => e.event === 'interrupted');
     if (interrupted && !fault.startsWith('disconnect')) throw Error(JSON.stringify(interrupted));

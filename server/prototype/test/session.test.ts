@@ -131,6 +131,67 @@ test('a same-revision resync needs a fresh acknowledgement from both peers', () 
   h.apply();
   assert.equal(h.session.barrier, false);
 });
+test('close resync requests share one round and retries are rate limited', () => {
+  const h = setup();
+  h.send(h.guest, 'RequestResync');
+  const round = h.session.syncId;
+  h.send(h.guest, 'RequestResync');
+  h.send(h.authority, 'RequestResync');
+  assert.equal(h.session.syncId, round);
+  assert.equal(h.messages.authority.filter(m => m.type === 'RequestResync').length, 1);
+  h.send(h.authority, 'FullState', { state: h.state(), syncId: round });
+  h.send(h.authority, 'StateApplied', { stateRevision: 1, syncId: round, manifestHash: 'b'.repeat(64) });
+  h.send(h.guest, 'StateApplied', { stateRevision: 1, syncId: round - 1, manifestHash: 'b'.repeat(64) });
+  assert(h.session.barrier, 'The old guest acknowledgement cannot complete the new round');
+  h.send(h.guest, 'StateApplied', { stateRevision: 1, syncId: round, manifestHash: 'b'.repeat(64) });
+  assert.equal(h.session.barrier, false);
+  h.send(h.guest, 'RequestResync');
+  assert.equal(h.session.syncId, round, 'Immediate retry waits for the cooldown');
+  assert(h.session.barrier, 'The requester stays blocked until the queued round starts');
+  h.send(h.authority, 'FullState', { state: h.state(), syncId: round });
+  assert.equal(h.messages.guest.filter(m => m.type === 'FullState').length, 1,
+    'A late full state from the previous round cannot satisfy the queued request');
+  h.advance(1000);
+  assert.equal(h.messages.authority.filter(m => m.type === 'RequestResync').length, 2);
+  h.send(h.guest, 'RequestResync');
+  assert.equal(h.session.syncId, round + 1, 'The queued request starts one fresh round');
+});
+test('a new commit cancels a queued resync and opens only its own round', () => {
+  const h = setup();
+  h.send(h.authority, 'SubmitShot', h.shot());
+  h.send(h.authority, 'ShotAccepted', { commandId: 'shot-1' });
+  h.send(h.authority, 'CommitTransition', { state: h.state({ stateRevision: 2, phase: 'Simulating' }) });
+  h.apply(2);
+  h.send(h.guest, 'RequestResync');
+  h.send(h.authority, 'FullState', { state: h.state({ stateRevision: 2, phase: 'Simulating' }), syncId: h.session.syncId });
+  h.apply(2);
+  h.send(h.guest, 'RequestResync');
+  const requestCount = h.messages.authority.filter(m => m.type === 'RequestResync').length;
+  h.send(h.authority, 'CommitTransition', { state: h.state({ stateRevision: 3, turnId: 2, activeSlot: 1, scores: [[1], [0]] }) });
+  h.advance(1000);
+  assert.equal(h.messages.authority.filter(m => m.type === 'RequestResync').length, requestCount);
+  h.apply(3);
+  assert.equal(h.session.barrier, false);
+});
+test('a commit supersedes a pending resync without accepting its old full state', () => {
+  const h = setup();
+  h.send(h.authority, 'SubmitShot', h.shot());
+  h.send(h.authority, 'ShotAccepted', { commandId: 'shot-1' });
+  h.send(h.authority, 'CommitTransition', { state: h.state({ stateRevision: 2, phase: 'Simulating' }) });
+  h.apply(2);
+  h.send(h.guest, 'RequestResync');
+  const oldRound = h.session.syncId;
+  h.send(h.authority, 'CommitTransition', { state: h.state({ stateRevision: 3, turnId: 2, activeSlot: 1, scores: [[1], [0]] }) });
+  const newRound = h.session.syncId;
+  assert.equal(newRound, oldRound + 1);
+  h.send(h.authority, 'FullState', { state: h.state({ stateRevision: 2, phase: 'Simulating' }), syncId: oldRound });
+  h.send(h.guest, 'StateApplied', { stateRevision: 2, syncId: oldRound, manifestHash: 'b'.repeat(64) });
+  assert(h.session.barrier);
+  assert.equal(h.messages.guest.filter(m => m.type === 'InputReady' && m.syncId === newRound).length, 0);
+  h.apply(3);
+  assert.equal(h.session.barrier, false);
+  assert.equal(h.session.state?.turnId, 2);
+});
 test('rapid completion supersedes an older state barrier', () => {
   const h = setup();
   h.send(h.authority, 'SubmitShot', h.shot());
