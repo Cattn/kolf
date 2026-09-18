@@ -46,6 +46,8 @@ Kolf::Bumper::Bumper(QGraphicsItem* parent, b2World* world)
 
 bool Kolf::Bumper::collision(Ball* ball)
 {
+	if (game && !game->maySimulate()) return false;
+	if (game) game->recordGameplayRandom();
 	const double maxSpeed = ball->getMaxBumperBounceSpeed();
 	const double speed = qMin(maxSpeed, 1.8 + Vector(ball->velocity()).magnitude() * .9);
 	ball->reduceMaxBumperBounceSpeed();
@@ -205,6 +207,23 @@ Kolf::RectangleItem::RectangleItem(const QString& type, QGraphicsItem* parent, b
 Kolf::RectangleItem::~RectangleItem()
 {
 	qDeleteAll(m_walls);
+}
+
+QMap<QString, QGraphicsItem *> Kolf::RectangleItem::presentationChildren() const
+{
+	QMap<QString, QGraphicsItem *> result;
+	const QStringList names{QStringLiteral("top-wall"), QStringLiteral("left-wall"), QStringLiteral("right-wall"), QStringLiteral("bottom-wall")};
+	for (int i = 0; i < m_walls.size(); ++i) if (m_walls[i]) result.insert(names[i], m_walls[i]);
+	return result;
+}
+
+QMap<QString, QGraphicsItem *> Kolf::Windmill::presentationChildren() const
+{
+	auto result = RectangleItem::presentationChildren();
+	result.insert(QStringLiteral("guard-left"), m_leftWall);
+	result.insert(QStringLiteral("guard-right"), m_rightWall);
+	result.insert(QStringLiteral("guard"), m_guardWall);
+	return result;
 }
 
 bool Kolf::RectangleItem::hasWall(Kolf::WallIndex index) const
@@ -577,6 +596,7 @@ void Kolf::Floater::setSpeed(int speed)
 
 void Kolf::Floater::advance(int phase)
 {
+	if (game && !game->maySimulate()) return;
 	if (phase != 1 || !m_animated)
 		return;
 	//determine movement step
@@ -802,6 +822,7 @@ void Kolf::Windmill::setSpeed(int speed)
 
 void Kolf::Windmill::advance(int phase)
 {
+	if (game && !game->maySimulate()) return;
 	if (phase == 1)
 	{
 		QLineF guardLine = m_guardWall->line().translated(m_velocity, 0);

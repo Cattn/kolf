@@ -1,0 +1,20 @@
+[0-course@-50,-50]
+Name=Prototype teleport
+author=Kolf prototype
+
+[1-hole@-50,-50|0]
+par=1
+maxstrokes=5
+borderWalls=true
+
+[1-ball@100,200|0]
+dummy=1
+
+[1-blackhole@155,200|1]
+exit=250,200
+exitDeg=0
+minspeed=1
+maxspeed=1
+
+[1-cup@290,200|2]
+dummy=1

@@ -18,6 +18,8 @@
 
 #include "kolf.h"
 #include "kolf_version.h"
+#include "session/sessioncontroller.h"
+#include <QJsonDocument>
 
 #include <iostream>
 
@@ -93,6 +95,24 @@ int main(int argc, char **argv)
     aboutData.setupCommandLine(&parser);
     parser.process(app);
     aboutData.processCommandLine(&parser);
+
+    // Prototype settings are supplied by a local launcher, never by a remote
+    // peer. It has its own window/lifecycle and does not load offline autosaves.
+    const auto protocolTests = qEnvironmentVariable("KOLF_PROTOCOL_TESTS");
+    if (!protocolTests.isEmpty()) return Kolf::Session::runProtocolFixtures(protocolTests);
+    const auto prototypeConfig = qEnvironmentVariable("KOLF_PROTOTYPE_CONFIG");
+    if (!prototypeConfig.isEmpty()) {
+        QFile config(prototypeConfig);
+        if (!config.open(QIODevice::ReadOnly) || config.size() > 1024 * 1024) return 2;
+        QJsonParseError error;
+        const auto document = QJsonDocument::fromJson(config.readAll(), &error);
+        const auto role = document.object()[QStringLiteral("role")].toString();
+        if (error.error != QJsonParseError::NoError || !document.isObject()
+            || (role != QLatin1String("authority") && role != QLatin1String("guest"))) return 2;
+        Kolf::Session::SessionController window(document.object());
+        window.show();
+        return app.exec();
+    }
 
     KDBusService service;
 

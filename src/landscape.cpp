@@ -70,6 +70,7 @@ void Kolf::LandscapeItem::setBlinkInterval(int blinkInterval)
 
 void Kolf::LandscapeItem::advance(int phase)
 {
+	if (game && !game->maySimulate()) return;
 	EllipticalCanvasItem::advance(phase);
 	if (phase == 1 && m_blinkEnabled)
 	{

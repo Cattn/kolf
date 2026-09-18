@@ -36,6 +36,7 @@ namespace Kolf
 
 		public:
 			BlackHole(QGraphicsItem* parent, b2World* world);
+			QMap<QString, QGraphicsItem *> presentationChildren() const override;
 			~BlackHole() override;
 			//FIXME: strutted moving of exit is broken since refactoring.
 

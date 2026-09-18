@@ -5,6 +5,18 @@ ecm_setup_version(${RELEASE_SERVICE_VERSION}
 
 add_library(kolfprivate STATIC)
 
+# Fingerprint source bytes, not compiler/OS, so identical cross-platform builds
+# agree and dirty gameplay changes cannot accidentally claim compatibility.
+file(GLOB_RECURSE PROTOTYPE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+set(PROTOTYPE_HASH_INPUT "protocol-1")
+foreach(source IN LISTS PROTOTYPE_SOURCES)
+    file(SHA256 "${source}" source_hash)
+    string(APPEND PROTOTYPE_HASH_INPUT "${source_hash}")
+endforeach()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PROTOTYPE_SOURCES})
+string(SHA256 KOLF_PROTOTYPE_BUILD "${PROTOTYPE_HASH_INPUT}")
+configure_file(session/prototype_build.h.in prototype_build.h @ONLY)
+
 # we have a static copy of Box2D in our source tree
 target_include_directories(kolfprivate PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -12,6 +24,12 @@ target_include_directories(kolfprivate PRIVATE
 )
 
 target_sources(kolfprivate PRIVATE
+    session/shotcommand.cpp
+    session/gamesessionadapter.cpp
+    session/sessioncontroller.cpp
+    net/networkclient.cpp
+    replication/snapshot.cpp
+    replication/presentationcontroller.cpp
     3rdparty/Box2D/Collision/b2BroadPhase.cpp
     3rdparty/Box2D/Collision/b2BroadPhase.h
     3rdparty/Box2D/Collision/b2CollideCircle.cpp
@@ -157,6 +175,8 @@ target_link_libraries(kolfprivate
     KF6::IconThemes
     Qt6::Gui
     Qt6::Widgets
+    Qt6::Network
+    Qt6::WebSockets
 )
 
 add_executable(kolf)

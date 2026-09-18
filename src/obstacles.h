@@ -95,6 +95,7 @@ namespace Kolf
 		Q_OBJECT
 		public:
 			RectangleItem(const QString& type, QGraphicsItem* parent, b2World* world);
+			QMap<QString, QGraphicsItem *> presentationChildren() const override;
 			~RectangleItem() override;
 
 			bool hasWall(Kolf::WallIndex index) const;
@@ -225,6 +226,7 @@ namespace Kolf
 		Q_OBJECT
 		public:
 			Windmill(QGraphicsItem* parent, b2World* world);
+			QMap<QString, QGraphicsItem *> presentationChildren() const override;
 			~Windmill() override;
 
 			bool guardAtTop() const;

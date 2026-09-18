@@ -448,8 +448,10 @@ void StrokeCircle::paint (QPainter *p, const QStyleOptionGraphicsItem *, QWidget
 }
 /////////////////////////////////////////
 
-KolfGame::KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const QString &filename, QWidget *parent)
+KolfGame::KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const QString &filename, QWidget *parent, Kolf::Session::Role role)
 : QGraphicsView(parent),
+ m_role(role),
+ m_simulationEnabled(role == Kolf::Session::Role::Offline),
  m_factory(factory),
  m_soundBlackHole(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/blackhole.wav"))),
  m_soundBlackHoleEject(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/blackholeeject.wav"))),
@@ -704,6 +706,7 @@ void KolfGame::setModified(bool mod)
 
 void KolfGame::pause()
 {
+	if (isOnline()) return;
 	if (paused)
 	{
 		// play along with people who call pause() again, instead of unPause()
@@ -719,6 +722,7 @@ void KolfGame::pause()
 
 void KolfGame::unPause()
 {
+	if (isOnline()) return;
 	if (!paused)
 		return;
 
@@ -845,6 +849,7 @@ void KolfGame::handleMouseMoveEvent(QMouseEvent *e)
 
 void KolfGame::updateMouse()
 {
+	if (isOnline() && m_ignoreEvents) return;
 	// don't move putter if in advanced putting sequence
 	if (!m_useMouse || ((stroking || putting) && m_useAdvancedPutting))
 		return;
@@ -939,6 +944,7 @@ void KolfGame::setShowInfo(bool yes)
 
 void KolfGame::puttPress()
 {
+	if (m_ignoreEvents) return;
 	// Advanced putting: 1st click start putting sequence, 2nd determine strength, 3rd determine precision
 
 	if (!putting && !stroking && !inPlay)
@@ -1049,6 +1055,23 @@ void KolfGame::stoppedBall()
 
 void KolfGame::timeout()
 {
+	if (!maySimulate()) return;
+	if (isOnline()) {
+		if (!m_onlineShot || m_settlementQueued) return;
+		for (const auto &player : std::as_const(*players)) {
+			if (!QRectF(QPointF(), courseBoard->logicalSize()).contains(player.ball()->pos())) {
+				loadStateList();
+				break;
+			}
+			if (player.ball()->forceStillGoing() || (player.ball()->curState() == Rolling && player.ball()->isVisible())) return;
+		}
+		m_settlementQueued = true;
+		QTimer::singleShot(0, this, [this] {
+			m_settlementQueued = false;
+			if (maySimulate() && m_onlineShot) Q_EMIT onlineSettlementRequested();
+		});
+		return;
+	}
 	Ball *curBall = (*curPlayer).ball();
 
 	// test if the ball is gone
@@ -1125,6 +1148,7 @@ void KolfGame::timeout()
 
 void KolfGame::fastTimeout()
 {
+	if (!maySimulate()) return;
 	// do regular advance every other time
 	if (regAdv)
 		course->advance();
@@ -1159,6 +1183,7 @@ void KolfGame::fastTimeout()
 	//usual movements. Therefore, we apply the scaling to the timestep instead.
 	const double timeStep = 1.0 * Kolf::Box2DScaleFactor;
 	g_world->Step(timeStep, 10, 10); //parameters 2/3 = iteration counts (TODO: optimize)
+	++m_physicsSteps;
 	//conclude simulation
 	for (b2Body* body = g_world->GetBodyList(); body; body = body->GetNext())
 	{
@@ -1341,6 +1366,7 @@ void KolfGame::recreateStateList()
 
 void KolfGame::undoShot()
 {
+	if (isOnline()) return;
 	if (ballStateList.canUndo)
 		loadStateList();
 }
@@ -1377,6 +1403,7 @@ void KolfGame::loadStateList()
 
 void KolfGame::shotDone()
 {
+	if (!maySimulate() || isOnline()) return;
 	inPlay = false;
 	Q_EMIT inPlayEnd();
 	setFocus();
@@ -1595,10 +1622,6 @@ void KolfGame::shotStart()
 	if ((*curPlayer).ball()->curState() == Holed)
 		return;
 
-	// save state
-	recreateStateList();
-
-	putter->saveAngle((*curPlayer).ball());
 	strength /= 8;
 	if (!strength)
 		strength = 1;
@@ -1607,11 +1630,30 @@ void KolfGame::shotStart()
 	updateDoubleData(putter->curAngle(), "angleEnd", "shot");
 	updateDoubleData(strength, "magnitude", "shot");
 
-	(*curPlayer).ball()->collisionDetect();
+	Kolf::Session::ShotIntent intent{std::remainder(-(putter->curAngle() + M_PI), 2 * M_PI), strength, m_useAdvancedPutting};
+	if (isOnline()) {
+		m_ignoreEvents = true;
+		putter->setVisible(false);
+		Q_EMIT shotIntentReady(intent);
+	} else {
+		applyAcceptedShot(intent);
+	}
+}
 
-	startBall(Vector::fromMagnitudeDirection(strength, -(putter->curAngle() + M_PI)));
-
+bool KolfGame::applyAcceptedShot(const Kolf::Session::ShotIntent &intent)
+{
+	if (!maySimulate() || inPlay || !intent.valid() || curBall()->curState() == Holed) return false;
+	recreateStateList();
+	putter->setAngle(-intent.directionRadians - M_PI);
+	putter->saveAngle(curBall());
+	curBall()->collisionDetect();
+	// Preparatory collisions may put the ball in a cup, hazard or teleport.
+	Vector ignored;
+	if (curBall()->curState() == Holed || curBall()->forceStillGoing() || curBall()->placeOnGround(ignored)) return false;
+	startBall(Vector::fromMagnitudeDirection(intent.launchMagnitude, intent.directionRadians));
 	addHoleInfo(ballStateList);
+	m_onlineShot = isOnline();
+	return true;
 }
 
 void KolfGame::addHoleInfo(BallStateList &list)
@@ -1623,6 +1665,7 @@ void KolfGame::addHoleInfo(BallStateList &list)
 
 void KolfGame::sayWhosGoing()
 {
+	if (isOnline()) return;
 	if (players->count() >= 2)
 	{
 		KMessageBox::information(this, i18n("%1 will start off.", (*curPlayer).name()), i18nc("@title:window", "New Hole"), QStringLiteral("newHole"));
@@ -1631,6 +1674,7 @@ void KolfGame::sayWhosGoing()
 
 void KolfGame::holeDone()
 {
+	if (!maySimulate() || isOnline()) return;
     for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it) {
         Player& player = *it;
         player.ball()->setVisible(false);
@@ -1649,6 +1693,7 @@ void KolfGame::holeDone()
 // ie, bad design :-(
 void KolfGame::startNextHole()
 {
+	if (isOnline()) return;
 	setFocus();
 
 	bool reset = true;
@@ -1890,6 +1935,7 @@ void KolfGame::openFile()
 		QGraphicsItem* newItem = m_factory.createInstance(name, courseBoard, g_world);
 		if (newItem)
 		{
+			newItem->setData(1, *it); // Exact source group is the stable network identity.
 			m_topLevelQItems << newItem;
 			m_moveableQItems << newItem;
 			CanvasItem *sceneItem = dynamic_cast<CanvasItem *>(newItem);
@@ -1968,6 +2014,7 @@ void KolfGame::openFile()
 
 void KolfGame::addNewObject(const QString& identifier)
 {
+	if (isOnline()) return;
 	QGraphicsItem *newItem = m_factory.createInstance(identifier, courseBoard, g_world);
 
 	m_topLevelQItems << newItem;
@@ -2059,6 +2106,7 @@ bool KolfGame::askSave(bool noMoreChances)
 
 void KolfGame::addNewHole()
 {
+	if (isOnline()) return;
 	if (askSave(true))
 		return;
 
@@ -2097,6 +2145,7 @@ void KolfGame::addNewHole()
 // kantan deshou ;-)
 void KolfGame::resetHole()
 {
+	if (isOnline()) return;
 	if (askSave(true))
 		return;
 	setModified(false);
@@ -2116,6 +2165,7 @@ void KolfGame::resetHoleScores()
 
 void KolfGame::clearHole()
 {
+	if (isOnline()) return;
 	QList<QGraphicsItem*> newTopLevelQItems;
 	const auto currentTopLevelQItems = m_topLevelQItems;
 	for (QGraphicsItem* qitem : currentTopLevelQItems) {
@@ -2146,6 +2196,7 @@ void KolfGame::clearHole()
 
 void KolfGame::switchHole(int hole)
 {
+	if (isOnline()) return;
 	if (inPlay)
 		return;
 	if (hole < 1 || hole > highestHole)
@@ -2203,6 +2254,7 @@ void KolfGame::randHole()
 
 void KolfGame::save()
 {
+	if (isOnline()) return;
 	if (filename.isEmpty())
 	{
 		QPointer<QFileDialog> fileSaveDialog = new QFileDialog(this);
@@ -2263,6 +2315,7 @@ void KolfGame::save()
 
 void KolfGame::toggleEditMode()
 {
+	if (isOnline()) return;
 	// won't be editing anymore, and user wants to cancel, we return
 	// this is pretty useless. when the person leaves the hole,
 	// he gets asked again

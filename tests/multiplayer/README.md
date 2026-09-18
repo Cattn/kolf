@@ -1,0 +1,119 @@
+# Two-client development prototype
+
+One native client owns physics; the other presents authoritative snapshots. A
+TypeScript WebSocket relay admits commands for exactly two fixed player slots,
+orders transitions, and waits for both clients to apply each committed state.
+This is the development milestone before a lobby, persistent service, or release.
+
+## Build and launch on Windows
+
+Requires the existing Craft Kolf environment, Qt Network/WebSockets, and Node
+22.18 or newer. Initialize Craft and run the command in the same Windows
+PowerShell process:
+
+```powershell
+& C:\CraftRoot\craft\craftenv.ps1
+craft --compile --install --qmerge kolf
+```
+
+In `server/prototype`, run `npm ci` once, then:
+
+```powershell
+$env:KOLF_COURSE = (Resolve-Path ../../tests/multiplayer/fixtures/static.kolf).Path
+npm start
+```
+
+The relay writes private role credentials and launch settings to
+`server/prototype/local-session/{authority,guest}.json`. From the repository root,
+run each of these in a separate Windows PowerShell window:
+
+```powershell
+./tests/multiplayer/launch.ps1 -Config ./server/prototype/local-session/authority.json
+./tests/multiplayer/launch.ps1 -Config ./server/prototype/local-session/guest.json
+```
+
+The launcher accepts `-CraftRootPath` and `-PythonPath`; its defaults match the
+development machine. Change the Python path on another machine. Without
+`KOLF_PROTOTYPE_CONFIG`, normal `craft --run kolf` opens offline Kolf. The prototype
+has a separate window, scorecard, resync button, putting options, and hazard choices.
+It does not write offline saves or submit the legacy data-server telemetry.
+
+For two machines, use matching source/build identities and byte-identical course
+files. Set `KOLF_BIND` to the relay's LAN interface before starting it, then edit
+each generated config's endpoint, local course path, and log directory. Transfer
+only that player's credential privately. This development relay uses plaintext
+WebSockets by default and is intended for a trusted LAN; internet deployment and
+authentication accounts are outside this milestone. A disconnect ends the match;
+restart the relay for a fresh session. There is no reconnect/migration protocol.
+
+## Protocol and implementation
+
+Messages carry version 1 and match ID `prototype`. Hello compares credentials,
+course SHA-256, and the generated native source fingerprint. Course readiness
+compares stable object manifests for source group IDs and semantic child IDs.
+Shot commands contain a unique command ID, hole generation, turn, owner slot,
+putting mode, radians, and canonical launch magnitude. Identical retries are
+idempotent; conflicting IDs, stale turns, nonfinite numbers, and wrong owners fail.
+
+Only the authority applies accepted commands through the shared offline/online
+shot seam. Hazard resolution suspends for the affected player's drop/rehit choice.
+Committed states include scores, turn, phase, hole, and full visual/ball state.
+Guests validate snapshots before applying them and do not run game physics,
+collision callbacks, or gameplay random choices. Bounded interpolation smooths
+compatible motion; discontinuities and committed states snap. Full resync clears
+presentation history without replaying a shot. Queues, message sizes, retries,
+heartbeats, and outstanding transitions are bounded.
+
+The source fingerprint hashes source bytes: different checkout line endings can
+reject an otherwise equivalent build. Snapshot resync restores presentation, not
+an authority's hidden physics state; authority migration is not supported.
+
+## Repeatable checks
+
+```powershell
+cd server/prototype
+npm test
+npm run check
+cd ../..
+node tests/multiplayer/run-native.ts static
+node tests/multiplayer/run-native.ts water rehit
+node tests/multiplayer/run-native.ts water drop
+node tests/multiplayer/run-native.ts teleport
+node tests/multiplayer/run-native.ts dynamics
+$env:KOLF_DELAY_MS = '100'
+node tests/multiplayer/run-native.ts teleport rehit resync
+Remove-Item Env:KOLF_DELAY_MS
+node tests/multiplayer/run-native.ts teleport rehit disconnect
+```
+
+Each native run has a 120-second deadline and launches both clients through Craft.
+Use distinct `KOLF_PORT` values for concurrent runs. The delay is applied on each
+relay receive/send leg, not an estimate of network RTT. Native golden decoder
+fixtures can be run by setting `KOLF_PROTOCOL_TESTS` to the absolute path of
+`protocol/shot-fixtures.json`, then initializing Craft and using `craft --run kolf`.
+Unset the variable afterward.
+
+Ignored `local-session` directories retain private configs, JSONL traces, PNGs,
+and result summaries. Tests compare guest-applied scene state with authoritative
+commits and verify zero guest simulation counters. The scripts launch canonical
+shots directly; alternating mode fields do not test human power-meter timing.
+
+## Verification on 2026-09-18
+
+Craft compile/install/qmerge passed with MSVC 2022 and Qt 6.11.1. All 12 relay
+tests (including 19 shared shot cases) and TypeScript checking passed. The native
+golden-fixture Craft launch returned success. Earlier native runs completed the
+two-hole static fixture (scores 1,1 per player), water rehit, teleport, and the
+dynamic-object fixture. The final bounded pass completed water drop, teleport
+with delayed mid-motion resync, and terminal mid-motion disconnect. Both clients
+logged scene destruction in these final runs. Sanitized evidence is in `evidence/`.
+
+Remaining acceptance work: interactive mouse/keyboard and advanced-meter checks,
+offline gameplay regression, cross-platform/two-machine testing, repeated hazard
+and moving-obstacle edge cases, disconnects in every phase, and resource/endurance
+measurement. The requested 30-minute endurance run was intentionally skipped.
+The dynamics fixture includes every built-in object type but does not prove every
+collision interaction. Online hazard drop currently places the ball outside the
+hazard and continues turn resolution; parity with offline post-drop collisions
+on overlapping obstacles still needs work. This is a tested prototype, not a
+claim that all original acceptance criteria or the larger multiplayer plan are done.

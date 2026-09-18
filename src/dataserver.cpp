@@ -1,4 +1,5 @@
 #include "dataServer.h"
+#include <QtGlobal>
 
 const int PORT = 3010;
 const char* SERVER_IP = "127.0.0.1";
@@ -37,6 +38,7 @@ class ShotClass {
 ShotClass shot;
 
 void updateDoubleData(const double& value, const std::string& dataTypeInfo, const std::string& path) {
+    if (qEnvironmentVariableIsSet("KOLF_PROTOTYPE_CONFIG")) return;
     if (path == "shot") {
         if (dataTypeInfo == "x") {
             shot.x = value;
@@ -59,6 +61,7 @@ void updateDoubleData(const double& value, const std::string& dataTypeInfo, cons
 }
 
 void updateData(const std::string& value, const std::string& dataTypeInfo, const std::string& path) {
+    if (qEnvironmentVariableIsSet("KOLF_PROTOTYPE_CONFIG")) return;
     if (path == "shot") {
         if (dataTypeInfo == "name") {
             shot.name = value;
@@ -77,6 +80,7 @@ void updateData(const std::string& value, const std::string& dataTypeInfo, const
 }
 
 void updateIntData(const int& value, const std::string& dataTypeInfo, const std::string& path) {
+    if (qEnvironmentVariableIsSet("KOLF_PROTOTYPE_CONFIG")) return;
     if (path == "shot") {
         if (dataTypeInfo == "holeNum") {
             shot.holeNum = value;
@@ -146,6 +150,7 @@ void resetData() {
 }
 
 void sendJsonToServer(const char* json_data, const char* path) {
+    if (qEnvironmentVariableIsSet("KOLF_PROTOTYPE_CONFIG")) return;
 	// if windows
 #ifdef _WIN32
     WSADATA wsaData;

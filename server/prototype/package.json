@@ -1,0 +1,13 @@
+{
+  "name": "kolf-prototype-relay",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "start": "node relay.ts",
+    "test": "node --test test/*.test.ts",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": { "ws": "^8.18.3" },
+  "devDependencies": { "@types/node": "^22.0.0", "@types/ws": "^8.18.1", "typescript": "^5.9.2" }
+}

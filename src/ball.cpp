@@ -54,6 +54,7 @@ Ball::Ball(QGraphicsItem* parent, b2World* world)
 
 void Ball::setState(BallState newState)
 {
+	if (game && game->isGuest()) return;
 	state = newState;
 	if (state == Holed || !EllipticalCanvasItem::isVisible())
 		setSimulationType(CanvasItem::NoSimulation);
@@ -66,6 +67,7 @@ void Ball::setState(BallState newState)
 
 void Ball::friction()
 {
+	if (game && !game->maySimulate()) return;
 	if (state == Stopped || state == Holed || !isVisible())
 	{
 		setVelocity(QPointF());
@@ -88,6 +90,7 @@ void Ball::friction()
 
 void Ball::moveBy(double dx, double dy)
 {
+	if (game && game->isGuest()) return;
 	EllipticalCanvasItem::moveBy(dx, dy);
 
 	if (game && !game->isPaused())
@@ -99,6 +102,7 @@ void Ball::moveBy(double dx, double dy)
 
 void Ball::endSimulation()
 {
+	if (game && !game->maySimulate()) return;
 	CanvasItem::endSimulation();
 	if (state == Stopped) {
 		if (!qFuzzyIsNull(Vector(velocity()).magnitude())) {
@@ -115,6 +119,8 @@ void Ball::endSimulation()
 
 void Ball::collisionDetect()
 {
+	if (game && !game->maySimulate()) return;
+	if (game) game->recordCollision();
 	if (!isVisible() || state == Holed || !m_doDetect)
 		return;
 

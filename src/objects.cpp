@@ -65,6 +65,11 @@ Kolf::BlackHole::~BlackHole()
 	delete m_exitItem;
 }
 
+QMap<QString, QGraphicsItem *> Kolf::BlackHole::presentationChildren() const
+{
+	return {{QStringLiteral("exit-marker"), m_exitItem}};
+}
+
 double Kolf::BlackHole::minSpeed() const
 {
 	return m_minSpeed;
@@ -148,6 +153,7 @@ void Kolf::BlackHole::shotStarted()
 
 bool Kolf::BlackHole::collision(Ball* ball)
 {
+	if (game && !game->maySimulate()) return false;
 	//miss if speed too high
 	const double speed = Vector(ball->velocity()).magnitude();
 	if (speed > 3.75)
@@ -171,6 +177,7 @@ bool Kolf::BlackHole::collision(Ball* ball)
 
 	const double distance = Vector(pos() - m_exitItem->pos()).magnitude();
 	BlackHoleTimer* timer = new BlackHoleTimer(ball, newSpeed, distance * 2.5 - newSpeed * 35 + 500);
+	timer->setParent(this); // Destroy pending ejections with this hole, before ball destruction.
 
 	connect(timer, &BlackHoleTimer::eject, this, &Kolf::BlackHole::eject);
 	connect(timer, &BlackHoleTimer::halfway, this, &Kolf::BlackHole::halfway);
@@ -194,6 +201,7 @@ void Kolf::BlackHoleTimer::emitEject()
 
 void Kolf::BlackHole::eject(Ball* ball, double speed)
 {
+	if (!game || !game->maySimulate()) return;
 	ball->setVisible(true);
 	//place ball 10 units after exit, and set exit velocity
 	const Vector direction = Vector::fromMagnitudeDirection(1, -deg2rad(m_exitDeg));

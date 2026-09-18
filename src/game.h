@@ -19,6 +19,7 @@
 
 #ifndef GAME_H
 #define GAME_H
+#include "session/shotcommand.h"
 
 #include "ball.h"
 
@@ -246,7 +247,17 @@ class KolfGame : public QGraphicsView
 	Q_OBJECT
 
 public:
-	KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const QString &filename, QWidget *parent=nullptr);
+	KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const QString &filename, QWidget *parent=nullptr,
+             Kolf::Session::Role role = Kolf::Session::Role::Offline);
+	bool isOnline() const { return m_role != Kolf::Session::Role::Offline; }
+	bool isGuest() const { return m_role == Kolf::Session::Role::Guest; }
+	bool maySimulate() const { return m_role != Kolf::Session::Role::Guest && m_simulationEnabled; }
+	bool applyAcceptedShot(const Kolf::Session::ShotIntent &intent);
+	quint64 physicsSteps() const { return m_physicsSteps; }
+	quint64 collisionCalls() const { return m_collisionCalls; }
+	void recordCollision() { ++m_collisionCalls; }
+	quint64 gameplayRandomCalls() const { return m_gameplayRandomCalls; }
+	void recordGameplayRandom() { ++m_gameplayRandomCalls; }
 	~KolfGame() override;
 	void setFilename(const QString &filename);
 	QString curFilename() const { return filename; }
@@ -269,6 +280,7 @@ public:
 	QString courseName() const { return holeInfo.name(); }
 	void hidePutter() { putter->setVisible(false); }
 	void ignoreEvents(bool ignore) { m_ignoreEvents = ignore; }
+	bool inputIgnored() const { return m_ignoreEvents; }
 
 	void setSelectedItem(CanvasItem* citem);
 
@@ -308,6 +320,8 @@ public Q_SLOTS:
 	void sayWhosGoing();
 
 Q_SIGNALS:
+	void shotIntentReady(const Kolf::Session::ShotIntent &intent);
+	void onlineSettlementRequested();
 	void holesDone();
 	void newHole(int);
 	void parChanged(int, int);
@@ -357,6 +371,14 @@ protected:
 	QPoint viewportToViewport(const QPoint &p);
 
 private:
+	friend class Kolf::Session::GameSessionAdapter;
+	const Kolf::Session::Role m_role;
+	bool m_simulationEnabled = true;
+	bool m_onlineShot = false;
+	bool m_settlementQueued = false;
+	quint64 m_physicsSteps = 0;
+	quint64 m_collisionCalls = 0;
+	quint64 m_gameplayRandomCalls = 0;
 	Tagaro::Scene *course;
 	Tagaro::Board *courseBoard;
 	Putter *putter;

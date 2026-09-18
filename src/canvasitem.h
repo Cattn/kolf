@@ -61,6 +61,8 @@ public:
 	virtual Config *config(QWidget *parent) { return new DefaultConfig(parent); }
 	///Returns other items that should be movable (besides this one of course).
 	virtual QList<QGraphicsItem *> moveableItems() const { return QList<QGraphicsItem *>(); }
+	// Stable semantic identities for separately parented visual components.
+	virtual QMap<QString, QGraphicsItem *> presentationChildren() const { return {}; }
 
 	void setId(int newId) { m_id = newId; }
 	int curId() const { return m_id; }

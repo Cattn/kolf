@@ -21,6 +21,7 @@
 #define KOLF_BALL_H
 
 #include "canvasitem.h"
+namespace Kolf::Session { class GameSessionAdapter; }
 
 
 enum BallState { Rolling = 0, Stopped, Holed };
@@ -75,6 +76,7 @@ protected:
 	void endSimulation() override;
 
 private:
+	friend class Kolf::Session::GameSessionAdapter;
 	BallState state;
 
 	int m_collisionId;

@@ -1,0 +1,24 @@
+{
+  "base": {"commandId":"golden-1","holeGeneration":1,"turnId":1,"playerSlot":0,"puttingMode":"normal","directionRadians":0,"launchMagnitude":1.8},
+  "cases": [
+    {"name":"normal","patch":{},"valid":true},
+    {"name":"normal maximum","patch":{"launchMagnitude":6.9375},"valid":true},
+    {"name":"advanced overshoot","patch":{"puttingMode":"advanced","launchMagnitude":8.3375},"valid":true},
+    {"name":"tiny nonzero strength","patch":{"launchMagnitude":0.000001},"valid":true},
+    {"name":"negative direction","patch":{"directionRadians":-3.141592653589793},"valid":true},
+    {"name":"zero strength","patch":{"launchMagnitude":0},"valid":false},
+    {"name":"negative strength","patch":{"launchMagnitude":-1},"valid":false},
+    {"name":"too strong","patch":{"launchMagnitude":7},"valid":false},
+    {"name":"advanced too strong","patch":{"puttingMode":"advanced","launchMagnitude":8.4},"valid":false},
+    {"name":"unknown mode","patch":{"puttingMode":"other"},"valid":false},
+    {"name":"null strength","patch":{"launchMagnitude":null},"valid":false},
+    {"name":"string strength","patch":{"launchMagnitude":"2"},"valid":false},
+    {"name":"angle out of bounds","patch":{"directionRadians":4},"valid":false},
+    {"name":"fractional turn","patch":{"turnId":1.5},"valid":false},
+    {"name":"counter overflow","patch":{"turnId":1000000001},"valid":false},
+    {"name":"unknown slot","patch":{"playerSlot":2},"valid":false},
+    {"name":"empty command id","patch":{"commandId":""},"valid":false},
+    {"name":"bad command id","patch":{"commandId":"../shot"},"valid":false},
+    {"name":"zero generation","patch":{"holeGeneration":0},"valid":false}
+  ]
+}

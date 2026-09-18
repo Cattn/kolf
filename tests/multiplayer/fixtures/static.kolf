@@ -1,0 +1,25 @@
+[0-course@-50,-50]
+Name=Prototype static two-hole test
+author=Kolf prototype
+
+[1-hole@-50,-50|0]
+par=1
+maxstrokes=5
+borderWalls=true
+
+[1-ball@100,200|0]
+dummy=1
+
+[1-cup@160,200|1]
+dummy=1
+
+[2-hole@-50,-50|0]
+par=1
+maxstrokes=5
+borderWalls=true
+
+[2-ball@100,200|0]
+dummy=1
+
+[2-cup@160,200|1]
+dummy=1
