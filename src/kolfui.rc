@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gui name="kolf"
-     version="12"
+     version="13"
      xmlns="http://www.kde.org/standards/kxmlgui/1.0"
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xsi:schemaLocation="http://www.kde.org/standards/kxmlgui/1.0
                          http://www.kde.org/standards/kxmlgui/1.0/kxmlgui.xsd">
 	<MenuBar>
 		<Menu name="game">
+			<Action name="online" />
+			<Separator />
 			<Action name="savegame" append="save_merge" />
 			<Action name="savegameas" append="save_merge" />
 			<Action name="saveshotas" append="save_merge" />

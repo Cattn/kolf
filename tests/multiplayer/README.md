@@ -209,7 +209,8 @@ and interrupted results without a fabricated winner. A v1 client receives an
 
 `npm test` covers the domain through both in-process protocol clients and real
 WebSocket clients. `KOLF_PROTOCOL_V2_TESTS` runs the shared generic-envelope
-fixture through the native decoder. The original `npm start` relay and generated
-prototype configs remain the v1 gameplay path until the match-session and native
-coordinator migrations are complete; the v2 server is not yet a human-playable
-lobby.
+fixture through the native decoder. Ordinary Kolf now exposes **Game > Online…**
+for human Connect/Create/Join/Ready/Start preparation against this service; see
+`HUMAN-TESTING.md`. The original `npm start` relay and generated prototype
+configs remain the v1 gameplay path until the match-session migration is
+complete, so the v2 lobby does not open a playable scene yet.

@@ -1,10 +1,62 @@
-# Play and test the current two-client prototype
+# Human testing for Kolf online multiplayer
 
-This guide applies to the source-checkout prototype. It currently has two
-fixed players and one match per relay process. Ordinary Kolf still opens the
-offline game; the planned Online/Create/Join lobby UI is not built yet. A
-person can play this prototype, but needs the launcher and generated local
-role configs described below. Use it on one Windows PC or a trusted LAN.
+The current build has two incremental paths. The new protocol-v2 lobby is
+activated from ordinary Kolf with **Game > Online…** and needs no generated
+role config or `KOLF_PROTOTYPE_CONFIG`. It currently verifies the human
+Connect/Create/Join/Ready/Start preparation flow; authoritative gameplay is not
+wired to that lobby yet. The older source-checkout prototype remains below for
+manual shot, hazard, and synchronization checks until gameplay moves to v2.
+
+## Activate and test the ordinary in-game lobby
+
+Build once after source changes. From `server/prototype`, start the v2 service:
+
+```powershell
+npm run start:v2
+```
+
+It prints the local endpoint and shipped-course catalog. The default endpoint
+is `ws://127.0.0.1:3011`. Keep this PowerShell window open.
+
+Open two more Windows PowerShell windows. In each one, initialize Craft and
+launch an ordinary Kolf process; do not set `KOLF_PROTOTYPE_CONFIG`:
+
+```powershell
+& C:\CraftRoot\craft\craftenv.ps1
+craft --run kolf
+```
+
+In each Kolf window:
+
+1. Choose **Game > Online…**. Confirm the Connect page appears from normal app
+   startup and that cancelling or closing it leaves offline Kolf usable.
+2. Connect both windows to the printed endpoint. In the first window choose a
+   display name, `#RRGGBBAA` color, and shipped course, then select **Create
+   Lobby**. Copy the visible join code.
+3. In the second window enter a different name/color and the join code, then
+   select **Join Lobby**. Confirm both windows show the same two names, course,
+   revision, and readiness state. Neither window should expose a generated
+   credential or require JSON editing.
+4. Change the course as the owner and confirm both Ready states clear. Confirm
+   the non-owner cannot change it. Ready both players on the displayed
+   revision; only the owner should have an enabled **Start** button.
+5. Select **Start** once. Both clients should verify the installed course and
+   show that they are waiting for the authoritative initial state. Repeated
+   Start clicks must not create a second match. This is the current v2 native
+   checkpoint; a playable scene and Results/Return/rematch UI become testable
+   when the match-session migration lands.
+6. Disconnect one window. The other should receive a readable lobby-closed
+   message and remain connected far enough to create a new lobby. Close and
+   reopen **Game > Online…** and check that the nonsecret endpoint, display
+   name, and color were remembered without persisting a join code.
+
+Mark each step passed, failed, or not run. Do not count the preparation-only
+checkpoint as a completed multiplayer match.
+
+## Play the legacy v1 two-client prototype
+
+This path currently has two fixed players and one match per relay process. Use
+it on one Windows PC or a trusted LAN for the shot/hazard checks below.
 
 ## Start a match on one Windows PC
 
@@ -107,11 +159,14 @@ of the later test-kit stage.
 
 ## Current evidence and limits
 
-The latest automated results are in
-[2026-09-18-sync-followup.json](evidence/2026-09-18-sync-followup.json): 18 relay
-tests and TypeScript checking passed; scripted water/slope and teleport/resync
-native runs completed with matching committed states, zero guest gameplay
-simulation, and clean scene shutdown. Earlier Windows prototype results are
-in [2026-09-18-p0.json](evidence/2026-09-18-p0.json). Human mouse/keyboard
-play, advanced-meter timing, offline save/load, two-machine play, and the
-planned lobby/rematch flow remain unverified or unimplemented.
+The v2 protocol/lobby/WebSocket checkpoint is recorded in
+[2026-09-19-stage1.json](evidence/2026-09-19-stage1.json). The latest legacy
+native-UI build checkpoint is recorded in
+[2026-09-19-native-lobby-ui.json](evidence/2026-09-19-native-lobby-ui.json). The latest legacy
+gameplay results are in
+[2026-09-18-sync-followup.json](evidence/2026-09-18-sync-followup.json), with
+earlier Windows prototype results in
+[2026-09-18-p0.json](evidence/2026-09-18-p0.json). Human in-game lobby
+activation, mouse/keyboard play, advanced-meter timing, offline save/load,
+two-machine play, and a complete v2 Results/Return/rematch flow remain
+unverified until a person records them.

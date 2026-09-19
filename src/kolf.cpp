@@ -23,6 +23,7 @@
 #include "newgame.h"
 #include "objects.h"
 #include "obstacles.h"
+#include "online/onlinewindow.h"
 #include "scoreboard.h"
 #include "dataServer.h"
 
@@ -90,6 +91,10 @@ void KolfWindow::setupActions()
 {
 	// Game
 	newAction = KGameStandardAction::gameNew(this, &KolfWindow::newGame, actionCollection());
+	onlineAction = actionCollection()->addAction(QStringLiteral("online"));
+	onlineAction->setIcon(QIcon::fromTheme(QStringLiteral("network-connect")));
+	onlineAction->setText(i18nc("@action", "&Online…"));
+	connect(onlineAction, &QAction::triggered, this, &KolfWindow::showOnline);
 	endAction = KGameStandardAction::end(this, &KolfWindow::closeGame, actionCollection());
 	KGameStandardAction::quit(this, &KolfWindow::close, actionCollection());
 
@@ -206,6 +211,17 @@ void KolfWindow::setupActions()
 	connect(tutorialAction, &QAction::triggered, this, &KolfWindow::tutorial);
 
 	setupGUI();
+}
+
+void KolfWindow::showOnline()
+{
+	if (!onlineWindow) {
+		onlineWindow = new Kolf::Online::OnlineWindow(this);
+		connect(onlineWindow, &QObject::destroyed, this, [this] { onlineWindow = nullptr; });
+	}
+	onlineWindow->show();
+	onlineWindow->raise();
+	onlineWindow->activateWindow();
 }
 
 bool KolfWindow::queryClose()

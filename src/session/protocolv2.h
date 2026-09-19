@@ -15,5 +15,7 @@ struct EnvelopeV2 {
 };
 
 bool decodeEnvelopeV2(const QByteArray &raw, EnvelopeV2 &envelope, QString &errorCode);
+QJsonObject envelopeV2(const QString &type, const QJsonObject &payload = {}, const QString &requestId = {},
+                       const QString &lobbyId = {}, const QString &matchId = {});
 int runV2ProtocolFixtures(const QString &path);
 }

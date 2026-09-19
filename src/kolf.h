@@ -32,6 +32,7 @@ class KToggleAction;
 
 class Editor;
 class ScoreBoard;
+namespace Kolf::Online { class OnlineWindow; }
 
 class KolfWindow : public KXmlGuiWindow
 {
@@ -54,6 +55,7 @@ protected Q_SLOTS:
 	void startNewGame();
 	void loadGame();
 	void tutorial();
+	void showOnline();
 	void newGame();
 	void save();
 	void saveAs();
@@ -103,6 +105,7 @@ private:
 	QAction *clearHoleAction;
 	QAction *tutorialAction;
 	QAction *newAction;
+	QAction *onlineAction;
 	QAction *endAction;
 	QAction *saveAction;
 	QAction *saveAsAction;
@@ -135,6 +138,7 @@ private:
 	bool courseModified;
 	QString title;
 	QString tempStatusBarText;
+	Kolf::Online::OnlineWindow *onlineWindow = nullptr;
 };
 
 struct HighScore

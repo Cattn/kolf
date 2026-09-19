@@ -11,12 +11,14 @@ class NetworkClient : public QObject {
     Q_OBJECT
 public:
     explicit NetworkClient(QObject *parent = nullptr);
-    void open(const QUrl &url, const QJsonObject &hello);
+    void open(const QUrl &url, const QJsonObject &initialMessage = {}, int protocolVersion = 1);
     void send(const QJsonObject &message, bool visual = false);
     void close();
     qint64 bufferedBytes() const { return m_socket.bytesToWrite(); }
     quint64 coalescedFrames() const { return m_coalesced; }
 Q_SIGNALS:
+    void connected();
+    void disconnected();
     void received(const QJsonObject &message);
     void failed(const QString &reason);
 private:
@@ -28,5 +30,7 @@ private:
     QString m_frame;
     quint64 m_coalesced = 0;
     bool m_closed = false;
+    int m_protocolVersion = 1;
+    QJsonObject m_initialMessage;
 };
 }

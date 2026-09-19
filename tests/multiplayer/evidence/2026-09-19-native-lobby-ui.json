@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "sourceBase": "6245d88",
+  "scope": "ordinary Kolf Online entry, persistent v2 coordinator, and preparation UI",
+  "platform": "Windows, MSVC 2022, KDE Craft",
+  "freshChecks": {
+    "craftCompileInstallQmerge": "passed",
+    "legacyStaticScenario": {
+      "outcome": "completed",
+      "transitions": 9,
+      "scores": [[1, 1], [1, 1]],
+      "guestReceivedFrames": 23,
+      "guestPhysicsSteps": 0,
+      "guestCollisionCalls": 0,
+      "nativeProcessesExited": [true, true]
+    }
+  },
+  "implemented": [
+    "Game > Online activation from ordinary Kolf startup",
+    "Connect, Create/Join, Lobby, and Results views",
+    "persistent v2 network/lobby coordinator separate from the legacy match controller",
+    "owner course selection, revision-bound Ready, and Start controls",
+    "local shipped-course hash verification during preparation",
+    "nonsecret endpoint, display name, and color preferences",
+    "reopen-safe NetworkClient signal and buffer lifecycle"
+  ],
+  "notVerified": [
+    "human execution of Game > Online Connect/Create/Join/Ready/Start",
+    "human normal and advanced meter input",
+    "offline multi-hole and save/load regression",
+    "v2 authoritative gameplay scene creation",
+    "v2 Results/Return/rematch through native clients",
+    "cross-platform or two-machine play"
+  ]
+}

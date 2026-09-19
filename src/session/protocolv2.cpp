@@ -62,6 +62,17 @@ bool decodeEnvelopeV2(const QByteArray &raw, EnvelopeV2 &envelope, QString &erro
     return true;
 }
 
+QJsonObject envelopeV2(const QString &type, const QJsonObject &payload, const QString &requestId,
+                       const QString &lobbyId, const QString &matchId)
+{
+    QJsonObject message{{QStringLiteral("protocolVersion"), 2}, {QStringLiteral("type"), type},
+                        {QStringLiteral("payload"), payload}};
+    if (!requestId.isEmpty()) message[QStringLiteral("requestId")] = requestId;
+    if (!lobbyId.isEmpty()) message[QStringLiteral("lobbyId")] = lobbyId;
+    if (!matchId.isEmpty()) message[QStringLiteral("matchId")] = matchId;
+    return message;
+}
+
 int runV2ProtocolFixtures(const QString &path)
 {
     QFile file(path);
