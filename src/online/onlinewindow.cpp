@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "onlinewindow.h"
+#include "session/sessioncontroller.h"
 
 #include <KConfigGroup>
 #include <KLocalizedString>
@@ -130,12 +131,20 @@ OnlineWindow::OnlineWindow(QWidget *parent)
     connect(returnButton, &QPushButton::clicked, &m_coordinator, &OnlineCoordinator::returnToLobby);
     connect(&m_coordinator, &OnlineCoordinator::connected, this, &OnlineWindow::showEntry);
     connect(&m_coordinator, &OnlineCoordinator::connectionClosed, this, [this] {
+        closeMatch();
         m_connectStatus->setText(i18n("Disconnected from the online service."));
         m_pages->setCurrentIndex(0);
     });
     connect(&m_coordinator, &OnlineCoordinator::lobbyChanged, this, &OnlineWindow::showLobby);
     connect(&m_coordinator, &OnlineCoordinator::lobbyClosed, this, [this](const QString &reason) {
-        showEntry(); m_entryStatus->setText(reason);
+        closeMatch(); showEntry(); m_entryStatus->setText(reason);
+    });
+    connect(&m_coordinator, &OnlineCoordinator::matchPrepared, this, [this](const QJsonObject &config) {
+        closeMatch();
+        m_matchController = new Kolf::Session::SessionController(config, m_coordinator.networkClient(), m_pages);
+        resize(900, 760);
+        m_pages->addWidget(m_matchController);
+        m_pages->setCurrentWidget(m_matchController);
     });
     connect(&m_coordinator, &OnlineCoordinator::statusChanged, m_lobbyStatus, &QLabel::setText);
     connect(&m_coordinator, &OnlineCoordinator::failed, this, [this](const QString &reason) {
@@ -156,7 +165,11 @@ void OnlineWindow::showLobby(const QJsonObject &state)
 {
     m_state = state;
     if (state.value(QStringLiteral("phase")) == QLatin1String("Results")) { showResults(state); return; }
-    m_pages->setCurrentIndex(2);
+    const bool showingMatch = m_matchController
+        && (state.value(QStringLiteral("phase")) == QLatin1String("Preparing")
+            || state.value(QStringLiteral("phase")) == QLatin1String("Playing"));
+    if (showingMatch) m_pages->setCurrentWidget(m_matchController);
+    else m_pages->setCurrentIndex(2);
     m_lobbySummary->setText(i18n("Join code: %1    Revision: %2    State: %3",
         state.value(QStringLiteral("joinCode")).toString(), state.value(QStringLiteral("lobbyRevision")).toInt(),
         state.value(QStringLiteral("phase")).toString()));
@@ -187,6 +200,7 @@ void OnlineWindow::showLobby(const QJsonObject &state)
 
 void OnlineWindow::showResults(const QJsonObject &state)
 {
+    closeMatch();
     m_pages->setCurrentIndex(3);
     const auto result = state.value(QStringLiteral("latestResult")).toObject();
     QString text = i18n("Status: %1\nCourse: %2\n", result.value(QStringLiteral("status")).toString(),
@@ -199,6 +213,14 @@ void OnlineWindow::showResults(const QJsonObject &state)
     if (result.value(QStringLiteral("status")) == QLatin1String("Interrupted"))
         text += i18n("Reason: %1\n", result.value(QStringLiteral("reason")).toString());
     m_result->setPlainText(text);
+}
+
+void OnlineWindow::closeMatch()
+{
+    if (!m_matchController) return;
+    m_pages->removeWidget(m_matchController);
+    delete m_matchController;
+    m_matchController = nullptr;
 }
 
 void OnlineWindow::savePreferences()

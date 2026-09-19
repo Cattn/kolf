@@ -28,9 +28,11 @@
 #include <QGraphicsView>
 #include <KConfigGroup>
 #include <KGameSound>
+#include <memory>
 
 class KolfGame;
 class KGameRenderer;
+class KolfWorld;
 
 namespace Kolf
 {
@@ -456,6 +458,7 @@ private:
 
 	bool m_ignoreEvents;
 
+	std::unique_ptr<KolfWorld> m_world;
 	HoleInfo holeInfo;
 	QMap<QString, QPointF> savedState;
 

@@ -64,7 +64,9 @@ export class Session {
     this.peers.get('authority')!.send(envelope('RequestResync', { syncId: this.syncId }));
   }
   receive(peer: Peer, raw: string) {
-    const m = decode(raw);
+    this.receiveMessage(peer, decode(raw));
+  }
+  receiveMessage(peer: Peer, m: Message) {
     if (this.interrupted || this.peers.get(peer.role) !== peer) return;
     const reject = (reason: string) => peer.send(envelope('CommandRejected', { commandId: m.commandId, reason }));
     switch (m.type) {

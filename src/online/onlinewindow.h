@@ -13,6 +13,7 @@ class QListWidget;
 class QPushButton;
 class QStackedWidget;
 class QTextEdit;
+namespace Kolf::Session { class SessionController; }
 
 namespace Kolf::Online {
 class OnlineWindow : public QWidget {
@@ -25,6 +26,7 @@ private:
     void showLobby(const QJsonObject &state);
     void showResults(const QJsonObject &state);
     void savePreferences();
+    void closeMatch();
 
     OnlineCoordinator m_coordinator;
     QStackedWidget *m_pages;
@@ -43,5 +45,6 @@ private:
     QPushButton *m_start;
     QTextEdit *m_result;
     QJsonObject m_state;
+    Kolf::Session::SessionController *m_matchController = nullptr;
 };
 }

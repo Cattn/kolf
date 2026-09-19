@@ -9,6 +9,7 @@
 #include <QWidget>
 #include <QTimer>
 #include <QSet>
+#include <memory>
 class QLabel;
 class QPushButton;
 class QTableWidget;
@@ -18,7 +19,7 @@ namespace Kolf::Session {
 class SessionController : public QWidget {
     Q_OBJECT
 public:
-    explicit SessionController(const QJsonObject &config);
+    explicit SessionController(const QJsonObject &config, Net::NetworkClient *sharedNetwork = nullptr, QWidget *parent = nullptr);
     ~SessionController() override;
 private:
     void receive(const QJsonObject &message);
@@ -28,6 +29,9 @@ private:
     void interrupt(const QString &reason);
     void refresh();
     void log(const QString &event, QJsonObject data = {});
+    QJsonObject wireMessage(const QString &type, QJsonObject payload = {}) const;
+    void send(const QString &type, QJsonObject payload = {}, bool visual = false);
+    QJsonObject unwrap(const QJsonObject &message) const;
     QJsonObject state() const;
     QJsonObject m_config;
     Role m_role;
@@ -35,7 +39,8 @@ private:
     PlayerList m_players;
     KolfGame *m_game = nullptr;
     GameSessionAdapter *m_adapter = nullptr;
-    Net::NetworkClient m_network;
+    std::unique_ptr<Net::NetworkClient> m_ownedNetwork;
+    Net::NetworkClient *m_network;
     Replication::PresentationController m_presentation;
     QVBoxLayout *m_layout;
     QLabel *m_status;
@@ -56,6 +61,7 @@ private:
     int m_syncId = 0;
     int m_frameSeq = 0, m_receivedFrame = 0;
     bool m_ready = false, m_interrupted = false, m_awaitingResync = false;
+    bool m_v2 = false;
     bool m_testFaultScheduled = false;
     QJsonObject m_pendingMessage;
     QTimer m_retry;

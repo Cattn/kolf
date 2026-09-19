@@ -5,6 +5,7 @@
 #include "prototype_build.h"
 
 #include <QCryptographicHash>
+#include <QDir>
 #include <QFile>
 #include <QJsonArray>
 #include <QStandardPaths>
@@ -30,13 +31,14 @@ void OnlineCoordinator::connectToService(const QString &endpoint)
         return;
     }
     Q_EMIT statusChanged(tr("Connecting to %1…").arg(url.toDisplayString()));
+    m_endpoint = url.toString();
     m_network.open(url, {}, 2);
 }
 
 void OnlineCoordinator::disconnectFromService()
 {
     m_network.close();
-    m_state = {}; m_memberId.clear(); m_lobbyId.clear(); m_matchId.clear(); m_preparedMatchId.clear();
+    m_state = {}; m_memberId.clear(); m_lobbyId.clear(); m_matchId.clear(); m_preparedMatchId.clear(); m_coursePath.clear();
 }
 
 void OnlineCoordinator::createLobby(const QString &displayName, const QString &color, const QString &courseId)
@@ -92,7 +94,7 @@ void OnlineCoordinator::receive(const QJsonObject &message)
     }
     if (type == QLatin1String("LobbyClosed")) {
         const auto reason = payload.value(QStringLiteral("reason")).toString(tr("The lobby closed."));
-        m_state = {}; m_memberId.clear(); m_lobbyId.clear(); m_matchId.clear(); m_preparedMatchId.clear();
+        m_state = {}; m_memberId.clear(); m_lobbyId.clear(); m_matchId.clear(); m_preparedMatchId.clear(); m_coursePath.clear();
         Q_EMIT lobbyClosed(reason);
         return;
     }
@@ -101,9 +103,28 @@ void OnlineCoordinator::receive(const QJsonObject &message)
     else if (type == QLatin1String("LobbyState") && m_memberId.isEmpty())
         m_memberId = payload.value(QStringLiteral("joinedMemberId")).toString();
 
-    if (payload.value(QStringLiteral("state")).isObject()) acceptState(payload.value(QStringLiteral("state")).toObject());
-    if (type == QLatin1String("PreparationReady"))
-        Q_EMIT statusChanged(tr("Both players loaded the course. Waiting for the authoritative initial state."));
+    const auto state = payload.value(QStringLiteral("state")).toObject();
+    if (state.contains(QStringLiteral("lobbyId"))) acceptState(state);
+    if (type == QLatin1String("PreparationReady")) {
+        const auto match = m_state.value(QStringLiteral("match")).toObject();
+        const auto roster = match.value(QStringLiteral("roster")).toArray();
+        QString localPlayerId;
+        for (const auto &value : roster) {
+            const auto player = value.toObject();
+            if (player.value(QStringLiteral("memberId")).toString() == m_memberId)
+                localPlayerId = player.value(QStringLiteral("playerId")).toString();
+        }
+        const auto logDirectory = QDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation))
+            .filePath(QStringLiteral("online/%1").arg(m_matchId));
+        Q_EMIT statusChanged(tr("Both players verified the course. Loading the match scene…"));
+        Q_EMIT matchPrepared({{QStringLiteral("protocolVersion"), 2}, {QStringLiteral("endpoint"), m_endpoint},
+            {QStringLiteral("lobbyId"), m_lobbyId}, {QStringLiteral("matchId"), m_matchId},
+            {QStringLiteral("course"), m_coursePath}, {QStringLiteral("roster"), roster},
+            {QStringLiteral("localPlayerId"), localPlayerId},
+            {QStringLiteral("role"), match.value(QStringLiteral("authorityMemberId")).toString() == m_memberId
+                ? QStringLiteral("authority") : QStringLiteral("guest")},
+            {QStringLiteral("logDirectory"), logDirectory}});
+    }
     else if (type == QLatin1String("MatchStarted"))
         Q_EMIT statusChanged(tr("Match input is open."));
     else if (type == QLatin1String("PreparationAborted"))
@@ -137,6 +158,7 @@ void OnlineCoordinator::prepareCourse()
         Q_EMIT failed(tr("The selected online course could not be opened locally."));
         return;
     }
+    m_coursePath = path;
     const auto hash = QString::fromLatin1(QCryptographicHash::hash(file.readAll(), QCryptographicHash::Sha256).toHex());
     send(QStringLiteral("CourseReady"), {{QStringLiteral("courseHash"), hash},
          {QStringLiteral("compatibilityId"), QStringLiteral(KOLF_PROTOTYPE_BUILD)}}, true);

@@ -87,6 +87,11 @@ class KolfWorld : public b2World
 		KolfContactListener m_listener;
 };
 
+static std::unique_ptr<KolfWorld> createKolfWorld()
+{
+	return std::make_unique<KolfWorld>();
+}
+
 class KolfTheme : public KGameTheme
 {
 	public:
@@ -464,7 +469,8 @@ KolfGame::KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const 
  m_soundPuddle(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/puddle.wav"))),
  m_soundWall(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/wall.wav"))),
  m_soundWooHoo(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/woohoo.wav"))),
- holeInfo(g_world)
+ m_world(createKolfWorld()),
+ holeInfo(m_world.get())
 {
 	setRenderHint(QPainter::Antialiasing);
 	// for mouse control
@@ -541,8 +547,12 @@ KolfGame::KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const 
 
 	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it)
 	{
-		Ball* ball = (*it).ball();
-		ball->setParentItem(courseBoard);
+		Ball* old = (*it).ball();
+		auto *ball = new Ball(courseBoard, m_world.get());
+		ball->setColor(old->color());
+		if (!(*it).name().isEmpty()) ball->setName((*it).name());
+		(*it).setBall(ball);
+		delete old;
 		m_topLevelQItems << ball;
 		m_moveableQItems << ball;
 	}
@@ -558,7 +568,7 @@ KolfGame::KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const 
 	strokeCircle->setMaxValue(360); 
 
 	// whiteBall marks the spot of the whole whilst editing
-	whiteBall = new Ball(courseBoard, g_world);
+	whiteBall = new Ball(courseBoard, m_world.get());
 	whiteBall->setGame(this);
 	whiteBall->setColor(Qt::white);
 	whiteBall->setVisible(false);
@@ -581,7 +591,7 @@ KolfGame::KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const 
 	if (highestLog)
 		curHole = highestLog;
 
-	putter = new Putter(courseBoard, g_world);
+	putter = new Putter(courseBoard, m_world.get());
 
 	// border walls:
 
@@ -738,7 +748,7 @@ void KolfGame::unPause()
 
 void KolfGame::addBorderWall(const QPoint &start, const QPoint &end)
 {
-	Kolf::Wall *wall = new Kolf::Wall(courseBoard, g_world);
+	Kolf::Wall *wall = new Kolf::Wall(courseBoard, m_world.get());
 	wall->setLine(QLineF(start, end));
 	wall->setVisible(true);
 	wall->setGame(this);
@@ -1027,9 +1037,12 @@ void KolfGame::resizeEvent( QResizeEvent* ev )
 	int oldW = ev->oldSize().width();
 	int oldH = ev->oldSize().height();
 
-	if(oldW<=0 || oldH<=0) //this is the first draw so no point wasting resources resizing yet
+	if(oldW<=0 || oldH<=0)
 		return;
 	else if( (oldW==newW) && (oldH==newH) )
+		return;
+
+	if (isOnline())
 		return;
 
 	int setSize = qMin(newW, newH);
@@ -1164,7 +1177,7 @@ void KolfGame::fastTimeout()
 	//using the b2Bodies available on the world.
 
 	//prepare simulation
-	for (b2Body* body = g_world->GetBodyList(); body; body = body->GetNext())
+	for (b2Body* body = m_world->GetBodyList(); body; body = body->GetNext())
 	{
 		CanvasItem* citem = static_cast<CanvasItem*>(body->GetUserData());
 		if (citem)
@@ -1183,10 +1196,10 @@ void KolfGame::fastTimeout()
 	//very small velocities (below Box2D's internal cutoff thresholds!) for
 	//usual movements. Therefore, we apply the scaling to the timestep instead.
 	const double timeStep = 1.0 * Kolf::Box2DScaleFactor;
-	g_world->Step(timeStep, 10, 10); //parameters 2/3 = iteration counts (TODO: optimize)
+	m_world->Step(timeStep, 10, 10); //parameters 2/3 = iteration counts (TODO: optimize)
 	++m_physicsSteps;
 	//conclude simulation
-	for (b2Body* body = g_world->GetBodyList(); body; body = body->GetNext())
+	for (b2Body* body = m_world->GetBodyList(); body; body = body->GetNext())
 	{
 		CanvasItem* citem = static_cast<CanvasItem*>(body->GetUserData());
 		if (citem)
@@ -1935,7 +1948,7 @@ void KolfGame::openFile()
 			continue;
 		}
 		const int id = QStringView(*it).right(len - (pipeIndex + 1)).toInt();
-		QGraphicsItem* newItem = m_factory.createInstance(name, courseBoard, g_world);
+		QGraphicsItem* newItem = m_factory.createInstance(name, courseBoard, m_world.get());
 		if (newItem)
 		{
 			newItem->setData(1, *it); // Exact source group is the stable network identity.
@@ -2018,7 +2031,7 @@ void KolfGame::openFile()
 void KolfGame::addNewObject(const QString& identifier)
 {
 	if (isOnline()) return;
-	QGraphicsItem *newItem = m_factory.createInstance(identifier, courseBoard, g_world);
+	QGraphicsItem *newItem = m_factory.createInstance(identifier, courseBoard, m_world.get());
 
 	m_topLevelQItems << newItem;
 	m_moveableQItems << newItem;

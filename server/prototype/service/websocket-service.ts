@@ -14,6 +14,7 @@ export class LobbyWebSocketService {
   readonly controller: LobbyProtocolController;
   private readonly server: WebSocketServer;
   private readonly sockets = new Map<ConnectionId, WebSocket>();
+  private readonly matchTimer: NodeJS.Timeout;
   private stopping = false;
 
   constructor(options: Options) {
@@ -23,6 +24,7 @@ export class LobbyWebSocketService {
       maxPayload: MAX_MESSAGE_BYTES, perMessageDeflate: false,
     });
     this.server.on('connection', socket => this.accept(socket));
+    this.matchTimer = setInterval(() => this.deliver(this.controller.tick()), 250);
   }
 
   ready(): Promise<void> {
@@ -42,6 +44,7 @@ export class LobbyWebSocketService {
 
   async close(): Promise<void> {
     this.stopping = true;
+    clearInterval(this.matchTimer);
     for (const socket of this.sockets.values()) socket.close(1001, 'service shutdown');
     await new Promise<void>((resolveClose, reject) => this.server.close(error => error ? reject(error) : resolveClose()));
   }

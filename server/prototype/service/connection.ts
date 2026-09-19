@@ -7,6 +7,8 @@ import { cryptoIds } from '../protocol/ids.ts';
 import { LobbyError } from './errors.ts';
 import type { CourseCatalogEntry, LobbyState } from './lobby.ts';
 import { LobbyService } from './lobby-service.ts';
+import { MatchSession } from './match-session.ts';
+import type { MatchProgress } from './match-session.ts';
 
 export interface Delivery { connectionId: ConnectionId; message: Envelope }
 
@@ -21,6 +23,7 @@ function publicState(state: LobbyState): JsonObject {
 export class LobbyProtocolController {
   readonly service: LobbyService;
   private readonly connections = new Set<ConnectionId>();
+  private readonly matches = new Map<MatchId, MatchSession>();
   private readonly ids: IdFactory;
 
   constructor(catalog: CourseCatalogEntry[], ids: IdFactory = cryptoIds, now = () => Date.now()) {
@@ -41,6 +44,7 @@ export class LobbyProtocolController {
       const state = lobby.state();
       const recipients = state.members.filter(member => member.connectionId !== connectionId
         && this.connections.has(member.connectionId)).map(member => member.connectionId);
+      if (state.match?.matchId) this.matches.delete(state.match.matchId);
       this.service.disconnect(connectionId);
       return recipients.map(recipient => ({
         connectionId: recipient,
@@ -86,13 +90,25 @@ export class LobbyProtocolController {
             case 'CourseReady': {
               const result = lobby.courseReady(memberId, message.requestId!, message.matchId!, message.payload.courseHash,
                 message.payload.compatibilityId);
-              if (result.allReady) return this.broadcast(lobby.state(), 'PreparationReady', {}, requestId);
+              if (result.allReady) {
+                const match = new MatchSession(lobby.state());
+                this.matches.set(message.matchId!, match);
+                return [...this.broadcast(lobby.state(), 'PreparationReady', {}, requestId),
+                  ...this.applyMatchProgress(lobby, match, match.start())];
+              }
               break;
             }
             case 'PreparationFailed':
               lobby.abortPreparation(message.matchId!, message.payload.reason);
+              this.matches.delete(message.matchId!);
               return this.broadcast(lobby.state(), 'PreparationAborted', { reason: message.payload.reason }, requestId);
             case 'ReturnToLobby': lobby.returnToLobby(memberId, message.requestId!, message.matchId!); break;
+            default: {
+              const match = this.matches.get(message.matchId! as MatchId);
+              if (!match || message.matchId !== lobby.currentMatchId)
+                throw new LobbyError('StaleMatch', 'message does not belong to the active match');
+              return this.applyMatchProgress(lobby, match, match.receive(memberId, message));
+            }
           }
           return this.broadcast(lobby.state(), 'LobbyState', {}, requestId);
         }
@@ -104,6 +120,24 @@ export class LobbyProtocolController {
     }
   }
 
+  tick(): Delivery[] {
+    const deliveries: Delivery[] = [];
+    for (const match of [...this.matches.values()]) {
+      let lobby;
+      try {
+        lobby = this.service.activeLobby(match.lobbyIdentity);
+      } catch (error) {
+        if (error instanceof LobbyError && error.code === 'LobbyNotFound') {
+          this.matches.delete(match.matchId);
+          continue;
+        }
+        throw error;
+      }
+      deliveries.push(...this.applyMatchProgress(lobby, match, match.tick()));
+    }
+    return deliveries;
+  }
+
   beginPlaying(lobbyId: string, matchId: MatchId): Delivery[] {
     const lobby = this.service.activeLobby(lobbyId);
     return this.broadcast(lobby.completePreparation(matchId), 'MatchStarted');
@@ -112,13 +146,36 @@ export class LobbyProtocolController {
   finish(lobbyId: string, matchId: MatchId, scores: number[][]): Delivery[] {
     const lobby = this.service.activeLobby(lobbyId);
     const result = lobby.completeMatch(matchId, scores);
+    this.matches.delete(matchId);
     return this.broadcast(lobby.state(), 'MatchResult', { result });
   }
 
   interrupt(lobbyId: string, matchId: MatchId, reason: string, scores?: number[][]): Delivery[] {
     const lobby = this.service.activeLobby(lobbyId);
     const result = lobby.interruptMatch(matchId, reason, scores);
+    this.matches.delete(matchId);
     return this.broadcast(lobby.state(), 'MatchResult', { result });
+  }
+
+  private applyMatchProgress(lobby: ReturnType<LobbyService['activeLobby']>, match: MatchSession, progress: MatchProgress): Delivery[] {
+    const gameplay = progress.deliveries.map(delivery => ({
+      connectionId: lobby.member(delivery.memberId).connectionId,
+      message: delivery.message,
+    }));
+    const deliveries: Delivery[] = [];
+    if (progress.becamePlaying)
+      deliveries.push(...this.broadcast(lobby.completePreparation(match.matchId), 'MatchStarted'));
+    deliveries.push(...gameplay);
+    if (progress.completedScores) {
+      const result = lobby.completeMatch(match.matchId, progress.completedScores);
+      this.matches.delete(match.matchId);
+      deliveries.push(...this.broadcast(lobby.state(), 'MatchResult', { result }));
+    } else if (progress.interruptedReason) {
+      const result = lobby.interruptMatch(match.matchId, progress.interruptedReason);
+      this.matches.delete(match.matchId);
+      deliveries.push(...this.broadcast(lobby.state(), 'MatchResult', { result }));
+    }
+    return deliveries;
   }
 
   private broadcast(state: LobbyState, type: string, extra: JsonObject = {}, requestId?: string): Delivery[] {
