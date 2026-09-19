@@ -5,15 +5,22 @@ ecm_setup_version(${RELEASE_SERVICE_VERSION}
 
 add_library(kolfprivate STATIC)
 
-# Fingerprint source bytes, not compiler/OS, so identical cross-platform builds
-# agree and dirty gameplay changes cannot accidentally claim compatibility.
-file(GLOB_RECURSE PROTOTYPE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
-set(PROTOTYPE_HASH_INPUT "protocol-1")
+# Fingerprint normalized gameplay source, not checkout paths or line endings.
+# protocol/v2.md specifies the identical language-neutral preimage.
+file(GLOB_RECURSE PROTOTYPE_SOURCES CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+list(SORT PROTOTYPE_SOURCES)
+set(PROTOTYPE_HASH_INPUT "kolf-rules-v2\n")
+set(PROTOTYPE_SOURCE_PATHS)
 foreach(source IN LISTS PROTOTYPE_SOURCES)
-    file(SHA256 "${source}" source_hash)
-    string(APPEND PROTOTYPE_HASH_INPUT "${source_hash}")
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/${source}" source_text)
+    string(REPLACE "\r\n" "\n" source_text "${source_text}")
+    string(REPLACE "\r" "\n" source_text "${source_text}")
+    string(SHA256 source_hash "${source_text}")
+    string(APPEND PROTOTYPE_HASH_INPUT "${source}\n${source_hash}\n")
+    list(APPEND PROTOTYPE_SOURCE_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/${source}")
 endforeach()
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PROTOTYPE_SOURCES})
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PROTOTYPE_SOURCE_PATHS})
 string(SHA256 KOLF_PROTOTYPE_BUILD "${PROTOTYPE_HASH_INPUT}")
 configure_file(session/prototype_build.h.in prototype_build.h @ONLY)
 
@@ -25,6 +32,7 @@ target_include_directories(kolfprivate PRIVATE
 
 target_sources(kolfprivate PRIVATE
     session/shotcommand.cpp
+    session/protocolv2.cpp
     session/gamesessionadapter.cpp
     session/sessioncontroller.cpp
     net/networkclient.cpp

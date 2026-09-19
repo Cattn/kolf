@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "name": "minimal scoped request",
+      "valid": true,
+      "message": {
+        "protocolVersion": 2,
+        "type": "StartMatch",
+        "requestId": "request_1",
+        "lobbyId": "lobby_1",
+        "payload": { "lobbyRevision": 3 }
+      }
+    },
+    {
+      "name": "match-scoped request",
+      "valid": true,
+      "message": {
+        "protocolVersion": 2,
+        "type": "CourseReady",
+        "requestId": "request_2",
+        "lobbyId": "lobby_1",
+        "matchId": "match_1",
+        "payload": {
+          "courseHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "compatibilityId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      }
+    },
+    {
+      "name": "v1 is unsupported",
+      "valid": false,
+      "error": "UnsupportedProtocol",
+      "message": { "protocolVersion": 1, "type": "Hello", "payload": {} }
+    },
+    {
+      "name": "missing payload",
+      "valid": false,
+      "error": "InvalidEnvelope",
+      "message": { "protocolVersion": 2, "type": "StartMatch", "requestId": "request_3" }
+    },
+    {
+      "name": "array payload",
+      "valid": false,
+      "error": "InvalidEnvelope",
+      "message": { "protocolVersion": 2, "type": "StartMatch", "requestId": "request_4", "payload": [] }
+    },
+    {
+      "name": "invalid request identity",
+      "valid": false,
+      "error": "InvalidEnvelope",
+      "message": { "protocolVersion": 2, "type": "StartMatch", "requestId": "contains spaces", "payload": {} }
+    },
+    {
+      "name": "invalid type identity",
+      "valid": false,
+      "error": "InvalidEnvelope",
+      "message": { "protocolVersion": 2, "type": "", "payload": {} }
+    }
+  ]
+}

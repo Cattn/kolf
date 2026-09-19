@@ -18,6 +18,7 @@
 
 #include "kolf.h"
 #include "kolf_version.h"
+#include "session/protocolv2.h"
 #include "session/sessioncontroller.h"
 #include <QJsonDocument>
 
@@ -98,6 +99,8 @@ int main(int argc, char **argv)
 
     // Prototype settings are supplied by a local launcher, never by a remote
     // peer. It has its own window/lifecycle and does not load offline autosaves.
+    const auto protocolV2Tests = qEnvironmentVariable("KOLF_PROTOCOL_V2_TESTS");
+    if (!protocolV2Tests.isEmpty()) return Kolf::Session::runV2ProtocolFixtures(protocolV2Tests);
     const auto protocolTests = qEnvironmentVariable("KOLF_PROTOCOL_TESTS");
     if (!protocolTests.isEmpty()) return Kolf::Session::runProtocolFixtures(protocolTests);
     const auto prototypeConfig = qEnvironmentVariable("KOLF_PROTOTYPE_CONFIG");
