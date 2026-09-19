@@ -2,6 +2,7 @@
 #include "gamesessionadapter.h"
 #include "replication/snapshot.h"
 #include "tagaro/board.h"
+#include "landscape.h"
 #include "obstacles.h"
 #include <QCryptographicHash>
 #include <QJsonArray>
@@ -173,7 +174,22 @@ bool GameSessionAdapter::apply(const QJsonObject &s, QString &error) {
 }
 bool GameSessionAdapter::shoot(const ShotIntent &intent) {
     m_scored = false; m_resolutionIndex = 0;
-    return g->applyAcceptedShot(intent);
+    m_failure.clear();
+    // Legacy hazard callbacks may set the offline inPlay flag after an online
+    // transition has already settled. m_onlineShot is the authoritative guard.
+    if (g->inPlay && !g->m_onlineShot) g->inPlay = false;
+    if (g->applyAcceptedShot(intent)) return true;
+    if (!g->maySimulate()) m_failure = QStringLiteral("authority simulation is disabled");
+    else if (!intent.valid()) m_failure = QStringLiteral("the admitted shot intent is invalid");
+    else if (g->curBall()->curState() == Holed) m_failure = QStringLiteral("the active ball is already holed");
+    else if (g->curBall()->forceStillGoing()) m_failure = QStringLiteral("the active ball has a pending continuation");
+    else {
+        Vector ignored;
+        if (g->curBall()->placeOnGround(ignored)) m_failure = QStringLiteral("the active ball still requires hazard placement");
+        else if (g->inPlay) m_failure = QStringLiteral("the previous shot is still in play");
+        else m_failure = QStringLiteral("the engine rejected the admitted shot");
+    }
+    return false;
 }
 void GameSessionAdapter::settle() {
     if (!g->maySimulate() || !g->m_onlineShot || m_choiceSlot >= 0) return;
@@ -249,7 +265,13 @@ bool GameSessionAdapter::choose(const QString &action) {
         bool outside = false;
         for (int step = 0; step < 1000; ++step) {
             bool inHazard = false;
-            for (auto *item : ball->collidingItems()) if (item->data(0) == Rtti_DontPlaceOn) inHazard = true;
+            for (auto *item : std::as_const(g->m_topLevelQItems)) {
+                auto *puddle = dynamic_cast<Kolf::Puddle *>(item);
+                if (puddle && puddle->contains(ball->pos() - puddle->pos())) {
+                    inHazard = true;
+                    break;
+                }
+            }
             if (!inHazard) { outside = true; break; }
             ball->setPos(ball->pos() - direction * 3.0);
         }

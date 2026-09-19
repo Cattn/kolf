@@ -51,6 +51,16 @@ const nativeEvents = (role: string) => {
   const path = resolve(directory, role, 'session.jsonl');
   return existsSync(path) ? readFileSync(path, 'utf8').trim().split('\n').filter(Boolean).map(line => JSON.parse(line)) : [];
 };
+const firstHazardContinuation = (states: any[]) => {
+  const hazardIndex = states.findIndex(e => e.state.phase === 'AwaitingHazardChoice');
+  assert.notEqual(hazardIndex, -1, 'Fixture reaches a hazard choice');
+  const hazard = states[hazardIndex];
+  const continuation = states[hazardIndex + 1];
+  assert(continuation, 'Hazard choice produces a committed continuation');
+  assert.deepEqual(continuation.state.scores, hazard.state.scores,
+    'Placement does not score the original stroke twice');
+  return { hazard, continuation };
+};
 const nativePids = () => ['authority', 'guest'].map(role =>
   nativeEvents(role).find(event => event.event === 'connect')?.processId).filter((pid): pid is number => Number.isInteger(pid) && pid > 0);
 const isAlive = (pid: number) => {
@@ -66,7 +76,12 @@ try {
     const path = resolve(directory, `${role}.json`);
     const config = JSON.parse(readFileSync(path, 'utf8'));
     const turns = fixture === 'static' ? 4 : 40;
-    config.scriptedShots = Array.from({ length: turns }, (_, i) => ({ directionRadians: 0, launchMagnitude: 1.8, advanced: i % 2 === 1 }));
+    const placementFixture = ['water-bumper', 'water-cup', 'water-second-water', 'water-stationary'].includes(fixture);
+    config.scriptedShots = Array.from({ length: turns }, (_, i) => ({
+      directionRadians: placementFixture && i > 1 ? 3.0 : 0,
+      launchMagnitude: 1.8,
+      advanced: i % 2 === 1,
+    }));
     config.scriptedHazardAction = action; config.capture = true; config.exitWhenFinished = true;
     config.verifySnapshots = true;
     config.logFrames = true;
@@ -109,12 +124,32 @@ try {
       assert.equal(host.at(-1).state.phase, 'Finished');
       if (fixture === 'static') assert.deepEqual(host.at(-1).state.scores, [[1, 1], [1, 1]]);
       if (fixture.startsWith('water')) assert(host.some(e => e.state.phase === 'AwaitingHazardChoice'));
-      if (fixture === 'water-slope' && action === 'drop') {
-        const hazardIndex = host.findIndex(e => e.state.phase === 'AwaitingHazardChoice');
-        assert.equal(host[hazardIndex + 1]?.state.phase, 'Simulating',
-          'Drop onto slope resumes simulation before advancing the turn');
-        assert.deepEqual(host[hazardIndex + 1].state.scores, host[hazardIndex].state.scores,
-          'Placement does not score the original stroke twice');
+      if (fixture.startsWith('water-') && action === 'drop') {
+        const { hazard, continuation } = firstHazardContinuation(host);
+        if (fixture === 'water-slope' || fixture === 'water-bumper') {
+          assert.equal(continuation.state.phase, 'Simulating',
+            'Drop onto an object that starts motion resumes simulation before advancing the turn');
+          if (fixture === 'water-bumper') assert(continuation.gameplayRandomCalls > hazard.gameplayRandomCalls,
+            'Bumper collision runs during placement resolution');
+        } else if (fixture === 'water-cup') {
+          const slot = hazard.state.choiceSlot;
+          assert.equal(continuation.state.balls[slot].state, 2,
+            'A stopped ball placed inside the cup is holed immediately');
+          assert(['AwaitingShot', 'Finished'].includes(continuation.state.phase),
+            'A cup placement advances the turn or finishes the match');
+        } else if (fixture === 'water-second-water') {
+          assert.notEqual(continuation.state.phase, 'AwaitingHazardChoice',
+            'Drop search clears every overlapping no-placement hazard');
+          assert(continuation.state.balls[hazard.state.choiceSlot].x < 127,
+            'The final placement lies beyond the adjacent water hazard');
+          assert.equal(continuation.state.balls[hazard.state.choiceSlot].state, 2,
+            'The max-stroke fixture retires the safely placed ball');
+        } else if (fixture === 'water-stationary') {
+          assert(['AwaitingShot', 'Finished'].includes(continuation.state.phase),
+            'Stationary terrain overlap does not invent motion before max-stroke retirement');
+          assert.equal(continuation.state.balls[hazard.state.choiceSlot].state, 2,
+            'The max-stroke fixture retires the stationary placed ball');
+        }
       }
       const latencies = results.flat().filter(e => e.event === 'accepted').map(e => e.latencyMs).sort((a, b) => a - b);
       const frames = results[0].filter(e => e.event === 'frame');

@@ -183,9 +183,10 @@ void SessionController::receive(const QJsonObject &m) {
         }
         const bool valid = m_phase == QLatin1String("AwaitingShot") && c.turnId == m_turn && c.holeGeneration == m_generation && c.playerSlot == m_adapter->activeSlot();
         if (!valid || !m_adapter->shoot(c.intent)) {
-            m_network.send(envelope(QStringLiteral("ShotRejected"), {{QStringLiteral("commandId"), c.commandId}, {QStringLiteral("reason"), QStringLiteral("engine state changed")}}));
+            const auto reason = valid ? m_adapter->failure() : QStringLiteral("engine state changed");
+            m_network.send(envelope(QStringLiteral("ShotRejected"), {{QStringLiteral("commandId"), c.commandId}, {QStringLiteral("reason"), reason}}));
             // Preparation can itself discover a hazard. Do not reopen uncertain gameplay.
-            interrupt(QStringLiteral("Admitted shot could not be applied")); return;
+            interrupt(QStringLiteral("Admitted shot could not be applied: %1").arg(reason)); return;
         }
         m_admitted.insert(c.commandId, m);
         m_network.send(envelope(QStringLiteral("ShotAccepted"), {{QStringLiteral("commandId"), c.commandId}}));

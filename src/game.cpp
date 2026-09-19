@@ -20,6 +20,7 @@
 #include "game.h"
 #include "itemfactory.h"
 #include "kcomboboxdialog.h"
+#include "landscape.h"
 #include "obstacles.h"
 #include "shape.h"
 
@@ -1466,13 +1467,15 @@ void KolfGame::shotDone()
 
 				while (1)
 				{
-					QList<QGraphicsItem *> list = ball->collidingItems();
 					bool keepMoving = false;
-					while (!list.isEmpty())
+					for (auto *item : std::as_const(m_topLevelQItems))
 					{
-						QGraphicsItem *item = list.takeFirst();
-						if (item->data(0) == Rtti_DontPlaceOn)
+						auto *puddle = dynamic_cast<Kolf::Puddle *>(item);
+						if (puddle && puddle->contains(ball->pos() - puddle->pos()))
+						{
 							keepMoving = true;
+							break;
+						}
 					}
 					if (!keepMoving)
 						break;

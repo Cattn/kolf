@@ -94,6 +94,10 @@ node tests/multiplayer/run-native.ts static
 node tests/multiplayer/run-native.ts water rehit
 node tests/multiplayer/run-native.ts water drop
 node tests/multiplayer/run-native.ts water-slope drop
+node tests/multiplayer/run-native.ts water-bumper drop
+node tests/multiplayer/run-native.ts water-cup drop
+node tests/multiplayer/run-native.ts water-second-water drop
+node tests/multiplayer/run-native.ts water-stationary drop
 node tests/multiplayer/run-native.ts teleport
 node tests/multiplayer/run-native.ts dynamics
 $env:KOLF_DELAY_MS = '100'
@@ -165,3 +169,24 @@ of waiting for the match timeout. Craft compilation was not needed for these
 TypeScript and test-runner changes. This does not close P0: actual mouse and
 keyboard normal/advanced putting, offline save/load and multi-hole behavior,
 and the remaining hazard overlaps still require checks.
+
+## Hazard-placement follow-up, 2026-09-19
+
+Drop placement now uses the same center-in-puddle predicate as the actual water
+collision rule in both offline and online code. This prevents a placement that
+looks clear from becoming a delayed water collision when the next shot begins.
+The authority also clears a stale legacy `inPlay` flag only when no online shot
+is active, and rejected admitted shots now report the concrete engine reason.
+
+Four focused fixtures cover a bumper that restarts motion, immediate cup entry,
+two adjacent water hazards, and stationary sand. Their runner assertions check
+the first committed continuation, unchanged stroke totals during placement,
+the intended motion/holed/stationary outcome, and final clearance of both water
+hazards. All four completed with matching authority/guest commits, zero guest
+simulation counters, clean scene/process teardown, and the existing slope and
+ordinary-water cases still passed. See
+[evidence/2026-09-19-placement.json](evidence/2026-09-19-placement.json).
+
+These scripted cases close the automated placement-fixture portion of Stage A.
+They do not replace the human normal/advanced input checklist or the offline
+multi-hole save/load regression, which remain unverified.
