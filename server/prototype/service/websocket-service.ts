@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { WebSocket, WebSocketServer } from 'ws';
 import type { AddressInfo } from 'node:net';
+import { hostname } from 'node:os';
 import { MAX_MESSAGE_BYTES } from '../protocol/envelope.ts';
 import type { ConnectionId } from '../protocol/ids.ts';
 import type { CourseCatalogEntry } from './lobby.ts';
@@ -38,8 +39,10 @@ export class LobbyWebSocketService {
   endpoint(): string {
     const address = this.server.address() as AddressInfo | null;
     if (!address) throw Error('server is not listening');
-    const host = address.address.includes(':') ? `[${address.address}]` : address.address;
-    return `ws://${host}:${address.port}`;
+    let host = address.address;
+    if (host === '0.0.0.0' || host === '::') host = process.env.KOLF_ADVERTISE_HOST ?? hostname();
+    const formatted = host.includes(':') ? `[${host}]` : host;
+    return `ws://${formatted}:${address.port}`;
   }
 
   async close(): Promise<void> {

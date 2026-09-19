@@ -23,9 +23,20 @@ OnlineCoordinator::OnlineCoordinator(QObject *parent)
     connect(&m_network, &Net::NetworkClient::received, this, &OnlineCoordinator::receive);
 }
 
+static QUrl parseServiceEndpoint(QString text)
+{
+    text = text.trimmed();
+    if (text.isEmpty()) return {};
+    if (!text.contains(QStringLiteral("://"))) {
+        if (!text.contains(QLatin1Char(':'))) text.append(QStringLiteral(":3011"));
+        text.prepend(QStringLiteral("ws://"));
+    }
+    return QUrl(text);
+}
+
 void OnlineCoordinator::connectToService(const QString &endpoint)
 {
-    const QUrl url(endpoint.trimmed());
+    const QUrl url = parseServiceEndpoint(endpoint);
     if (!url.isValid() || (url.scheme() != QLatin1String("ws") && url.scheme() != QLatin1String("wss")) || url.host().isEmpty()) {
         Q_EMIT failed(tr("Enter a valid ws:// or wss:// endpoint."));
         return;

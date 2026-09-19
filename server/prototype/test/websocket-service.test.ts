@@ -53,6 +53,16 @@ test('two remote WebSocket clients create and join the v2 lobby', async t => {
   assert.equal(forBob.payload.state.lobbyId, state.lobbyId);
 });
 
+test('all-interface bind advertises a hostname clients can open', async t => {
+  const service = new LobbyWebSocketService({ host: '0.0.0.0', port: 0, catalog: loadCourseCatalog(courseRoot).slice(0, 1) });
+  await service.ready();
+  t.after(() => service.close());
+  const url = new URL(service.endpoint());
+  assert.notEqual(url.hostname, '0.0.0.0');
+  const socket = await opened(service.endpoint());
+  t.after(() => socket.terminate());
+});
+
 test('v1 WebSocket client receives UnsupportedProtocol before close', async t => {
   const service = new LobbyWebSocketService({ catalog: loadCourseCatalog(courseRoot).slice(0, 1) });
   await service.ready();
