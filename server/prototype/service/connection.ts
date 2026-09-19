@@ -34,6 +34,26 @@ export class LobbyProtocolController {
     return connectionId;
   }
 
+  disconnect(connectionId: ConnectionId): Delivery[] {
+    if (!this.connections.delete(connectionId)) return [];
+    try {
+      const { lobby } = this.service.session(connectionId);
+      const state = lobby.state();
+      const recipients = state.members.filter(member => member.connectionId !== connectionId
+        && this.connections.has(member.connectionId)).map(member => member.connectionId);
+      this.service.disconnect(connectionId);
+      return recipients.map(recipient => ({
+        connectionId: recipient,
+        message: envelope('LobbyClosed', { reason: 'A participant disconnected' }, {
+          lobbyId: state.lobbyId, matchId: state.match?.matchId,
+        }),
+      }));
+    } catch (error) {
+      if (error instanceof LobbyError && error.code === 'NotMember') return [];
+      throw error;
+    }
+  }
+
   receive(connectionId: ConnectionId, raw: string): Delivery[] {
     if (!this.connections.has(connectionId)) return [this.error(connectionId, undefined, 'UnknownConnection', 'connection is not active')];
     let requestId: string | undefined;

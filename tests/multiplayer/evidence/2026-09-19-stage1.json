@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "sourceBase": "5be63aec66734657b8077ea54121bdf0cd63e980",
+  "scope": "protocol v2 foundation, pure two-player lobby lifecycle, and WebSocket lobby transport",
+  "platform": "Windows, MSVC 2022, KDE Craft",
+  "freshChecks": {
+    "craftCompileInstallQmerge": "passed",
+    "typescriptCheck": "passed",
+    "serverTests": { "passed": 36, "failed": 0, "todo": 0 },
+    "nativeV2EnvelopeFixture": "passed",
+    "remoteWebSocketCreateJoin": "passed",
+    "v1UnsupportedProtocolResponse": "passed"
+  },
+  "implemented": [
+    "opaque connection, member, lobby, player, match, and request identities",
+    "protocol v2 envelope and type-specific runtime client codecs",
+    "normalized source compatibility identity and raw course hashes",
+    "bounded request idempotency and per-match rematch namespaces",
+    "single two-member lobby with ownership, readiness, preparation, results, return, and rematch",
+    "shipped-course allowlist and bounded WebSocket transport"
+  ],
+  "notVerified": [
+    "human normal and advanced meter multiplayer input",
+    "offline multi-hole and save/load regression",
+    "native Connect/Create/Join/Lobby/Results UI",
+    "v2 gameplay traffic through the authoritative match session",
+    "cross-platform or two-machine play"
+  ]
+}

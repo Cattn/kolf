@@ -5,6 +5,7 @@
   "engines": { "node": ">=22.18" },
   "scripts": {
     "start": "node relay.ts",
+    "start:v2": "node relay-v2.ts",
     "test": "node --test test/*.test.ts",
     "check": "tsc --noEmit"
   },

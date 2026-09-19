@@ -190,3 +190,26 @@ ordinary-water cases still passed. See
 These scripted cases close the automated placement-fixture portion of Stage A.
 They do not replace the human normal/advanced input checklist or the offline
 multi-hole save/load regression, which remain unverified.
+
+## Protocol v2 lobby foundation, 2026-09-19
+
+The incremental v2 service can now be started from `server/prototype` with:
+
+```powershell
+npm run start:v2
+```
+
+It loads an allowlist of shipped courses, listens on `KOLF_PORT` (3011 by
+default), and accepts runtime-validated Create, Join, profile/course, Ready,
+Start, CourseReady, preparation-failure, and Return requests. The pure lobby
+domain enforces two remote members, owner permissions, revision-bound readiness,
+bounded idempotency, fresh rematch IDs, stale-match rejection, immutable results,
+and interrupted results without a fabricated winner. A v1 client receives an
+`UnsupportedProtocol` response before the service closes that connection.
+
+`npm test` covers the domain through both in-process protocol clients and real
+WebSocket clients. `KOLF_PROTOCOL_V2_TESTS` runs the shared generic-envelope
+fixture through the native decoder. The original `npm start` relay and generated
+prototype configs remain the v1 gameplay path until the match-session and native
+coordinator migrations are complete; the v2 server is not yet a human-playable
+lobby.
