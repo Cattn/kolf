@@ -37,6 +37,11 @@ export class RequestCache {
 
   get size() { this.prune(); return this.entries.size; }
 
+  clearScope(scope: string) {
+    const prefix = `${scope}:`;
+    for (const key of this.entries.keys()) if (key.startsWith(prefix)) this.entries.delete(key);
+  }
+
   private prune() {
     const now = this.now();
     for (const [key, entry] of this.entries) if (entry.expiresAt <= now) this.entries.delete(key);

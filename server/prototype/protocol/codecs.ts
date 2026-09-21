@@ -2,12 +2,17 @@
 import { decodeEnvelope, isObject, ProtocolError } from './envelope.ts';
 import type { Envelope, JsonObject } from './envelope.ts';
 import { validId, validJoinCode } from './ids.ts';
-import { finite, integer, validState } from '../protocol.ts';
+import { finite, integer, validRosterState } from '../protocol.ts';
 
 export type ClientMessage =
   | Envelope<'CreateLobby', { displayName: string; color: string; courseId: string }>
   | Envelope<'JoinLobby', { joinCode: string; displayName: string; color: string }>
-  | Envelope<'UpdateMember', { displayName?: string; color?: string }>
+  | Envelope<'LeaveLobby', Record<string, never>>
+  | Envelope<'UpdateMember', { displayName: string }>
+  | Envelope<'AddPlayer', { displayName: string; color: string }>
+  | Envelope<'UpdatePlayer', { playerId: string; displayName?: string; color?: string }>
+  | Envelope<'RemovePlayer', { playerId: string }>
+  | Envelope<'ReorderPlayers', { playerIds: string[] }>
   | Envelope<'SetCourse', { courseId: string }>
   | Envelope<'SetReady', { lobbyRevision: number; ready: boolean }>
   | Envelope<'StartMatch', { lobbyRevision: number }>
@@ -33,6 +38,8 @@ const displayName = (value: unknown): value is string => typeof value === 'strin
   && [...value].length >= 1 && [...value].length <= 32 && !/[\u0000-\u001f\u007f]/u.test(value);
 const reason = (value: unknown): value is string => typeof value === 'string' && value === value.trim()
   && value.length >= 1 && value.length <= 160;
+const playerIds = (value: unknown): value is string[] => Array.isArray(value) && value.length >= 1 && value.length <= 8
+  && value.every(validId) && new Set(value).size === value.length;
 
 function requireRequest(message: Envelope) {
   if (!message.requestId) throw new ProtocolError('InvalidEnvelope', `${message.type} requires requestId`);
@@ -61,7 +68,7 @@ function requireGameplayScope(message: Envelope) {
 }
 
 function assertState(value: unknown) {
-  if (!validState(value as Record<string, unknown>)) throw new ProtocolError('InvalidPayload', 'invalid authoritative state');
+  if (!validRosterState(value as Record<string, unknown>)) throw new ProtocolError('InvalidPayload', 'invalid authoritative state');
 }
 
 export function decodeClientMessage(raw: string): ClientMessage {
@@ -79,10 +86,30 @@ export function decodeClientMessage(raw: string): ClientMessage {
       if (!validJoinCode(p.joinCode) || !displayName(p.displayName) || !color(p.color))
         throw new ProtocolError('InvalidPayload', 'invalid join request');
       return message as ClientMessage;
+    case 'LeaveLobby':
+      requireLobby(message); rejectExtraScope(message, true, false); requireEmptyPayload(message);
+      return message as ClientMessage;
     case 'UpdateMember':
       requireLobby(message); rejectExtraScope(message, true, false);
-      if ((!displayName(p.displayName) && p.displayName !== undefined) || (!color(p.color) && p.color !== undefined)
-        || (p.displayName === undefined && p.color === undefined)) throw new ProtocolError('InvalidPayload', 'invalid member update');
+      if (!displayName(p.displayName)) throw new ProtocolError('InvalidPayload', 'invalid member update');
+      return message as ClientMessage;
+    case 'AddPlayer':
+      requireLobby(message); rejectExtraScope(message, true, false);
+      if (!displayName(p.displayName) || !color(p.color)) throw new ProtocolError('InvalidPayload', 'invalid player profile');
+      return message as ClientMessage;
+    case 'UpdatePlayer':
+      requireLobby(message); rejectExtraScope(message, true, false);
+      if (!validId(p.playerId) || (p.displayName === undefined && p.color === undefined)
+        || (p.displayName !== undefined && !displayName(p.displayName)) || (p.color !== undefined && !color(p.color)))
+        throw new ProtocolError('InvalidPayload', 'invalid player update');
+      return message as ClientMessage;
+    case 'RemovePlayer':
+      requireLobby(message); rejectExtraScope(message, true, false);
+      if (!validId(p.playerId)) throw new ProtocolError('InvalidPayload', 'invalid player ID');
+      return message as ClientMessage;
+    case 'ReorderPlayers':
+      requireLobby(message); rejectExtraScope(message, true, false);
+      if (!playerIds(p.playerIds)) throw new ProtocolError('InvalidPayload', 'invalid player order');
       return message as ClientMessage;
     case 'SetCourse':
       requireLobby(message); rejectExtraScope(message, true, false); assertCourse(p.courseId);
@@ -155,4 +182,4 @@ export function decodeClientMessage(raw: string): ClientMessage {
   }
 }
 
-export const validators = { hash, revision, color, displayName, reason, isObject };
+export const validators = { hash, revision, color, displayName, reason, isObject, identifier: validId };

@@ -23,12 +23,12 @@ export function decode(raw: string): Message {
     throw Error('invalid envelope');
   return m;
 }
-export function validShot(m: Message): boolean {
+export function validShot(m: Message, maximumPlayerSlot = 1): boolean {
   // Normal putting increments by 1.5 up to the first value above 55 (55.5).
   // Advanced putting can overshoot 65 by at most 1.7, before dividing by 8.
   const max = m.puttingMode === 'normal' ? 55.5 / 8 : m.puttingMode === 'advanced' ? 66.7 / 8 : 0;
   return id(m.commandId) && integer(m.holeGeneration, 1) && integer(m.turnId, 1)
-    && integer(m.playerSlot, 0, 1) && finite(m.directionRadians, -Math.PI, Math.PI)
+    && integer(m.playerSlot, 0, maximumPlayerSlot) && finite(m.directionRadians, -Math.PI, Math.PI)
     && finite(m.launchMagnitude, Number.MIN_VALUE, max);
 }
 export function shotKey(m: Message): string {
@@ -47,6 +47,21 @@ export function validState(s: Message): boolean {
     && Array.isArray(s.scores) && s.scores.length === 2
     && s.scores.every((row: unknown) => Array.isArray(row) && row.length === s.hole && row.every(v => integer(v, 0, 10000)))
     && (s.phase !== 'AwaitingHazardChoice' || (id(s.choiceId) && integer(s.choiceSlot, 0, 1)));
+}
+export function validRosterState(s: Message, rosterSize?: number): boolean {
+  const size = rosterSize ?? (Array.isArray(s?.balls) ? s.balls.length : 0);
+  return !!s && integer(size, 2, 8) && integer(s.stateRevision, 1) && integer(s.holeGeneration, 1)
+    && integer(s.turnId, 1) && integer(s.activeSlot, 0, size - 1) && integer(s.hole, 1, 1000)
+    && integer(s.par, 0, 1000) && ['AwaitingShot', 'Simulating', 'AwaitingHazardChoice', 'Finished'].includes(s.phase)
+    && typeof s.manifestHash === 'string' && /^[a-f0-9]{64}$/.test(s.manifestHash)
+    && typeof s.courseHash === 'string' && /^[a-f0-9]{64}$/.test(s.courseHash)
+    && Array.isArray(s.balls) && s.balls.length === size
+    && s.balls.every((b: Message, i: number) => validVisual(b) && b.id === `ball/${i}` && integer(b.state, 0, 2))
+    && Array.isArray(s.objects) && s.objects.length <= 4096 && s.objects.every(validVisual)
+    && new Set(s.objects.map((o: Message) => o.id)).size === s.objects.length
+    && Array.isArray(s.scores) && s.scores.length === size
+    && s.scores.every((row: unknown) => Array.isArray(row) && row.length === s.hole && row.every(v => integer(v, 0, 10000)))
+    && (s.phase !== 'AwaitingHazardChoice' || (id(s.choiceId) && integer(s.choiceSlot, 0, size - 1)));
 }
 export function validVisual(v: Message): boolean {
   if (!v || typeof v.id !== 'string' || !v.id.length || v.id.length > 512 || typeof v.visible !== 'boolean') return false;

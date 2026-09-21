@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { decodeClientMessage } from '../protocol/codecs.ts';
-import { envelope, ProtocolError } from '../protocol/envelope.ts';
+import { envelope, PROTOCOL_VERSION, ProtocolError } from '../protocol/envelope.ts';
 import type { Envelope, JsonObject } from '../protocol/envelope.ts';
 import type { ConnectionId, IdFactory, MatchId } from '../protocol/ids.ts';
 import { cryptoIds } from '../protocol/ids.ts';
 import { LobbyError } from './errors.ts';
 import type { CourseCatalogEntry, LobbyState } from './lobby.ts';
-import { LobbyService } from './lobby-service.ts';
-import { MatchSession } from './match-session.ts';
+import { LobbyRegistry } from './lobby-registry.ts';
+import type { Departure, ServiceLimits } from './lobby-registry.ts';
+import { MatchCoordinator } from './match-session.ts';
 import type { MatchProgress } from './match-session.ts';
 
-export interface Delivery { connectionId: ConnectionId; message: Envelope }
+export interface Delivery { connectionId: ConnectionId; message: Envelope; visual?: boolean }
 
 function publicState(state: LobbyState): JsonObject {
   return {
@@ -19,71 +20,73 @@ function publicState(state: LobbyState): JsonObject {
   } as unknown as JsonObject;
 }
 
-/** Runtime-validated protocol routing with no WebSocket dependency. */
+/** Runtime-validated v3 routing with no WebSocket dependency. */
 export class LobbyProtocolController {
-  readonly service: LobbyService;
+  readonly service: LobbyRegistry;
   private readonly connections = new Set<ConnectionId>();
-  private readonly matches = new Map<MatchId, MatchSession>();
+  private readonly matches = new Map<MatchId, MatchCoordinator>();
   private readonly ids: IdFactory;
 
-  constructor(catalog: CourseCatalogEntry[], ids: IdFactory = cryptoIds, now = () => Date.now()) {
-    this.ids = ids;
-    this.service = new LobbyService(catalog, ids, now);
+  constructor(catalog: CourseCatalogEntry[], ids: IdFactory = cryptoIds, now = () => Date.now(),
+    limits: Partial<ServiceLimits> = {}) {
+    this.ids = ids; this.service = new LobbyRegistry(catalog, ids, now, limits);
   }
 
   connect(): ConnectionId {
-    const connectionId = this.ids.connection();
-    this.connections.add(connectionId);
-    return connectionId;
+    if (this.connections.size >= this.service.limits.maximumConnections)
+      throw new LobbyError('ServiceFull', 'the service has reached its connection limit');
+    const connectionId = this.ids.connection(); this.connections.add(connectionId); return connectionId;
+  }
+
+  greeting(connectionId: ConnectionId): Delivery {
+    if (!this.connections.has(connectionId)) throw new LobbyError('UnknownConnection', 'connection is not active');
+    return { connectionId, message: envelope('ServiceHello', {
+      protocolVersion: PROTOCOL_VERSION,
+      courses: this.service.catalog.map(({ expectedHash: _expectedHash, par: _par, ...course }) => course),
+      limits: {
+        maximumLobbies: this.service.limits.maximumLobbies,
+        maximumMembersPerLobby: this.service.limits.maximumMembersPerLobby,
+        maximumPlayersPerLobby: this.service.limits.maximumPlayersPerLobby,
+        maximumMessageBytes: this.service.limits.maximumMessageBytes,
+      },
+    }) };
   }
 
   disconnect(connectionId: ConnectionId): Delivery[] {
     if (!this.connections.delete(connectionId)) return [];
-    try {
-      const { lobby } = this.service.session(connectionId);
-      const state = lobby.state();
-      const recipients = state.members.filter(member => member.connectionId !== connectionId
-        && this.connections.has(member.connectionId)).map(member => member.connectionId);
-      if (state.match?.matchId) this.matches.delete(state.match.matchId);
-      this.service.disconnect(connectionId);
-      return recipients.map(recipient => ({
-        connectionId: recipient,
-        message: envelope('LobbyClosed', { reason: 'A participant disconnected' }, {
-          lobbyId: state.lobbyId, matchId: state.match?.matchId,
-        }),
-      }));
-    } catch (error) {
-      if (error instanceof LobbyError && error.code === 'NotMember') return [];
-      throw error;
-    }
+    return this.departureDeliveries(this.service.disconnect(connectionId));
   }
 
   receive(connectionId: ConnectionId, raw: string): Delivery[] {
     if (!this.connections.has(connectionId)) return [this.error(connectionId, undefined, 'UnknownConnection', 'connection is not active')];
     let requestId: string | undefined;
     try {
-      const message = decodeClientMessage(raw);
-      requestId = message.requestId;
+      const message = decodeClientMessage(raw); requestId = message.requestId;
       switch (message.type) {
         case 'CreateLobby': {
-          const created = this.service.create(connectionId, message.requestId!, {
-            displayName: message.payload.displayName, color: message.payload.color,
-          }, message.payload.courseId);
+          const profile = { displayName: message.payload.displayName };
+          const player = { displayName: message.payload.displayName, color: message.payload.color };
+          const created = this.service.create(connectionId, message.requestId!, profile, player, message.payload.courseId);
           return [{ connectionId, message: envelope('LobbyCreated', {
             memberId: created.memberId, state: publicState(created.state),
           }, { requestId, lobbyId: created.state.lobbyId }) }];
         }
         case 'JoinLobby': {
-          const joined = this.service.join(connectionId, message.requestId!, message.payload.joinCode, {
-            displayName: message.payload.displayName, color: message.payload.color,
-          });
+          const profile = { displayName: message.payload.displayName };
+          const player = { displayName: message.payload.displayName, color: message.payload.color };
+          const joined = this.service.join(connectionId, message.requestId!, message.payload.joinCode, profile, player);
           return this.broadcast(joined.state, 'LobbyState', { joinedMemberId: joined.memberId }, requestId);
         }
         default: {
           const { lobby, memberId } = this.service.session(connectionId);
           if (message.lobbyId !== lobby.lobbyId) throw new LobbyError('WrongLobby', 'message lobby identity does not match the connection');
           switch (message.type) {
+            case 'LeaveLobby': return this.departureDeliveries(this.service.leave(connectionId), requestId);
             case 'UpdateMember': lobby.updateMember(memberId, message.requestId!, message.payload); break;
+            case 'AddPlayer': lobby.addPlayer(memberId, message.requestId!, message.payload); break;
+            case 'UpdatePlayer': lobby.updatePlayer(memberId, message.requestId!, message.payload.playerId, message.payload); break;
+            case 'RemovePlayer': lobby.removePlayer(memberId, message.requestId!, message.payload.playerId); break;
+            case 'ReorderPlayers': lobby.reorderPlayers(memberId, message.requestId!, message.payload.playerIds); break;
             case 'SetCourse': lobby.setCourse(memberId, message.requestId!, message.payload.courseId); break;
             case 'SetReady': lobby.setReady(memberId, message.requestId!, message.payload.lobbyRevision, message.payload.ready); break;
             case 'StartMatch': lobby.start(memberId, message.requestId!, message.payload.lobbyRevision); break;
@@ -91,16 +94,14 @@ export class LobbyProtocolController {
               const result = lobby.courseReady(memberId, message.requestId!, message.matchId!, message.payload.courseHash,
                 message.payload.compatibilityId);
               if (result.allReady) {
-                const match = new MatchSession(lobby.state());
-                this.matches.set(message.matchId!, match);
+                const match = new MatchCoordinator(lobby.state()); this.matches.set(message.matchId!, match);
                 return [...this.broadcast(lobby.state(), 'PreparationReady', {}, requestId),
                   ...this.applyMatchProgress(lobby, match, match.start())];
               }
               break;
             }
             case 'PreparationFailed':
-              lobby.abortPreparation(message.matchId!, message.payload.reason);
-              this.matches.delete(message.matchId!);
+              lobby.abortPreparation(message.matchId!, message.payload.reason); this.matches.delete(message.matchId!);
               return this.broadcast(lobby.state(), 'PreparationAborted', { reason: message.payload.reason }, requestId);
             case 'ReturnToLobby': lobby.returnToLobby(memberId, message.requestId!, message.matchId!); break;
             default: {
@@ -124,13 +125,9 @@ export class LobbyProtocolController {
     const deliveries: Delivery[] = [];
     for (const match of [...this.matches.values()]) {
       let lobby;
-      try {
-        lobby = this.service.activeLobby(match.lobbyIdentity);
-      } catch (error) {
-        if (error instanceof LobbyError && error.code === 'LobbyNotFound') {
-          this.matches.delete(match.matchId);
-          continue;
-        }
+      try { lobby = this.service.activeLobby(match.lobbyIdentity); }
+      catch (error) {
+        if (error instanceof LobbyError && error.code === 'LobbyNotFound') { this.matches.delete(match.matchId); continue; }
         throw error;
       }
       deliveries.push(...this.applyMatchProgress(lobby, match, match.tick()));
@@ -139,42 +136,51 @@ export class LobbyProtocolController {
   }
 
   beginPlaying(lobbyId: string, matchId: MatchId): Delivery[] {
-    const lobby = this.service.activeLobby(lobbyId);
-    return this.broadcast(lobby.completePreparation(matchId), 'MatchStarted');
+    const lobby = this.service.activeLobby(lobbyId); return this.broadcast(lobby.completePreparation(matchId), 'MatchStarted');
   }
-
   finish(lobbyId: string, matchId: MatchId, scores: number[][]): Delivery[] {
-    const lobby = this.service.activeLobby(lobbyId);
-    const result = lobby.completeMatch(matchId, scores);
-    this.matches.delete(matchId);
-    return this.broadcast(lobby.state(), 'MatchResult', { result });
+    const lobby = this.service.activeLobby(lobbyId), result = lobby.completeMatch(matchId, scores);
+    this.matches.delete(matchId); return this.broadcast(lobby.state(), 'MatchResult', { result });
   }
-
   interrupt(lobbyId: string, matchId: MatchId, reason: string, scores?: number[][]): Delivery[] {
-    const lobby = this.service.activeLobby(lobbyId);
-    const result = lobby.interruptMatch(matchId, reason, scores);
-    this.matches.delete(matchId);
-    return this.broadcast(lobby.state(), 'MatchResult', { result });
+    const lobby = this.service.activeLobby(lobbyId), result = lobby.interruptMatch(matchId, reason, scores);
+    this.matches.delete(matchId); return this.broadcast(lobby.state(), 'MatchResult', { result });
   }
 
-  private applyMatchProgress(lobby: ReturnType<LobbyService['activeLobby']>, match: MatchSession, progress: MatchProgress): Delivery[] {
+  private applyMatchProgress(lobby: ReturnType<LobbyRegistry['activeLobby']>, match: MatchCoordinator,
+    progress: MatchProgress): Delivery[] {
     const gameplay = progress.deliveries.map(delivery => ({
-      connectionId: lobby.member(delivery.memberId).connectionId,
-      message: delivery.message,
+      connectionId: lobby.member(delivery.memberId).connectionId, message: delivery.message, visual: delivery.visual,
     }));
     const deliveries: Delivery[] = [];
-    if (progress.becamePlaying)
-      deliveries.push(...this.broadcast(lobby.completePreparation(match.matchId), 'MatchStarted'));
+    if (progress.becamePlaying) deliveries.push(...this.broadcast(lobby.completePreparation(match.matchId), 'MatchStarted'));
     deliveries.push(...gameplay);
     if (progress.completedScores) {
-      const result = lobby.completeMatch(match.matchId, progress.completedScores);
-      this.matches.delete(match.matchId);
+      const result = lobby.completeMatch(match.matchId, progress.completedScores); this.matches.delete(match.matchId);
       deliveries.push(...this.broadcast(lobby.state(), 'MatchResult', { result }));
     } else if (progress.interruptedReason) {
-      const result = lobby.interruptMatch(match.matchId, progress.interruptedReason);
-      this.matches.delete(match.matchId);
+      const result = lobby.interruptMatch(match.matchId, progress.interruptedReason); this.matches.delete(match.matchId);
       deliveries.push(...this.broadcast(lobby.state(), 'MatchResult', { result }));
     }
+    return deliveries;
+  }
+
+  private departureDeliveries(departure: Departure | undefined, requestId?: string): Delivery[] {
+    if (!departure) return [];
+    if (departure.matchId) this.matches.delete(departure.matchId);
+    const deliveries: Delivery[] = [];
+    if (departure.activeMatchInterrupted && departure.state) {
+      const payload = { state: publicState(departure.state), result: departure.state.latestResult } as JsonObject;
+      deliveries.push(...departure.recipients.map(connectionId => ({ connectionId,
+        message: envelope('MatchResult', payload, { requestId, lobbyId: departure.lobbyId, matchId: departure.matchId }) })));
+    } else if (!departure.closed && departure.state) {
+      const payload = { state: publicState(departure.state) };
+      deliveries.push(...departure.recipients.map(connectionId => ({ connectionId,
+        message: envelope('LobbyState', payload, { requestId, lobbyId: departure.lobbyId, matchId: departure.matchId }) })));
+    }
+    if (departure.closed) deliveries.push(...departure.recipients.map(connectionId => ({ connectionId,
+      message: envelope('LobbyClosed', { reason: departure.reason },
+        { requestId, lobbyId: departure.lobbyId, matchId: departure.matchId }) })));
     return deliveries;
   }
 
@@ -188,6 +194,6 @@ export class LobbyProtocolController {
 
   private error(connectionId: ConnectionId, requestId: string | undefined, code: string, message: string): Delivery {
     return { connectionId, message: envelope(code === 'UnsupportedProtocol' ? 'UnsupportedProtocol' : 'RequestRejected',
-      { code, message, supportedProtocolVersion: 2 }, { requestId }) };
+      { code, message, supportedProtocolVersion: PROTOCOL_VERSION }, { requestId }) };
   }
 }

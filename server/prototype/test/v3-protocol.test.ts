@@ -8,8 +8,8 @@ import { compatibilityIdentity } from '../service/compatibility.ts';
 import { LobbyError } from '../service/errors.ts';
 import { RequestCache } from '../service/request-cache.ts';
 
-test('shared v2 envelope fixtures', () => {
-  const fixture = JSON.parse(readFileSync(new URL('../../../protocol/v2-envelope-fixtures.json', import.meta.url), 'utf8'));
+test('shared v3 envelope fixtures', () => {
+  const fixture = JSON.parse(readFileSync(new URL('../../../protocol/v3-envelope-fixtures.json', import.meta.url), 'utf8'));
   for (const entry of fixture.cases) {
     if (entry.valid) assert.equal(decodeEnvelope(JSON.stringify(entry.message)).type, entry.message.type, entry.name);
     else assert.throws(() => decodeEnvelope(JSON.stringify(entry.message)),
@@ -17,10 +17,10 @@ test('shared v2 envelope fixtures', () => {
   }
 });
 
-test('client codecs validate scope and bounded profile fields', () => {
+test('v3 client codecs validate scope and bounded profile fields', () => {
   const create = envelope('CreateLobby', { displayName: 'Alice', color: '#ff0000ff', courseId: 'classic' }, { requestId: 'request_1' });
   assert.equal(decodeClientMessage(JSON.stringify(create)).type, 'CreateLobby');
-  assert.throws(() => decodeClientMessage(JSON.stringify({ ...create, protocolVersion: 1 })),
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...create, protocolVersion: 2 })),
     (error: unknown) => error instanceof ProtocolError && error.code === 'UnsupportedProtocol');
   assert.throws(() => decodeClientMessage(JSON.stringify({ ...create, lobbyId: 'not_allowed' })), ProtocolError);
   assert.throws(() => decodeClientMessage(JSON.stringify({ ...create, payload: { ...create.payload, displayName: 'x'.repeat(33) } })), ProtocolError);
@@ -52,6 +52,9 @@ test('request cache replays identical work, rejects conflicts, and remains bound
   cache.run('member', 'request_2', 'SetReady', {}, () => 2);
   cache.run('member', 'request_3', 'SetReady', {}, () => 3);
   assert.equal(cache.size, 2);
+  cache.clearScope('member');
+  assert.equal(cache.size, 0);
+  cache.run('other', 'request_4', 'SetReady', {}, () => 4);
   now = 11;
   assert.equal(cache.size, 0);
 });

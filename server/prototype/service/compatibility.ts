@@ -20,5 +20,5 @@ export function compatibilityIdentity(inputs: CompatibilityInput[]): string {
     return { path, hash: sha256(normalized) };
   }).sort((a, b) => Buffer.compare(Buffer.from(a.path), Buffer.from(b.path)));
   if (!records.length || new Set(records.map(record => record.path)).size !== records.length) throw Error('compatibility inputs must be unique and nonempty');
-  return sha256(`kolf-rules-v2\n${records.map(record => `${record.path}\n${record.hash}\n`).join('')}`);
+  return sha256(`kolf-rules-v3\n${records.map(record => `${record.path}\n${record.hash}\n`).join('')}`);
 }

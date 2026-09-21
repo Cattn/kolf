@@ -24,6 +24,7 @@ export function loadCourseCatalog(root: string, files: CatalogFile[] = shippedDe
     const fromRoot = relative(catalogRoot, path);
     if (!fromRoot || fromRoot.startsWith('..') || isAbsolute(fromRoot)) throw Error(`catalog path escapes root: ${file.fileName}`);
     const expectedHash = createHash('sha256').update(readFileSync(path)).digest('hex');
-    return { courseId: file.courseId, displayName: file.displayName, expectedHash, par: file.par ? [...file.par] : undefined };
+    return { courseId: file.courseId, displayName: file.displayName, resourceName: file.fileName,
+      expectedHash, par: file.par ? [...file.par] : undefined };
   });
 }

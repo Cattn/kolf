@@ -5,7 +5,7 @@
       "name": "minimal scoped request",
       "valid": true,
       "message": {
-        "protocolVersion": 2,
+        "protocolVersion": 3,
         "type": "StartMatch",
         "requestId": "request_1",
         "lobbyId": "lobby_1",
@@ -13,12 +13,23 @@
       }
     },
     {
+      "name": "player mutation request",
+      "valid": true,
+      "message": {
+        "protocolVersion": 3,
+        "type": "AddPlayer",
+        "requestId": "request_2",
+        "lobbyId": "lobby_1",
+        "payload": { "displayName": "Second ball", "color": "#00ff00ff" }
+      }
+    },
+    {
       "name": "match-scoped request",
       "valid": true,
       "message": {
-        "protocolVersion": 2,
+        "protocolVersion": 3,
         "type": "CourseReady",
-        "requestId": "request_2",
+        "requestId": "request_3",
         "lobbyId": "lobby_1",
         "matchId": "match_1",
         "payload": {
@@ -28,34 +39,34 @@
       }
     },
     {
-      "name": "v1 is unsupported",
+      "name": "v2 is unsupported",
       "valid": false,
       "error": "UnsupportedProtocol",
-      "message": { "protocolVersion": 1, "type": "Hello", "payload": {} }
+      "message": { "protocolVersion": 2, "type": "Hello", "payload": {} }
     },
     {
       "name": "missing payload",
       "valid": false,
       "error": "InvalidEnvelope",
-      "message": { "protocolVersion": 2, "type": "StartMatch", "requestId": "request_3" }
+      "message": { "protocolVersion": 3, "type": "StartMatch", "requestId": "request_4" }
     },
     {
       "name": "array payload",
       "valid": false,
       "error": "InvalidEnvelope",
-      "message": { "protocolVersion": 2, "type": "StartMatch", "requestId": "request_4", "payload": [] }
+      "message": { "protocolVersion": 3, "type": "StartMatch", "requestId": "request_5", "payload": [] }
     },
     {
       "name": "invalid request identity",
       "valid": false,
       "error": "InvalidEnvelope",
-      "message": { "protocolVersion": 2, "type": "StartMatch", "requestId": "contains spaces", "payload": {} }
+      "message": { "protocolVersion": 3, "type": "StartMatch", "requestId": "contains spaces", "payload": {} }
     },
     {
       "name": "invalid type identity",
       "valid": false,
       "error": "InvalidEnvelope",
-      "message": { "protocolVersion": 2, "type": "", "payload": {} }
+      "message": { "protocolVersion": 3, "type": "", "payload": {} }
     }
   ]
 }

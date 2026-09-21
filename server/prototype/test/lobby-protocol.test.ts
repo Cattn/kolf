@@ -77,15 +77,17 @@ test('two protocol clients can complete a lobby shell and start a fresh rematch'
   assert.equal(reusedMatchRequest[0].message.type, 'LobbyState', 'a rematch has a fresh request namespace');
 });
 
-test('v1 gets a clear protocol mismatch response', () => {
+test('v1 and v2 get a clear protocol mismatch response', () => {
   const controller = new LobbyProtocolController(catalog, ids());
   const connection = controller.connect();
   const response = controller.receive(connection, JSON.stringify({ protocolVersion: 1, type: 'Hello', payload: {} }));
   assert.equal(response[0].message.type, 'UnsupportedProtocol');
-  assert.equal(response[0].message.payload.supportedProtocolVersion, 2);
+  assert.equal(response[0].message.payload.supportedProtocolVersion, 3);
+  const v2 = controller.receive(connection, JSON.stringify({ protocolVersion: 2, type: 'Hello', payload: {} }));
+  assert.equal(v2[0].message.payload.supportedProtocolVersion, 3);
 });
 
-test('prepared v2 clients cross the scene and initial-state barriers', () => {
+test('prepared v3 clients cross the scene and initial-state barriers', () => {
   const controller = new LobbyProtocolController(catalog, ids());
   const alice = controller.connect(), bob = controller.connect();
   const created = send(controller, alice, envelope('CreateLobby', {
@@ -163,7 +165,7 @@ test('disconnect during a live match does not crash tick', () => {
     requestId: 'course_live_b', lobbyId, matchId,
   }));
   const closed = controller.disconnect(alice);
-  assert.equal(closed[0].message.type, 'LobbyClosed');
+  assert.deepEqual(closed.map(delivery => delivery.message.type), ['MatchResult', 'LobbyClosed']);
   assert.doesNotThrow(() => controller.tick());
   controller.disconnect(bob);
   assert.doesNotThrow(() => controller.tick());
