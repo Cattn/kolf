@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "networkclient.h"
-#include "session/protocolv2.h"
+#include "session/protocolv3.h"
 #include <QJsonDocument>
 
 using namespace Kolf::Net;
@@ -17,10 +17,10 @@ NetworkClient::NetworkClient(QObject *parent) : QObject(parent) {
         bool valid = raw.size() <= MaxBytes && error.error == QJsonParseError::NoError && document.isObject();
         if (valid && m_protocolVersion == 1)
             valid = m[QStringLiteral("v")] == 1 && m[QStringLiteral("matchId")] == QLatin1String("prototype");
-        else if (valid && m_protocolVersion == 2) {
-            Session::EnvelopeV2 decoded;
+        else if (valid && m_protocolVersion == 3) {
+            Session::EnvelopeV3 decoded;
             QString errorCode;
-            valid = Session::decodeEnvelopeV2(raw, decoded, errorCode);
+            valid = Session::decodeEnvelopeV3(raw, decoded, errorCode);
         } else valid = false;
         if (!valid) {
             Q_EMIT failed(QStringLiteral("Malformed protocol envelope")); close(); return;

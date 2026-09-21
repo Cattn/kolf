@@ -12,6 +12,7 @@ class OnlineCoordinator : public QObject {
 public:
     explicit OnlineCoordinator(QObject *parent = nullptr);
     const QJsonObject &lobbyState() const { return m_state; }
+    const QJsonObject &serviceHello() const { return m_serviceHello; }
     const QString &memberId() const { return m_memberId; }
     Net::NetworkClient *networkClient() { return &m_network; }
 
@@ -21,6 +22,9 @@ public Q_SLOTS:
     void createLobby(const QString &displayName, const QString &color, const QString &courseId);
     void joinLobby(const QString &joinCode, const QString &displayName, const QString &color);
     void setReady(bool ready);
+    void addPlayer(const QString &displayName, const QString &color);
+    void updatePlayer(const QString &playerId, const QString &displayName, const QString &color);
+    void removePlayer(const QString &playerId);
     void setCourse(const QString &courseId);
     void startMatch();
     void returnToLobby();
@@ -29,6 +33,7 @@ Q_SIGNALS:
     void connected();
     void connectionClosed();
     void lobbyChanged(const QJsonObject &state);
+    void serviceChanged(const QJsonObject &hello);
     void lobbyClosed(const QString &reason);
     void matchPrepared(const QJsonObject &config);
     void statusChanged(const QString &status);
@@ -43,6 +48,7 @@ private:
 
     Net::NetworkClient m_network;
     QJsonObject m_state;
+    QJsonObject m_serviceHello;
     QString m_memberId;
     QString m_lobbyId;
     QString m_matchId;

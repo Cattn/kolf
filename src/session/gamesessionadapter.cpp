@@ -116,18 +116,20 @@ QJsonObject GameSessionAdapter::capture(int revision, int generation, int turn, 
 bool GameSessionAdapter::apply(const QJsonObject &s, QString &error) {
     if (g->m_role != Role::Guest) { error = QStringLiteral("snapshot application on authority"); return false; }
     const auto reject = [&error] { error = QStringLiteral("invalid snapshot or scene manifest"); return false; };
+    const int rosterSize = g->players->size();
+    if (rosterSize < 2 || rosterSize > 8) return reject();
     for (const auto &key : {"stateRevision", "holeGeneration", "turnId", "hole"}) if (!counter(s[QLatin1String(key)], 1)) return reject();
-    if (!counter(s[QStringLiteral("hole")], 1, 1000) || !counter(s[QStringLiteral("activeSlot")], 0, 1)
+    if (!counter(s[QStringLiteral("hole")], 1, 1000) || !counter(s[QStringLiteral("activeSlot")], 0, rosterSize - 1)
         || !counter(s[QStringLiteral("par")], 0, 1000)) return reject();
     if (!QStringList{QStringLiteral("AwaitingShot"), QStringLiteral("Simulating"), QStringLiteral("AwaitingHazardChoice"), QStringLiteral("Finished")}.contains(s[QStringLiteral("phase")].toString())) return reject();
     const auto objects = s[QStringLiteral("objects")].toArray(), balls = s[QStringLiteral("balls")].toArray(), scores = s[QStringLiteral("scores")].toArray();
-    if (balls.size() != 2 || scores.size() != 2 || objects.size() > 4096) return reject();
+    if (balls.size() != rosterSize || scores.size() != rosterSize || objects.size() > 4096) return reject();
     QSet<QString> ids;
     for (const auto v : objects) {
         const auto obj = v.toObject(); const auto id = obj[QStringLiteral("id")].toString();
         if (!validateVisual(obj) || ids.contains(id)) return reject(); ids.insert(id);
     }
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < rosterSize; ++i) {
         const auto b = balls[i].toObject();
         if (!validateVisual(b) || b[QStringLiteral("id")] != QStringLiteral("ball/%1").arg(i)
             || !counter(b[QStringLiteral("state")], 0, 2) || scores[i].toArray().size() != s[QStringLiteral("hole")].toInt()) return reject();
@@ -142,7 +144,8 @@ bool GameSessionAdapter::apply(const QJsonObject &s, QString &error) {
         if (expected.value(object[QStringLiteral("id")].toString()) != object[QStringLiteral("kind")].toString()) return reject();
     }
     if (s[QStringLiteral("phase")] == QLatin1String("AwaitingHazardChoice")
-        && (s[QStringLiteral("choiceId")].toString().isEmpty() || !counter(s[QStringLiteral("choiceSlot")], 0, 1))) return reject();
+        && (s[QStringLiteral("choiceId")].toString().isEmpty()
+            || !counter(s[QStringLiteral("choiceSlot")], 0, rosterSize - 1))) return reject();
     const bool changedHole = hole() != s[QStringLiteral("hole")].toInt();
     g->setUpdatesEnabled(false);
     if (changedHole && !loadHole(s[QStringLiteral("hole")].toInt())) { g->setUpdatesEnabled(true); return reject(); }
@@ -154,7 +157,7 @@ bool GameSessionAdapter::apply(const QJsonObject &s, QString &error) {
     }
     const auto beforeSteps = g->physicsSteps(), beforeCollisions = g->collisionCalls();
     for (const auto v : objects) { const auto obj = v.toObject(); applyVisual(obj, map.value(obj[QStringLiteral("id")].toString())); }
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < rosterSize; ++i) {
         auto &p = (*g->players)[i];
         applyVisual(balls[i].toObject(), p.ball());
         p.ball()->state = BallState(balls[i].toObject()[QStringLiteral("state")].toInt());

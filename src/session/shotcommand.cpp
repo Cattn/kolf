@@ -35,11 +35,11 @@ QJsonObject envelope(const QString &type, QJsonObject payload) {
     payload[QStringLiteral("type")] = type;
     return payload;
 }
-bool decodeShot(const QJsonObject &m, ShotCommand &c) {
+bool decodeShot(const QJsonObject &m, ShotCommand &c, int maximumPlayerSlot) {
     static const QRegularExpression ids(QStringLiteral("^[A-Za-z0-9_.:-]{1,96}$"));
     if (!ids.match(m[QStringLiteral("commandId")].toString()).hasMatch()
         || !counter(m[QStringLiteral("holeGeneration")], 1) || !counter(m[QStringLiteral("turnId")], 1)
-        || !counter(m[QStringLiteral("playerSlot")], 0, 1)
+        || !counter(m[QStringLiteral("playerSlot")], 0, maximumPlayerSlot)
         || !m[QStringLiteral("directionRadians")].isDouble() || !m[QStringLiteral("launchMagnitude")].isDouble()) return false;
     const auto mode = m[QStringLiteral("puttingMode")].toString();
     if (mode != QLatin1String("normal") && mode != QLatin1String("advanced")) return false;

@@ -24,7 +24,7 @@ struct ShotCommand {
     int playerSlot = -1;
     ShotIntent intent;
 };
-bool decodeShot(const QJsonObject &message, ShotCommand &command);
+bool decodeShot(const QJsonObject &message, ShotCommand &command, int maximumPlayerSlot = 1);
 int runProtocolFixtures(const QString &path);
 QJsonObject envelope(const QString &type, QJsonObject payload = {});
 bool counter(const QJsonValue &value, int minimum = 0, int maximum = 1000000000);

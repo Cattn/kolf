@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "onlinecoordinator.h"
 
-#include "session/protocolv2.h"
+#include "session/protocolv3.h"
 #include "prototype_build.h"
 
 #include <QCryptographicHash>
@@ -43,13 +43,13 @@ void OnlineCoordinator::connectToService(const QString &endpoint)
     }
     Q_EMIT statusChanged(tr("Connecting to %1…").arg(url.toDisplayString()));
     m_endpoint = url.toString();
-    m_network.open(url, {}, 2);
+    m_network.open(url, {}, 3);
 }
 
 void OnlineCoordinator::disconnectFromService()
 {
     m_network.close();
-    m_state = {}; m_memberId.clear(); m_lobbyId.clear(); m_matchId.clear(); m_preparedMatchId.clear(); m_coursePath.clear();
+    m_state = {}; m_serviceHello = {}; m_memberId.clear(); m_lobbyId.clear(); m_matchId.clear(); m_preparedMatchId.clear(); m_coursePath.clear();
 }
 
 void OnlineCoordinator::createLobby(const QString &displayName, const QString &color, const QString &courseId)
@@ -68,6 +68,23 @@ void OnlineCoordinator::setReady(bool ready)
 {
     send(QStringLiteral("SetReady"), {{QStringLiteral("lobbyRevision"), m_state.value(QStringLiteral("lobbyRevision")).toInt()},
          {QStringLiteral("ready"), ready}});
+}
+
+void OnlineCoordinator::addPlayer(const QString &displayName, const QString &color)
+{
+    send(QStringLiteral("AddPlayer"), {{QStringLiteral("displayName"), displayName.trimmed()},
+         {QStringLiteral("color"), color.trimmed()}});
+}
+
+void OnlineCoordinator::updatePlayer(const QString &playerId, const QString &displayName, const QString &color)
+{
+    send(QStringLiteral("UpdatePlayer"), {{QStringLiteral("playerId"), playerId},
+         {QStringLiteral("displayName"), displayName.trimmed()}, {QStringLiteral("color"), color.trimmed()}});
+}
+
+void OnlineCoordinator::removePlayer(const QString &playerId)
+{
+    send(QStringLiteral("RemovePlayer"), {{QStringLiteral("playerId"), playerId}});
 }
 
 void OnlineCoordinator::setCourse(const QString &courseId)
@@ -92,13 +109,18 @@ QString OnlineCoordinator::requestId()
 
 void OnlineCoordinator::send(const QString &type, const QJsonObject &payload, bool matchScoped)
 {
-    m_network.send(Session::envelopeV2(type, payload, requestId(), m_lobbyId, matchScoped ? m_matchId : QString()));
+    m_network.send(Session::envelopeV3(type, payload, requestId(), m_lobbyId, matchScoped ? m_matchId : QString()));
 }
 
 void OnlineCoordinator::receive(const QJsonObject &message)
 {
     const auto type = message.value(QStringLiteral("type")).toString();
     const auto payload = message.value(QStringLiteral("payload")).toObject();
+    if (type == QLatin1String("ServiceHello")) {
+        m_serviceHello = payload;
+        Q_EMIT serviceChanged(m_serviceHello);
+        return;
+    }
     if (type == QLatin1String("UnsupportedProtocol") || type == QLatin1String("RequestRejected")) {
         Q_EMIT failed(payload.value(QStringLiteral("message")).toString(tr("The online request was rejected.")));
         return;
@@ -119,19 +141,19 @@ void OnlineCoordinator::receive(const QJsonObject &message)
     if (type == QLatin1String("PreparationReady")) {
         const auto match = m_state.value(QStringLiteral("match")).toObject();
         const auto roster = match.value(QStringLiteral("roster")).toArray();
-        QString localPlayerId;
+        QJsonArray localPlayerIds;
         for (const auto &value : roster) {
             const auto player = value.toObject();
-            if (player.value(QStringLiteral("memberId")).toString() == m_memberId)
-                localPlayerId = player.value(QStringLiteral("playerId")).toString();
+            if (player.value(QStringLiteral("ownerMemberId")).toString() == m_memberId)
+                localPlayerIds.append(player.value(QStringLiteral("playerId")));
         }
         const auto logDirectory = QDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation))
             .filePath(QStringLiteral("online/%1").arg(m_matchId));
-        Q_EMIT statusChanged(tr("Both players verified the course. Loading the match scene…"));
-        Q_EMIT matchPrepared({{QStringLiteral("protocolVersion"), 2}, {QStringLiteral("endpoint"), m_endpoint},
+        Q_EMIT statusChanged(tr("Every member verified the course. Loading the match scene…"));
+        Q_EMIT matchPrepared({{QStringLiteral("protocolVersion"), 3}, {QStringLiteral("endpoint"), m_endpoint},
             {QStringLiteral("lobbyId"), m_lobbyId}, {QStringLiteral("matchId"), m_matchId},
             {QStringLiteral("course"), m_coursePath}, {QStringLiteral("roster"), roster},
-            {QStringLiteral("localPlayerId"), localPlayerId},
+            {QStringLiteral("localPlayerIds"), localPlayerIds},
             {QStringLiteral("role"), match.value(QStringLiteral("authorityMemberId")).toString() == m_memberId
                 ? QStringLiteral("authority") : QStringLiteral("guest")},
             {QStringLiteral("logDirectory"), logDirectory}});
@@ -158,11 +180,17 @@ void OnlineCoordinator::prepareCourse()
     m_preparedMatchId = m_matchId;
     const auto course = m_state.value(QStringLiteral("match")).toObject().value(QStringLiteral("course")).toObject();
     const auto courseId = course.value(QStringLiteral("courseId")).toString();
-    const QHash<QString, QString> files{{QStringLiteral("classic"), QStringLiteral("Classic.kolf")},
-                                       {QStringLiteral("easy"), QStringLiteral("Easy.kolf")},
-                                       {QStringLiteral("practice"), QStringLiteral("Practice")}};
-    const auto fileName = files.value(courseId);
-    const auto path = QStandardPaths::locate(QStandardPaths::GenericDataLocation, QStringLiteral("kolf/courses/%1").arg(fileName));
+    QString fileName;
+    for (const auto &value : m_serviceHello.value(QStringLiteral("courses")).toArray()) {
+        const auto catalogCourse = value.toObject();
+        if (catalogCourse.value(QStringLiteral("courseId")).toString() == courseId) {
+            fileName = catalogCourse.value(QStringLiteral("resourceName")).toString();
+            break;
+        }
+    }
+    const auto testCourse = qEnvironmentVariable("KOLF_ONLINE_TEST_COURSE");
+    const auto path = !testCourse.isEmpty() && courseId == QLatin1String("test") ? testCourse
+        : QStandardPaths::locate(QStandardPaths::GenericDataLocation, QStringLiteral("kolf/courses/%1").arg(fileName));
     QFile file(path);
     if (fileName.isEmpty() || path.isEmpty() || !file.open(QIODevice::ReadOnly)) {
         send(QStringLiteral("PreparationFailed"), {{QStringLiteral("reason"), tr("The selected course is not installed.")}}, true);
@@ -173,5 +201,5 @@ void OnlineCoordinator::prepareCourse()
     const auto hash = QString::fromLatin1(QCryptographicHash::hash(file.readAll(), QCryptographicHash::Sha256).toHex());
     send(QStringLiteral("CourseReady"), {{QStringLiteral("courseHash"), hash},
          {QStringLiteral("compatibilityId"), QStringLiteral(KOLF_PROTOTYPE_BUILD)}}, true);
-    Q_EMIT statusChanged(tr("Course verified. Waiting for the other player…"));
+    Q_EMIT statusChanged(tr("Course verified. Waiting for the other members…"));
 }

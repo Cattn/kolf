@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-#include "protocolv2.h"
+#include "protocolv3.h"
 
 #include <QDebug>
 #include <QFile>
@@ -19,7 +19,7 @@ bool identifier(const QJsonValue &value)
 }
 }
 
-bool decodeEnvelopeV2(const QByteArray &raw, EnvelopeV2 &envelope, QString &errorCode)
+bool decodeEnvelopeV3(const QByteArray &raw, EnvelopeV3 &envelope, QString &errorCode)
 {
     errorCode.clear();
     if (raw.size() > MaximumMessageBytes) {
@@ -38,7 +38,7 @@ bool decodeEnvelopeV2(const QByteArray &raw, EnvelopeV2 &envelope, QString &erro
     }
     const auto object = document.object();
     const auto version = object.value(QStringLiteral("protocolVersion"));
-    if (!version.isDouble() || version.toDouble() != 2.0) {
+    if (!version.isDouble() || version.toDouble() != 3.0) {
         errorCode = QStringLiteral("UnsupportedProtocol");
         return false;
     }
@@ -53,19 +53,17 @@ bool decodeEnvelopeV2(const QByteArray &raw, EnvelopeV2 &envelope, QString &erro
         }
     }
     envelope = {
-        object.value(QStringLiteral("type")).toString(),
-        object.value(QStringLiteral("requestId")).toString(),
-        object.value(QStringLiteral("lobbyId")).toString(),
-        object.value(QStringLiteral("matchId")).toString(),
+        object.value(QStringLiteral("type")).toString(), object.value(QStringLiteral("requestId")).toString(),
+        object.value(QStringLiteral("lobbyId")).toString(), object.value(QStringLiteral("matchId")).toString(),
         object.value(QStringLiteral("payload")).toObject(),
     };
     return true;
 }
 
-QJsonObject envelopeV2(const QString &type, const QJsonObject &payload, const QString &requestId,
+QJsonObject envelopeV3(const QString &type, const QJsonObject &payload, const QString &requestId,
                        const QString &lobbyId, const QString &matchId)
 {
-    QJsonObject message{{QStringLiteral("protocolVersion"), 2}, {QStringLiteral("type"), type},
+    QJsonObject message{{QStringLiteral("protocolVersion"), 3}, {QStringLiteral("type"), type},
                         {QStringLiteral("payload"), payload}};
     if (!requestId.isEmpty()) message[QStringLiteral("requestId")] = requestId;
     if (!lobbyId.isEmpty()) message[QStringLiteral("lobbyId")] = lobbyId;
@@ -73,7 +71,7 @@ QJsonObject envelopeV2(const QString &type, const QJsonObject &payload, const QS
     return message;
 }
 
-int runV2ProtocolFixtures(const QString &path)
+int runV3ProtocolFixtures(const QString &path)
 {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) return 2;
@@ -84,16 +82,16 @@ int runV2ProtocolFixtures(const QString &path)
     for (const auto &value : cases) {
         const auto test = value.toObject();
         const auto raw = QJsonDocument(test.value(QStringLiteral("message")).toObject()).toJson(QJsonDocument::Compact);
-        EnvelopeV2 envelope;
+        EnvelopeV3 envelope;
         QString errorCode;
-        const bool valid = decodeEnvelopeV2(raw, envelope, errorCode);
+        const bool valid = decodeEnvelopeV3(raw, envelope, errorCode);
         if (valid != test.value(QStringLiteral("valid")).toBool()
             || (!valid && errorCode != test.value(QStringLiteral("error")).toString())) {
-            qCritical() << "FAIL v2 envelope" << test.value(QStringLiteral("name")).toString() << errorCode;
+            qCritical() << "FAIL v3 envelope" << test.value(QStringLiteral("name")).toString() << errorCode;
             return 1;
         }
     }
-    qInfo() << "PASS native v2 envelope cases:" << cases.size();
+    qInfo() << "PASS native v3 envelope cases:" << cases.size();
     return 0;
 }
 }

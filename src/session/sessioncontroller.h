@@ -33,6 +33,8 @@ private:
     void send(const QString &type, QJsonObject payload = {}, bool visual = false);
     QJsonObject unwrap(const QJsonObject &message) const;
     QJsonObject state() const;
+    bool ownsSlot(int slot) const;
+    QString playerIdForSlot(int slot) const;
     QJsonObject m_config;
     Role m_role;
     Kolf::ItemFactory m_factory;
@@ -61,7 +63,7 @@ private:
     int m_syncId = 0;
     int m_frameSeq = 0, m_receivedFrame = 0;
     bool m_ready = false, m_interrupted = false, m_awaitingResync = false;
-    bool m_v2 = false;
+    bool m_v3 = false;
     bool m_testFaultScheduled = false;
     QJsonObject m_pendingMessage;
     QTimer m_retry;
@@ -69,5 +71,6 @@ private:
     qint64 m_frameCount = 0;
     QHash<QString, QJsonObject> m_admitted;
     QSet<int> m_scriptedTurns;
+    QSet<QString> m_localPlayerIds;
 };
 }

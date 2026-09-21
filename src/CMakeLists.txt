@@ -32,7 +32,7 @@ target_include_directories(kolfprivate PRIVATE
 
 target_sources(kolfprivate PRIVATE
     session/shotcommand.cpp
-    session/protocolv2.cpp
+    session/protocolv3.cpp
     session/gamesessionadapter.cpp
     session/sessioncontroller.cpp
     online/onlinecoordinator.cpp
