@@ -1,9 +1,10 @@
-# Two-client development prototype
+# Kolf multiplayer development
 
-One native client owns physics; the other presents authoritative snapshots. A
-TypeScript WebSocket relay admits commands for exactly two fixed player slots,
-orders transitions, and waits for both clients to apply each committed state.
-This is the development milestone before a lobby, persistent service, or release.
+The current product path is protocol v3 through ordinary Kolf. One service hosts
+multiple isolated rooms, each with 2–8 player slots distributed across 2–8
+members. One native client owns physics; every guest presents and acknowledges
+the authoritative snapshots. The original fixed two-client v1 relay remains in
+this directory only as a historical regression harness.
 
 For a person playing and checking this build, follow
 [HUMAN-TESTING.md](HUMAN-TESTING.md). It gives the exact launch steps, controls,
@@ -17,6 +18,7 @@ Requires the existing Craft Kolf environment, Qt Network/WebSockets, and Node
 PowerShell process:
 
 ```powershell
+$env:CRAFT_PYTHON = 'C:\Users\thecr\AppData\Local\Python\pythoncore-3.14-64\python.exe'
 & C:\CraftRoot\craft\craftenv.ps1
 craft --compile --install --qmerge kolf
 ```
@@ -191,26 +193,65 @@ These scripted cases close the automated placement-fixture portion of Stage A.
 They do not replace the human normal/advanced input checklist or the offline
 multi-hole save/load regression, which remain unverified.
 
-## Protocol v2 lobby foundation, 2026-09-19
+## Protocol v3 multi-room and variable-roster path, 2026-09-21
 
-The incremental v2 service can now be started from `server/prototype` with:
+The current product service can be started from `server/prototype` with:
 
 ```powershell
-npm run start:v2
+npm run start:v3
 ```
 
-It loads an allowlist of shipped courses, listens on `KOLF_PORT` (3011 by
-default), and accepts runtime-validated Create, Join, profile/course, Ready,
-Start, CourseReady, preparation-failure, and Return requests. The pure lobby
-domain enforces two remote members, owner permissions, revision-bound readiness,
-bounded idempotency, fresh rematch IDs, stale-match rejection, immutable results,
-and interrupted results without a fabricated winner. A v1 client receives an
-`UnsupportedProtocol` response before the service closes that connection.
+It sends `ServiceHello` with the shipped course catalog and bounded service
+limits, hosts multiple isolated rooms, and separates connected members from
+their owned player slots. Each room supports 2–8 players across 2–8 members;
+one member can own several slots. Roster/course mutations advance the lobby
+revision and clear per-member readiness. Unsupported v1/v2 clients receive a
+clear response naming protocol 3.
 
-`npm test` covers the domain through both in-process protocol clients and real
-WebSocket clients. `KOLF_PROTOCOL_V2_TESTS` runs the shared generic-envelope
-fixture through the native decoder. Ordinary Kolf now exposes **Game > Online…**
-for human Connect/Create/Join/Ready/Start preparation against this service; see
-`HUMAN-TESTING.md`. The original `npm start` relay and generated prototype
-configs remain the v1 gameplay path until the match-session migration is
-complete, so the v2 lobby does not open a playable scene yet.
+The product match coordinator is keyed by member/player IDs rather than the
+historical `authority | guest` map. One member simulates, state barriers wait
+for every member once, shots and hazard choices are checked against frozen
+player ownership, and visual frames fan out to every guest. The v1 `Session`
+and its runner remain only as a historical regression harness.
+
+Ordinary Kolf consumes the server course catalog, builds the full frozen
+2–8-player scene and scorecard, and automatically controls whichever locally
+owned slot is active. The lobby UI has separate member/player lists plus local
+Add/Edit/Remove controls. Results preserve frozen roster order and Return starts
+a fresh match identity.
+
+For a local session, run from the repository root:
+
+```powershell
+.\tests\multiplayer\play.ps1 -ClientCount 2
+```
+
+Use `-ClientCount 3` for the representative three-member/four-player case. The
+launcher reserves a free port, starts `relay-v3.ts`, launches ordinary Kolf
+through Craft, prints the endpoint and log directory, and stops only the
+processes it created. Configure the extra locally owned slot with **Add local
+player** in the owner window.
+
+`npm run check` and `npm test` cover codecs, room capacity and cleanup,
+interleaved two-room WebSocket isolation, a 3-member/4-player coordinator, and
+the 8-player snapshot boundary. `KOLF_PROTOCOL_V3_TESTS` runs the shared v3
+envelope fixture through the native decoder. Current bounded evidence is in
+[`evidence/2026-09-21-v3-core.json`](evidence/2026-09-21-v3-core.json).
+
+The same ordinary-client path has bounded automation commands from
+`server/prototype`:
+
+```powershell
+npm run test:native:v3:rematch
+npm run test:native:v3:four-player
+npm run test:native:v3:hazard
+```
+
+The 2026-09-21 acceptance pass completed all three through Craft. The first used
+two clients for two consecutive matches; the second used three members/four
+slots with two slots owned by one member; the third reused the existing water
+fixture to exercise hazard choices with that variable roster. Every run verified
+clean scene/process shutdown and zero guest simulation counters. The server
+typecheck and all 42 tests passed, as did Craft compile/install/qmerge and both
+native protocol fixtures. Human lobby UI and offline save/load smoke remain
+honestly unverified.

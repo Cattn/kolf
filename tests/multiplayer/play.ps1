@@ -1,35 +1,62 @@
 param(
-    [string]$Course = 'Easy',
-    [string]$CoursePath = ''
+    [ValidateRange(2, 3)][int]$ClientCount = 2,
+    [string]$CraftRootPath = 'C:\CraftRoot',
+    [string]$PythonPath = 'C:\Users\thecr\AppData\Local\Python\pythoncore-3.14-64\python.exe'
 )
 $ErrorActionPreference = 'Stop'
-$root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$relayDir = Join-Path $root 'server\prototype'
-$sessionDir = Join-Path $relayDir 'local-session'
-$courseFile = if ($CoursePath) {
-    (Resolve-Path -LiteralPath $CoursePath).Path
-} else {
-    (Resolve-Path -LiteralPath (Join-Path $root "courses\$Course.kolf")).Path
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+$serviceRoot = Join-Path $repoRoot 'server\prototype'
+if (-not (Test-Path -LiteralPath (Join-Path $serviceRoot 'node_modules'))) {
+    throw 'Run npm ci in server\prototype before launching the local service.'
 }
-$authority = Join-Path $sessionDir 'authority.json'
-$guest = Join-Path $sessionDir 'guest.json'
-Remove-Item -Force -ErrorAction SilentlyContinue $authority, $guest
-if (-not (Test-Path (Join-Path $relayDir 'node_modules'))) {
-    Push-Location $relayDir
-    try { npm ci } finally { Pop-Location }
+
+$listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+$listener.Start()
+$port = ([System.Net.IPEndPoint]$listener.LocalEndpoint).Port
+$listener.Stop()
+
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$runDirectory = Join-Path $serviceRoot "local-session\v3-$stamp"
+New-Item -ItemType Directory -Force -Path $runDirectory | Out-Null
+$serviceOut = Join-Path $runDirectory 'service.stdout.jsonl'
+$serviceError = Join-Path $runDirectory 'service.stderr.log'
+$node = (Get-Command node -ErrorAction Stop).Source
+$service = $null
+$clients = @()
+$previousPort = $env:KOLF_PORT
+$previousBind = $env:KOLF_BIND
+try {
+    $env:KOLF_PORT = [string]$port
+    $env:KOLF_BIND = '127.0.0.1'
+    $service = Start-Process -FilePath $node -ArgumentList (Join-Path $serviceRoot 'relay-v3.ts') -WorkingDirectory $serviceRoot `
+        -RedirectStandardOutput $serviceOut -RedirectStandardError $serviceError -WindowStyle Hidden -PassThru
+    $env:KOLF_PORT = $previousPort
+    $env:KOLF_BIND = $previousBind
+    $deadline = (Get-Date).AddSeconds(30)
+    while (-not (Test-Path -LiteralPath $serviceOut) -or -not ((Get-Content -LiteralPath $serviceOut -Raw -ErrorAction SilentlyContinue) -match '"event":"listening"')) {
+        if ($service.HasExited) { throw "The v3 service exited early. See $serviceError" }
+        if ((Get-Date) -gt $deadline) { throw "The v3 service did not become ready. See $serviceError" }
+        Start-Sleep -Milliseconds 100
+    }
+    $endpoint = "ws://127.0.0.1:$port"
+    Write-Host "Kolf v3 endpoint: $endpoint"
+    Write-Host "Run logs: $runDirectory"
+    Write-Host "Open Game > Online in each client and enter the endpoint. Closing every client stops this launcher and its service."
+    $launcher = Join-Path $PSScriptRoot 'launch-online.ps1'
+    for ($index = 1; $index -le $ClientCount; ++$index) {
+        $clientLog = Join-Path $runDirectory "client-$index"
+        New-Item -ItemType Directory -Force -Path $clientLog | Out-Null
+        $clients += Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-File', $launcher,
+            '-CraftRootPath', $CraftRootPath, '-PythonPath', $PythonPath, '-LogDirectory', $clientLog) `
+            -WindowStyle Hidden -PassThru
+    }
+    while ($clients.Where({ -not $_.HasExited }).Count -gt 0) { Start-Sleep -Milliseconds 500 }
 }
-Start-Process powershell -ArgumentList @(
-    '-NoExit',
-    '-Command',
-    "`$env:KOLF_COURSE = '$courseFile'; Set-Location '$relayDir'; npm start"
-)
-$deadline = (Get-Date).AddSeconds(30)
-while (-not ((Test-Path $authority) -and (Test-Path $guest))) {
-    if ((Get-Date) -gt $deadline) { throw 'Relay did not write client configs. Check the relay window.' }
-    Start-Sleep -Milliseconds 200
+finally {
+    $env:KOLF_PORT = $previousPort
+    $env:KOLF_BIND = $previousBind
+    foreach ($client in $clients) {
+        if (-not $client.HasExited) { & taskkill.exe /PID $client.Id /T /F 2>$null | Out-Null }
+    }
+    if ($service -and -not $service.HasExited) { Stop-Process -Id $service.Id -Force -ErrorAction SilentlyContinue }
 }
-$launch = Join-Path $PSScriptRoot 'launch.ps1'
-Start-Process powershell -ArgumentList @('-NoExit', '-File', $launch, '-Config', $authority)
-Start-Process powershell -ArgumentList @('-NoExit', '-File', $launch, '-Config', $guest)
-Write-Host "Course: $courseFile"
-Write-Host 'Relay and two clients are starting. Close both Kolf windows when done, then stop the relay window.'

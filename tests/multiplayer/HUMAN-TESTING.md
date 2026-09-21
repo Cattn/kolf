@@ -1,30 +1,22 @@
 # Human testing for Kolf online multiplayer
 
-The current build has two incremental paths. The new protocol-v2 lobby is
-activated from ordinary Kolf with **Game > Online…** and needs no generated
-role config or `KOLF_PROTOTYPE_CONFIG`. It currently verifies the human
-Connect/Create/Join/Ready/Start preparation flow; authoritative gameplay is not
-wired to that lobby yet. The older source-checkout prototype remains below for
-manual shot, hazard, and synchronization checks until gameplay moves to v2.
+The current product path is protocol v3 from ordinary Kolf through
+**Game > Online…**. It supports multiple rooms, 2–8 frozen player slots, and
+multiple locally owned slots without generated role configs. The older v1
+source-checkout prototype remains below only as a historical regression path.
 
 ## Activate and test the ordinary in-game lobby
 
-Build once after source changes. From `server/prototype`, start the v2 service:
+Build once after source changes. The simplest local launch from the repository
+root is:
 
 ```powershell
-npm run start:v2
+.\tests\multiplayer\play.ps1 -ClientCount 2
 ```
 
-It prints the local endpoint and shipped-course catalog. The default endpoint
-is `ws://127.0.0.1:3011`. Keep this PowerShell window open.
-
-Open two more Windows PowerShell windows. In each one, initialize Craft and
-launch an ordinary Kolf process; do not set `KOLF_PROTOTYPE_CONFIG`:
-
-```powershell
-& C:\CraftRoot\craft\craftenv.ps1
-craft --run kolf
-```
+It selects a free port, starts the real v3 service, launches two ordinary Kolf
+clients through Craft, and prints the endpoint and log directory. Use
+`-ClientCount 3` for a three-member check. Keep the launcher open.
 
 In each Kolf window:
 
@@ -34,24 +26,30 @@ In each Kolf window:
    display name, `#RRGGBBAA` color, and shipped course, then select **Create
    Lobby**. Copy the visible join code.
 3. In the second window enter a different name/color and the join code, then
-   select **Join Lobby**. Confirm both windows show the same two names, course,
-   revision, and readiness state. Neither window should expose a generated
-   credential or require JSON editing.
-4. Change the course as the owner and confirm both Ready states clear. Confirm
-   the non-owner cannot change it. Ready both players on the displayed
-   revision; only the owner should have an enabled **Start** button.
-5. Select **Start** once. Both clients should verify the installed course and
-   show that they are waiting for the authoritative initial state. Repeated
-   Start clicks must not create a second match. This is the current v2 native
-   checkpoint; a playable scene and Results/Return/rematch UI become testable
-   when the match-session migration lands.
-6. Disconnect one window. The other should receive a readable lobby-closed
-   message and remain connected far enough to create a new lobby. Close and
-   reopen **Game > Online…** and check that the nonsecret endpoint, display
-   name, and color were remembered without persisting a join code.
+   select **Join Lobby**. Confirm both windows show separate member and player
+   lists with the same order, course, revision, and readiness state.
+4. In one window choose **Add local player**, then edit that slot. Confirm only
+   its owner can edit/remove it, at least one local slot remains, and each
+   mutation clears every Ready state. Use four slots total for the representative
+   three-client run; do not launch eight clients.
+5. Change the course as the owner and confirm the catalog came from the service.
+   Ready every member; only the owner should have an enabled **Start** button.
+6. Start and play the match. Confirm the same client automatically controls each
+   of its owned slots, remote turns cannot be controlled locally, and score rows
+   use player names. Exercise one hazard choice for a locally owned player.
+7. Finish the match. Confirm every client shows the same ordered Results, Return
+   to the lobby, ready again, and start one rematch with a different match ID.
+8. Disconnect a non-owner during an active match and confirm only that room is
+   interrupted. The remaining members must reach Results and Return without
+   waiting for the departed member. Owner departure closes only that room.
 
-Mark each step passed, failed, or not run. Do not count the preparation-only
-checkpoint as a completed multiplayer match.
+Mark each step passed, failed, or unverified. Stop after this bounded smoke; do
+not expand it into every player-count or ownership permutation.
+
+Scripted ordinary-client coverage is available from `server/prototype` as
+`npm run test:native:v3:rematch`, `npm run test:native:v3:four-player`, and
+`npm run test:native:v3:hazard`. These validate protocol/gameplay state and
+cleanup, but do not replace the mouse/keyboard and visible UI checks above.
 
 ## Play the legacy v1 two-client prototype
 
@@ -159,14 +157,16 @@ of the later test-kit stage.
 
 ## Current evidence and limits
 
-The v2 protocol/lobby/WebSocket checkpoint is recorded in
-[2026-09-19-stage1.json](evidence/2026-09-19-stage1.json). The latest legacy
-native-UI build checkpoint is recorded in
-[2026-09-19-native-lobby-ui.json](evidence/2026-09-19-native-lobby-ui.json). The latest legacy
-gameplay results are in
+The v3 core/build checkpoint is recorded in
+[2026-09-21-v3-core.json](evidence/2026-09-21-v3-core.json). Earlier v2 and
+legacy native checkpoints remain in
+[2026-09-19-stage1.json](evidence/2026-09-19-stage1.json) and
+[2026-09-19-native-lobby-ui.json](evidence/2026-09-19-native-lobby-ui.json).
+The latest historical v1 gameplay results are in
 [2026-09-18-sync-followup.json](evidence/2026-09-18-sync-followup.json), with
 earlier Windows prototype results in
 [2026-09-18-p0.json](evidence/2026-09-18-p0.json). Human in-game lobby
-activation, mouse/keyboard play, advanced-meter timing, offline save/load,
-two-machine play, and a complete v2 Results/Return/rematch flow remain
-unverified until a person records them.
+variable-roster mouse/keyboard play, advanced-meter timing, offline save/load,
+two-machine play, the representative native hazard case, and a complete native
+v3 Results/Return/rematch flow remain unverified until the bounded smoke above
+is recorded.

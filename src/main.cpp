@@ -18,7 +18,8 @@
 
 #include "kolf.h"
 #include "kolf_version.h"
-#include "session/protocolv2.h"
+#include "online/onlinewindow.h"
+#include "session/protocolv3.h"
 #include "session/sessioncontroller.h"
 #include <QJsonDocument>
 
@@ -99,8 +100,8 @@ int main(int argc, char **argv)
 
     // Prototype settings are supplied by a local launcher, never by a remote
     // peer. It has its own window/lifecycle and does not load offline autosaves.
-    const auto protocolV2Tests = qEnvironmentVariable("KOLF_PROTOCOL_V2_TESTS");
-    if (!protocolV2Tests.isEmpty()) return Kolf::Session::runV2ProtocolFixtures(protocolV2Tests);
+    const auto protocolV3Tests = qEnvironmentVariable("KOLF_PROTOCOL_V3_TESTS");
+    if (!protocolV3Tests.isEmpty()) return Kolf::Session::runV3ProtocolFixtures(protocolV3Tests);
     const auto protocolTests = qEnvironmentVariable("KOLF_PROTOCOL_TESTS");
     if (!protocolTests.isEmpty()) return Kolf::Session::runProtocolFixtures(protocolTests);
     const auto prototypeConfig = qEnvironmentVariable("KOLF_PROTOTYPE_CONFIG");
@@ -113,6 +114,18 @@ int main(int argc, char **argv)
         if (error.error != QJsonParseError::NoError || !document.isObject()
             || (role != QLatin1String("authority") && role != QLatin1String("guest"))) return 2;
         Kolf::Session::SessionController window(document.object());
+        window.show();
+        return app.exec();
+    }
+    const auto onlineTestConfig = qEnvironmentVariable("KOLF_ONLINE_TEST_CONFIG");
+    if (!onlineTestConfig.isEmpty()) {
+        QFile config(onlineTestConfig);
+        if (!config.open(QIODevice::ReadOnly) || config.size() > 1024 * 1024) return 2;
+        QJsonParseError error;
+        const auto document = QJsonDocument::fromJson(config.readAll(), &error);
+        if (error.error != QJsonParseError::NoError || !document.isObject()) return 2;
+        Kolf::Online::OnlineWindow window;
+        window.startAutomation(document.object());
         window.show();
         return app.exec();
     }

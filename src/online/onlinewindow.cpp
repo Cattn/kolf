@@ -7,16 +7,23 @@
 #include <KSharedConfig>
 
 #include <QComboBox>
+#include <QApplication>
+#include <QDebug>
+#include <QDir>
+#include <QFile>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QInputDialog>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QStackedWidget>
 #include <QTextEdit>
+#include <QTimer>
 #include <QVBoxLayout>
 
 using namespace Kolf::Online;
@@ -60,9 +67,6 @@ OnlineWindow::OnlineWindow(QWidget *parent)
     profileForm->addRow(i18nc("@label", "Display name:"), m_name);
     profileForm->addRow(i18nc("@label", "Ball color (#RRGGBBAA):"), m_color);
     m_createCourse = new QComboBox(entryPage);
-    m_createCourse->addItem(i18n("Classic"), QStringLiteral("classic"));
-    m_createCourse->addItem(i18n("Easy"), QStringLiteral("easy"));
-    m_createCourse->addItem(i18n("Practice"), QStringLiteral("practice"));
     profileForm->addRow(i18nc("@label", "Course:"), m_createCourse);
     entryLayout->addLayout(profileForm);
     auto *createButton = new QPushButton(i18nc("@action:button", "Create Lobby"), entryPage);
@@ -84,12 +88,18 @@ OnlineWindow::OnlineWindow(QWidget *parent)
     auto *lobbyLayout = new QVBoxLayout(lobbyPage);
     m_lobbySummary = new QLabel(lobbyPage); m_lobbySummary->setTextInteractionFlags(Qt::TextSelectableByMouse);
     lobbyLayout->addWidget(m_lobbySummary);
+    lobbyLayout->addWidget(new QLabel(i18n("Members"), lobbyPage));
     m_members = new QListWidget(lobbyPage); lobbyLayout->addWidget(m_members);
+    lobbyLayout->addWidget(new QLabel(i18n("Players"), lobbyPage));
+    m_players = new QListWidget(lobbyPage); lobbyLayout->addWidget(m_players);
+    auto *playerButtons = new QHBoxLayout;
+    m_addPlayer = new QPushButton(i18nc("@action:button", "Add local player"), lobbyPage);
+    m_editPlayer = new QPushButton(i18nc("@action:button", "Edit player"), lobbyPage);
+    m_removePlayer = new QPushButton(i18nc("@action:button", "Remove player"), lobbyPage);
+    playerButtons->addWidget(m_addPlayer); playerButtons->addWidget(m_editPlayer); playerButtons->addWidget(m_removePlayer);
+    lobbyLayout->addLayout(playerButtons);
     auto *courseRow = new QFormLayout;
     m_lobbyCourse = new QComboBox(lobbyPage);
-    m_lobbyCourse->addItem(i18n("Classic"), QStringLiteral("classic"));
-    m_lobbyCourse->addItem(i18n("Easy"), QStringLiteral("easy"));
-    m_lobbyCourse->addItem(i18n("Practice"), QStringLiteral("practice"));
     courseRow->addRow(i18nc("@label", "Course:"), m_lobbyCourse); lobbyLayout->addLayout(courseRow);
     m_lobbyStatus = new QLabel(lobbyPage); m_lobbyStatus->setWordWrap(true); lobbyLayout->addWidget(m_lobbyStatus);
     auto *lobbyButtons = new QHBoxLayout;
@@ -125,11 +135,46 @@ OnlineWindow::OnlineWindow(QWidget *parent)
         m_coordinator.setReady(!ready);
     });
     connect(m_start, &QPushButton::clicked, &m_coordinator, &OnlineCoordinator::startMatch);
+    connect(m_addPlayer, &QPushButton::clicked, this, [this] {
+        bool accepted = false;
+        const auto name = QInputDialog::getText(this, i18nc("@title:window", "Add local player"),
+            i18nc("@label", "Player name:"), QLineEdit::Normal, m_name->text(), &accepted).trimmed();
+        if (!accepted || name.isEmpty()) return;
+        const auto color = QInputDialog::getText(this, i18nc("@title:window", "Add local player"),
+            i18nc("@label", "Ball color (#RRGGBBAA):"), QLineEdit::Normal, m_color->text(), &accepted).trimmed();
+        if (accepted) m_coordinator.addPlayer(name, color);
+    });
+    connect(m_editPlayer, &QPushButton::clicked, this, [this] {
+        const auto *item = m_players->currentItem();
+        if (!item) return;
+        bool accepted = false;
+        const auto name = QInputDialog::getText(this, i18nc("@title:window", "Edit player"),
+            i18nc("@label", "Player name:"), QLineEdit::Normal, item->data(Qt::UserRole + 1).toString(), &accepted).trimmed();
+        if (!accepted || name.isEmpty()) return;
+        const auto color = QInputDialog::getText(this, i18nc("@title:window", "Edit player"),
+            i18nc("@label", "Ball color (#RRGGBBAA):"), QLineEdit::Normal, item->data(Qt::UserRole + 2).toString(), &accepted).trimmed();
+        if (accepted) m_coordinator.updatePlayer(item->data(Qt::UserRole).toString(), name, color);
+    });
+    connect(m_removePlayer, &QPushButton::clicked, this, [this] {
+        if (const auto *item = m_players->currentItem()) m_coordinator.removePlayer(item->data(Qt::UserRole).toString());
+    });
+    connect(m_players, &QListWidget::currentItemChanged, this, [this](QListWidgetItem *item) {
+        const bool local = item && item->data(Qt::UserRole + 3).toString() == m_coordinator.memberId();
+        m_editPlayer->setEnabled(local); m_removePlayer->setEnabled(local && item->data(Qt::UserRole + 4).toInt() > 1);
+    });
     connect(m_lobbyCourse, &QComboBox::activated, this, [this](int) {
         if (!m_state.isEmpty()) m_coordinator.setCourse(m_lobbyCourse->currentData().toString());
     });
     connect(returnButton, &QPushButton::clicked, &m_coordinator, &OnlineCoordinator::returnToLobby);
     connect(&m_coordinator, &OnlineCoordinator::connected, this, &OnlineWindow::showEntry);
+    connect(&m_coordinator, &OnlineCoordinator::serviceChanged, this, [this](const QJsonObject &hello) {
+        m_createCourse->clear(); m_lobbyCourse->clear();
+        for (const auto &value : hello.value(QStringLiteral("courses")).toArray()) {
+            const auto course = value.toObject();
+            m_createCourse->addItem(course.value(QStringLiteral("displayName")).toString(), course.value(QStringLiteral("courseId")));
+            m_lobbyCourse->addItem(course.value(QStringLiteral("displayName")).toString(), course.value(QStringLiteral("courseId")));
+        }
+    });
     connect(&m_coordinator, &OnlineCoordinator::connectionClosed, this, [this] {
         closeMatch();
         m_connectStatus->setText(i18n("Disconnected from the online service."));
@@ -141,7 +186,19 @@ OnlineWindow::OnlineWindow(QWidget *parent)
     });
     connect(&m_coordinator, &OnlineCoordinator::matchPrepared, this, [this](const QJsonObject &config) {
         closeMatch();
-        m_matchController = new Kolf::Session::SessionController(config, m_coordinator.networkClient(), m_pages);
+        auto sessionConfig = config;
+        if (!m_automation.isEmpty()) {
+            sessionConfig[QStringLiteral("scriptedShots")] = m_automation.value(QStringLiteral("scriptedShots"));
+            if (m_automation.contains(QStringLiteral("scriptedHazardAction")))
+                sessionConfig[QStringLiteral("scriptedHazardAction")] = m_automation.value(QStringLiteral("scriptedHazardAction"));
+            sessionConfig[QStringLiteral("capture")] = true;
+            sessionConfig[QStringLiteral("verifySnapshots")] = true;
+            sessionConfig[QStringLiteral("logFrames")] = true;
+            sessionConfig[QStringLiteral("exitWhenFinished")] = false;
+            sessionConfig[QStringLiteral("logDirectory")] = QDir(m_automation.value(QStringLiteral("logDirectory")).toString())
+                .filePath(config.value(QStringLiteral("matchId")).toString());
+        }
+        m_matchController = new Kolf::Session::SessionController(sessionConfig, m_coordinator.networkClient(), m_pages);
         resize(900, 760);
         m_pages->addWidget(m_matchController);
         m_pages->setCurrentWidget(m_matchController);
@@ -149,7 +206,106 @@ OnlineWindow::OnlineWindow(QWidget *parent)
     connect(&m_coordinator, &OnlineCoordinator::statusChanged, m_lobbyStatus, &QLabel::setText);
     connect(&m_coordinator, &OnlineCoordinator::failed, this, [this](const QString &reason) {
         m_connectStatus->setText(reason); m_entryStatus->setText(reason); m_lobbyStatus->setText(reason);
+        if (!m_automation.isEmpty()) failAutomation(reason);
     });
+}
+
+void OnlineWindow::startAutomation(const QJsonObject &config)
+{
+    const auto role = config.value(QStringLiteral("role")).toString();
+    const auto endpoint = config.value(QStringLiteral("endpoint")).toString();
+    const auto joinCodeFile = config.value(QStringLiteral("joinCodeFile")).toString();
+    const auto logDirectory = config.value(QStringLiteral("logDirectory")).toString();
+    const int expectedMembers = config.value(QStringLiteral("expectedMembers")).toInt();
+    const int expectedPlayers = config.value(QStringLiteral("expectedPlayers")).toInt();
+    const int matches = config.value(QStringLiteral("matches")).toInt();
+    if ((role != QLatin1String("owner") && role != QLatin1String("joiner")) || endpoint.isEmpty()
+        || joinCodeFile.isEmpty() || logDirectory.isEmpty() || expectedMembers < 2 || expectedMembers > 8
+        || expectedPlayers < expectedMembers || expectedPlayers > 8
+        || matches < 1 || matches > 2 || !config.value(QStringLiteral("scriptedShots")).isArray()) {
+        failAutomation(QStringLiteral("Invalid online automation configuration."));
+        return;
+    }
+    m_automation = config;
+    m_endpoint->setText(endpoint);
+    m_name->setText(config.value(QStringLiteral("displayName")).toString());
+    m_color->setText(config.value(QStringLiteral("color")).toString());
+    QDir().mkpath(logDirectory);
+    m_coordinator.connectToService(endpoint);
+}
+
+void OnlineWindow::advanceAutomation(const QJsonObject &state)
+{
+    if (m_automation.isEmpty()) return;
+    m_automationMutationPending = false;
+    const auto role = m_automation.value(QStringLiteral("role")).toString();
+    const auto phase = state.value(QStringLiteral("phase")).toString();
+    const auto members = state.value(QStringLiteral("members")).toArray();
+    const auto players = state.value(QStringLiteral("players")).toArray();
+    if (role == QLatin1String("owner")) {
+        QFile joinCode(m_automation.value(QStringLiteral("joinCodeFile")).toString());
+        if (joinCode.open(QIODevice::WriteOnly | QIODevice::Truncate))
+            joinCode.write(state.value(QStringLiteral("joinCode")).toString().toUtf8());
+    }
+    if (phase == QLatin1String("Results")) {
+        const auto matchId = state.value(QStringLiteral("latestResult")).toObject().value(QStringLiteral("matchId")).toString();
+        if (!matchId.isEmpty() && !m_automationReturnedMatches.contains(matchId)) {
+            m_automationReturnedMatches.insert(matchId);
+            ++m_automationCompletedMatches;
+            m_coordinator.returnToLobby();
+        }
+        return;
+    }
+    if (phase != QLatin1String("Open")) return;
+    if (m_automationCompletedMatches >= m_automation.value(QStringLiteral("matches")).toInt()) {
+        QTimer::singleShot(250, qApp, &QApplication::quit);
+        return;
+    }
+    if (members.size() != m_automation.value(QStringLiteral("expectedMembers")).toInt()) return;
+
+    int localPlayers = 0;
+    bool localReady = false;
+    bool allReady = true;
+    for (const auto &value : members) {
+        const auto member = value.toObject();
+        const bool ready = member.value(QStringLiteral("ready")).toBool();
+        allReady = allReady && ready;
+        if (member.value(QStringLiteral("memberId")).toString() == m_coordinator.memberId()) localReady = ready;
+    }
+    for (const auto &value : players)
+        if (value.toObject().value(QStringLiteral("ownerMemberId")).toString() == m_coordinator.memberId()) ++localPlayers;
+
+    const auto additionalPlayers = m_automation.value(QStringLiteral("additionalPlayers")).toArray();
+    if (m_automationAddedPlayers < additionalPlayers.size()) {
+        if (localPlayers == m_automationAddedPlayers + 1 && !m_automationMutationPending) {
+            const auto player = additionalPlayers.at(m_automationAddedPlayers).toObject();
+            ++m_automationAddedPlayers;
+            m_automationMutationPending = true;
+            m_coordinator.addPlayer(player.value(QStringLiteral("displayName")).toString(), player.value(QStringLiteral("color")).toString());
+        }
+        return;
+    }
+    if (players.size() != m_automation.value(QStringLiteral("expectedPlayers")).toInt()) return;
+    if (!localReady && !m_automationMutationPending) {
+        m_automationMutationPending = true;
+        m_coordinator.setReady(true);
+        return;
+    }
+    if (role == QLatin1String("owner") && allReady && !m_automationMutationPending) {
+        m_automationMutationPending = true;
+        m_coordinator.startMatch();
+    }
+}
+
+void OnlineWindow::failAutomation(const QString &reason)
+{
+    qCritical() << reason;
+    if (!m_automation.isEmpty()) {
+        QFile error(QDir(m_automation.value(QStringLiteral("logDirectory")).toString())
+            .filePath(QStringLiteral("automation-error.txt")));
+        if (error.open(QIODevice::WriteOnly | QIODevice::Truncate)) error.write(reason.toUtf8());
+    }
+    QTimer::singleShot(0, qApp, [] { QCoreApplication::exit(3); });
 }
 
 void OnlineWindow::showEntry()
@@ -159,12 +315,33 @@ void OnlineWindow::showEntry()
     onlineConfig.sync();
     m_entryStatus->setText(i18n("Connected. Create a lobby or enter a friend's join code."));
     m_pages->setCurrentIndex(1);
+    if (m_automation.isEmpty() || m_automationCreateOrJoinSent) return;
+    m_automationCreateOrJoinSent = true;
+    if (m_automation.value(QStringLiteral("role")) == QLatin1String("owner")) {
+        m_coordinator.createLobby(m_name->text(), m_color->text(), m_automation.value(QStringLiteral("courseId")).toString());
+        return;
+    }
+    auto *timer = new QTimer(this);
+    timer->setInterval(100);
+    connect(timer, &QTimer::timeout, this, [this, timer] {
+        QFile file(m_automation.value(QStringLiteral("joinCodeFile")).toString());
+        if (!file.open(QIODevice::ReadOnly)) return;
+        const auto joinCode = QString::fromUtf8(file.readAll()).trimmed();
+        if (joinCode.isEmpty()) return;
+        timer->stop(); timer->deleteLater();
+        m_coordinator.joinLobby(joinCode, m_name->text(), m_color->text());
+    });
+    timer->start();
 }
 
 void OnlineWindow::showLobby(const QJsonObject &state)
 {
     m_state = state;
-    if (state.value(QStringLiteral("phase")) == QLatin1String("Results")) { showResults(state); return; }
+    if (state.value(QStringLiteral("phase")) == QLatin1String("Results")) {
+        showResults(state);
+        advanceAutomation(state);
+        return;
+    }
     const bool showingMatch = m_matchController
         && (state.value(QStringLiteral("phase")) == QLatin1String("Preparing")
             || state.value(QStringLiteral("phase")) == QLatin1String("Playing"));
@@ -181,13 +358,37 @@ void OnlineWindow::showLobby(const QJsonObject &state)
         const bool ready = member.value(QStringLiteral("ready")).toBool();
         allReady = allReady && ready;
         if (member.value(QStringLiteral("memberId")).toString() == m_coordinator.memberId()) localReady = ready;
-        m_members->addItem(i18n("%1 — %2", member.value(QStringLiteral("displayName")).toString(), ready ? i18n("Ready") : i18n("Not ready")));
+        const bool memberOwner = member.value(QStringLiteral("memberId")).toString() == state.value(QStringLiteral("ownerMemberId")).toString();
+        m_members->addItem(i18n("%1%2 — %3", member.value(QStringLiteral("displayName")).toString(),
+            memberOwner ? i18n(" (owner)") : QString(), ready ? i18n("Ready") : i18n("Not ready")));
     }
+    m_players->clear();
+    const auto players = state.value(QStringLiteral("players")).toArray();
+    int localPlayers = 0;
+    for (const auto &value : players) {
+        const auto player = value.toObject();
+        const auto ownerId = player.value(QStringLiteral("ownerMemberId")).toString();
+        QString ownerName = ownerId;
+        for (const auto &memberValue : members) {
+            const auto member = memberValue.toObject();
+            if (member.value(QStringLiteral("memberId")).toString() == ownerId) ownerName = member.value(QStringLiteral("displayName")).toString();
+        }
+        auto *item = new QListWidgetItem(i18n("%1 — %2 — %3", player.value(QStringLiteral("displayName")).toString(),
+            player.value(QStringLiteral("color")).toString(), ownerName), m_players);
+        item->setData(Qt::UserRole, player.value(QStringLiteral("playerId")));
+        item->setData(Qt::UserRole + 1, player.value(QStringLiteral("displayName")));
+        item->setData(Qt::UserRole + 2, player.value(QStringLiteral("color")));
+        item->setData(Qt::UserRole + 3, ownerId);
+        if (ownerId == m_coordinator.memberId()) ++localPlayers;
+    }
+    for (int i = 0; i < m_players->count(); ++i) m_players->item(i)->setData(Qt::UserRole + 4, localPlayers);
     const bool open = state.value(QStringLiteral("phase")) == QLatin1String("Open");
     const bool owner = state.value(QStringLiteral("ownerMemberId")).toString() == m_coordinator.memberId();
     m_ready->setText(localReady ? i18nc("@action:button", "Unready") : i18nc("@action:button", "Ready"));
     m_ready->setEnabled(open);
-    m_start->setEnabled(open && owner && members.size() == 2 && allReady);
+    m_start->setEnabled(open && owner && members.size() >= 2 && players.size() >= 2 && players.size() <= 8 && allReady);
+    m_addPlayer->setEnabled(open && players.size() < 8);
+    m_editPlayer->setEnabled(false); m_removePlayer->setEnabled(false);
     const auto courseId = state.value(QStringLiteral("selectedCourseId")).toString();
     const auto index = m_lobbyCourse->findData(courseId);
     if (index >= 0) {
@@ -195,7 +396,10 @@ void OnlineWindow::showLobby(const QJsonObject &state)
         m_lobbyCourse->setCurrentIndex(index);
     }
     m_lobbyCourse->setEnabled(open && owner);
-    if (open) m_lobbyStatus->setText(i18n("Ready both players on this revision, then the owner can start."));
+    if (open) m_lobbyStatus->setText(players.size() < 2
+        ? i18n("2–8 players are required. Add another player or invite another member.")
+        : i18n("Ready every member on this revision, then the owner can start."));
+    advanceAutomation(state);
 }
 
 void OnlineWindow::showResults(const QJsonObject &state)
