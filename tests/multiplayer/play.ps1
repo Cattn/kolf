@@ -1,7 +1,7 @@
 param(
     [ValidateRange(2, 3)][int]$ClientCount = 2,
     [string]$CraftRootPath = 'C:\CraftRoot',
-    [string]$PythonPath = 'C:\Users\thecr\AppData\Local\Python\pythoncore-3.14-64\python.exe'
+    [string]$PythonPath
 )
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
@@ -25,6 +25,7 @@ $service = $null
 $clients = @()
 $previousPort = $env:KOLF_PORT
 $previousBind = $env:KOLF_BIND
+$previousDefaultEndpoint = $env:KOLF_ONLINE_DEFAULT_ENDPOINT
 try {
     $env:KOLF_PORT = [string]$port
     $env:KOLF_BIND = '127.0.0.1'
@@ -39,15 +40,17 @@ try {
         Start-Sleep -Milliseconds 100
     }
     $endpoint = "ws://127.0.0.1:$port"
+    $env:KOLF_ONLINE_DEFAULT_ENDPOINT = $endpoint
     Write-Host "Kolf online endpoint: $endpoint"
     Write-Host "Run logs: $runDirectory"
-    Write-Host "Open Game > Online in each client and enter the endpoint. Closing every client stops this launcher and its service."
+    Write-Host "Open Game > Online in each client; the local endpoint is preselected. Closing every client stops this launcher and its service."
     $launcher = Join-Path $PSScriptRoot 'launch-online.ps1'
     for ($index = 1; $index -le $ClientCount; ++$index) {
         $clientLog = Join-Path $runDirectory "client-$index"
         New-Item -ItemType Directory -Force -Path $clientLog | Out-Null
-        $clients += Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-File', $launcher,
-            '-CraftRootPath', $CraftRootPath, '-PythonPath', $PythonPath, '-LogDirectory', $clientLog) `
+        $launcherArgs = @('-NoProfile', '-File', $launcher, '-CraftRootPath', $CraftRootPath, '-LogDirectory', $clientLog)
+        if ($PythonPath) { $launcherArgs += @('-PythonPath', $PythonPath) }
+        $clients += Start-Process -FilePath 'powershell.exe' -ArgumentList $launcherArgs `
             -WindowStyle Hidden -PassThru
     }
     while ($clients.Where({ -not $_.HasExited }).Count -gt 0) { Start-Sleep -Milliseconds 500 }
@@ -55,6 +58,7 @@ try {
 finally {
     $env:KOLF_PORT = $previousPort
     $env:KOLF_BIND = $previousBind
+    $env:KOLF_ONLINE_DEFAULT_ENDPOINT = $previousDefaultEndpoint
     foreach ($client in $clients) {
         if (-not $client.HasExited) { & taskkill.exe /PID $client.Id /T /F 2>$null | Out-Null }
     }

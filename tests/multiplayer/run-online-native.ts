@@ -67,6 +67,14 @@ const nativePids = () => Array.from(new Set(Array.from({ length: clientCount }, 
     .filter(event => event.event === 'connect').map(event => event.processId))).flat()))
   .filter((pid): pid is number => Number.isInteger(pid) && pid > 0);
 const isAlive = (pid: number) => {
+  // On Windows a process stuck in DLL detach can make kill(pid, 0) report it
+  // as exited even while tasklist still shows the process and its resources.
+  if (process.platform === 'win32') {
+    const listing = spawnSync('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'],
+      { windowsHide: true, encoding: 'utf8' });
+    if (listing.status !== 0) throw Error(`Could not inspect native PID ${pid}: ${listing.stderr}`);
+    return listing.stdout.split(/\r?\n/).some(line => line.startsWith('"') && line.split(',')[1] === `"${pid}"`);
+  }
   try { process.kill(pid, 0); return true; } catch { return false; }
 };
 
