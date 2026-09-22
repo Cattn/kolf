@@ -32,7 +32,6 @@
 
 #include <KAboutData>
 #include <KCrash>
-#include <KDBusService>
 #include <KLocalizedString>
 #define HAVE_KICONTHEME __has_include(<KIconTheme>)
 #if HAVE_KICONTHEME
@@ -111,8 +110,6 @@ int main(int argc, char **argv)
         window.show();
         return app.exec();
     }
-
-    KDBusService service;
 
 	// I've actually added this for my web site uploaded courses display
 	if (parser.isSet(QStringLiteral("course-info")))

@@ -173,7 +173,6 @@ target_link_libraries(kolfprivate
     KF6::Crash
     KF6::Completion
     KF6::ConfigCore
-    KF6::DBusAddons
     KF6::I18n
     KF6::JobWidgets
     KF6::KIOCore
