@@ -23,7 +23,7 @@
 #include "newgame.h"
 #include "objects.h"
 #include "obstacles.h"
-#include "online/onlinewindow.h"
+#include "online/onlinewidget.h"
 #include "scoreboard.h"
 
 #include <KGameHighScoreDialog>
@@ -44,6 +44,7 @@
 #include <QGridLayout>
 #include <QMimeDatabase>
 #include <QStandardPaths>
+#include <QStackedWidget>
 #include <QStatusBar>
 #include <QTemporaryFile>
 #include <QTimer>
@@ -75,8 +76,10 @@ KolfWindow::KolfWindow()
 	//NOTE: The plugin mechanism has been removed because it is not used anyway.
 
 	filename = QString();
-	dummy = new QWidget(this);
-	setCentralWidget(dummy);
+	applicationStack = new QStackedWidget(this);
+	dummy = new QWidget(applicationStack);
+	applicationStack->addWidget(dummy);
+	setCentralWidget(applicationStack);
 	layout = new QGridLayout(dummy);
 
 	resize(420, 480);
@@ -214,13 +217,53 @@ void KolfWindow::setupActions()
 
 void KolfWindow::showOnline()
 {
-	if (!onlineWindow) {
-		onlineWindow = new Kolf::Online::OnlineWindow(this);
-		connect(onlineWindow, &QObject::destroyed, this, [this] { onlineWindow = nullptr; });
+	if (onlineWidget && applicationStack->currentWidget() == onlineWidget)
+		return;
+	if (!onlineWidget) {
+		onlineWidget = new Kolf::Online::OnlineWidget(applicationStack);
+		applicationStack->addWidget(onlineWidget);
+		connect(onlineWidget, &Kolf::Online::OnlineWidget::leaveRequested, this, &KolfWindow::leaveOnline);
 	}
-	onlineWindow->show();
-	onlineWindow->raise();
-	onlineWindow->activateWindow();
+	offlineActionStates.clear();
+	const QList<QAction *> offlineActions{
+		editingAction, newHoleAction, resetHoleAction, undoShotAction, clearHoleAction,
+		tutorialAction, newAction, endAction, saveAction, saveAsAction, saveGameAction,
+		saveGameAsAction, loadGameAction, aboutAction, holeAction, highScoreAction,
+		nextAction, prevAction, firstAction, lastAction, randAction,
+	};
+	for (auto *action : offlineActions) {
+		offlineActionStates.insert(action, action->isEnabled());
+		action->setEnabled(false);
+	}
+	onlineAction->setEnabled(false);
+	offlineGamePausedForOnline = game != nullptr;
+	if (offlineGamePausedForOnline)
+		game->pause();
+	applicationStack->setCurrentWidget(onlineWidget);
+	onlineWidget->setFocus();
+}
+
+void KolfWindow::leaveOnline()
+{
+	if (!onlineWidget || applicationStack->currentWidget() != onlineWidget)
+		return;
+	onlineWidget->leaveOnline();
+	applicationStack->setCurrentWidget(dummy);
+	for (auto it = offlineActionStates.constBegin(); it != offlineActionStates.constEnd(); ++it)
+		it.key()->setEnabled(it.value());
+	offlineActionStates.clear();
+	onlineAction->setEnabled(true);
+	if (offlineGamePausedForOnline && game) {
+		game->unPause();
+		game->setFocus();
+	}
+	offlineGamePausedForOnline = false;
+}
+
+void KolfWindow::startOnlineAutomation(const QJsonObject &config)
+{
+	showOnline();
+	onlineWidget->startAutomation(config);
 }
 
 bool KolfWindow::queryClose()

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-#include "onlinewindow.h"
+#include "onlinewidget.h"
 #include "session/sessioncontroller.h"
 
 #include <KConfigGroup>
@@ -28,13 +28,10 @@
 
 using namespace Kolf::Online;
 
-OnlineWindow::OnlineWindow(QWidget *parent)
-    : QWidget(parent, Qt::Window)
+OnlineWidget::OnlineWidget(QWidget *parent)
+    : QWidget(parent)
     , m_coordinator(this)
 {
-    setAttribute(Qt::WA_DeleteOnClose);
-    setWindowTitle(i18nc("@title:window", "Kolf Online"));
-    resize(520, 430);
     auto *root = new QVBoxLayout(this);
     m_pages = new QStackedWidget(this);
     root->addWidget(m_pages);
@@ -117,15 +114,21 @@ OnlineWindow::OnlineWindow(QWidget *parent)
     m_pages->addWidget(resultsPage);
 
     connect(connectButton, &QPushButton::clicked, this, [this] { m_coordinator.connectToService(m_endpoint->text()); });
-    connect(cancelButton, &QPushButton::clicked, this, &QWidget::close);
+    connect(cancelButton, &QPushButton::clicked, this, &OnlineWidget::leaveRequested);
     connect(createButton, &QPushButton::clicked, this, [this] {
         savePreferences(); m_coordinator.createLobby(m_name->text(), m_color->text(), m_createCourse->currentData().toString());
     });
     connect(joinButton, &QPushButton::clicked, this, [this] {
         savePreferences(); m_coordinator.joinLobby(m_joinCode->text(), m_name->text(), m_color->text());
     });
-    connect(entryDisconnect, &QPushButton::clicked, &m_coordinator, &OnlineCoordinator::disconnectFromService);
-    connect(lobbyDisconnect, &QPushButton::clicked, &m_coordinator, &OnlineCoordinator::disconnectFromService);
+    connect(entryDisconnect, &QPushButton::clicked, this, [this] {
+        m_coordinator.disconnectFromService();
+        Q_EMIT leaveRequested();
+    });
+    connect(lobbyDisconnect, &QPushButton::clicked, this, [this] {
+        m_coordinator.disconnectFromService();
+        Q_EMIT leaveRequested();
+    });
     connect(m_ready, &QPushButton::clicked, this, [this] {
         bool ready = false;
         for (const auto &value : m_state.value(QStringLiteral("members")).toArray()) {
@@ -166,7 +169,7 @@ OnlineWindow::OnlineWindow(QWidget *parent)
         if (!m_state.isEmpty()) m_coordinator.setCourse(m_lobbyCourse->currentData().toString());
     });
     connect(returnButton, &QPushButton::clicked, &m_coordinator, &OnlineCoordinator::returnToLobby);
-    connect(&m_coordinator, &OnlineCoordinator::connected, this, &OnlineWindow::showEntry);
+    connect(&m_coordinator, &OnlineCoordinator::connected, this, &OnlineWidget::showEntry);
     connect(&m_coordinator, &OnlineCoordinator::serviceChanged, this, [this](const QJsonObject &hello) {
         m_createCourse->clear(); m_lobbyCourse->clear();
         for (const auto &value : hello.value(QStringLiteral("courses")).toArray()) {
@@ -180,7 +183,7 @@ OnlineWindow::OnlineWindow(QWidget *parent)
         m_connectStatus->setText(i18n("Disconnected from the online service."));
         m_pages->setCurrentIndex(0);
     });
-    connect(&m_coordinator, &OnlineCoordinator::lobbyChanged, this, &OnlineWindow::showLobby);
+    connect(&m_coordinator, &OnlineCoordinator::lobbyChanged, this, &OnlineWidget::showLobby);
     connect(&m_coordinator, &OnlineCoordinator::lobbyClosed, this, [this](const QString &reason) {
         closeMatch(); showEntry(); m_entryStatus->setText(reason);
     });
@@ -210,7 +213,12 @@ OnlineWindow::OnlineWindow(QWidget *parent)
     });
 }
 
-void OnlineWindow::startAutomation(const QJsonObject &config)
+OnlineWidget::~OnlineWidget()
+{
+    closeMatch();
+}
+
+void OnlineWidget::startAutomation(const QJsonObject &config)
 {
     const auto role = config.value(QStringLiteral("role")).toString();
     const auto endpoint = config.value(QStringLiteral("endpoint")).toString();
@@ -234,7 +242,7 @@ void OnlineWindow::startAutomation(const QJsonObject &config)
     m_coordinator.connectToService(endpoint);
 }
 
-void OnlineWindow::advanceAutomation(const QJsonObject &state)
+void OnlineWidget::advanceAutomation(const QJsonObject &state)
 {
     if (m_automation.isEmpty()) return;
     m_automationMutationPending = false;
@@ -297,7 +305,7 @@ void OnlineWindow::advanceAutomation(const QJsonObject &state)
     }
 }
 
-void OnlineWindow::failAutomation(const QString &reason)
+void OnlineWidget::failAutomation(const QString &reason)
 {
     qCritical() << reason;
     if (!m_automation.isEmpty()) {
@@ -308,7 +316,7 @@ void OnlineWindow::failAutomation(const QString &reason)
     QTimer::singleShot(0, qApp, [] { QCoreApplication::exit(3); });
 }
 
-void OnlineWindow::showEntry()
+void OnlineWidget::showEntry()
 {
     KConfigGroup onlineConfig(KSharedConfig::openConfig(), QStringLiteral("Online"));
     onlineConfig.writeEntry("endpoint", m_endpoint->text().trimmed());
@@ -334,7 +342,7 @@ void OnlineWindow::showEntry()
     timer->start();
 }
 
-void OnlineWindow::showLobby(const QJsonObject &state)
+void OnlineWidget::showLobby(const QJsonObject &state)
 {
     m_state = state;
     if (state.value(QStringLiteral("phase")) == QLatin1String("Results")) {
@@ -402,7 +410,7 @@ void OnlineWindow::showLobby(const QJsonObject &state)
     advanceAutomation(state);
 }
 
-void OnlineWindow::showResults(const QJsonObject &state)
+void OnlineWidget::showResults(const QJsonObject &state)
 {
     closeMatch();
     m_pages->setCurrentIndex(3);
@@ -419,7 +427,7 @@ void OnlineWindow::showResults(const QJsonObject &state)
     m_result->setPlainText(text);
 }
 
-void OnlineWindow::closeMatch()
+void OnlineWidget::closeMatch()
 {
     if (!m_matchController) return;
     m_pages->removeWidget(m_matchController);
@@ -427,7 +435,16 @@ void OnlineWindow::closeMatch()
     m_matchController = nullptr;
 }
 
-void OnlineWindow::savePreferences()
+void OnlineWidget::leaveOnline()
+{
+    closeMatch();
+    m_coordinator.disconnectFromService();
+    m_state = {};
+    m_connectStatus->setText(i18n("Connect to a Kolf multiplayer service."));
+    m_pages->setCurrentIndex(0);
+}
+
+void OnlineWidget::savePreferences()
 {
     KConfigGroup onlineConfig(KSharedConfig::openConfig(), QStringLiteral("Online"));
     onlineConfig.writeEntry("displayName", m_name->text().trimmed());

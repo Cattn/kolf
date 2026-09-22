@@ -41,6 +41,11 @@ relay.stderr.on('data', data => relayLog.push(data.toString()));
 const pause = (ms: number) => new Promise(resolvePause => setTimeout(resolvePause, ms));
 const clients: ReturnType<typeof spawn>[] = [];
 const clientLogs: string[][] = [];
+// Craft's PowerShell environment bootstrap removes variables that are present in
+// its clean environment snapshot. npm's transient variables can disappear while
+// that list is applied, and $ErrorActionPreference=Stop then aborts the launcher.
+const craftLauncherEnvironment = Object.fromEntries(Object.entries(process.env)
+  .filter(([name]) => !name.toLowerCase().startsWith('npm_')));
 const exited = (child: ReturnType<typeof spawn>) => child.exitCode !== null || child.signalCode !== null;
 const stopLaunched = (child: ReturnType<typeof spawn>) => {
   if (exited(child)) return;
@@ -93,7 +98,7 @@ try {
     const output: string[] = []; clientLogs.push(output);
     const child = spawn('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe', ['-NoProfile', '-File',
       resolve(root, 'tests/multiplayer/launch-online-test.ps1'), '-Config', configPath, '-Course', course],
-    { cwd: root, windowsHide: true });
+    { cwd: root, env: craftLauncherEnvironment, windowsHide: true });
     child.stdout.on('data', data => output.push(data.toString()));
     child.stderr.on('data', data => output.push(data.toString()));
     clients.push(child);

@@ -17,11 +17,16 @@ class QTextEdit;
 namespace Kolf::Session { class SessionController; }
 
 namespace Kolf::Online {
-class OnlineWindow : public QWidget {
+class OnlineWidget : public QWidget {
     Q_OBJECT
 public:
-    explicit OnlineWindow(QWidget *parent = nullptr);
+    explicit OnlineWidget(QWidget *parent = nullptr);
+    ~OnlineWidget() override;
     void startAutomation(const QJsonObject &config);
+    void leaveOnline();
+
+Q_SIGNALS:
+    void leaveRequested();
 
 private:
     void showEntry();

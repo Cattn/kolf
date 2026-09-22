@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-22",
+  "baselineCommit": "0bd2461",
+  "scope": "productization Stage 1: embed the online flow in the ordinary Kolf main window",
+  "environment": {
+    "platform": "Windows",
+    "craftAbi": "windows-cl-msvc2022-x86_64",
+    "craftRoot": "C:\\CraftRoot",
+    "nativeScenario": "node ../tests/multiplayer/run-online-native.ts two-rematch"
+  },
+  "checks": {
+    "typescriptCheck": "passed",
+    "craftCompileInstallQmerge": "passed",
+    "twoClientMainWindowRematch": "passed: 2 clients, 2 matches, 2 clean native process exits",
+    "retiredTopLevelOnlineUiSourceSearch": "passed",
+    "humanUiSmoke": "not run",
+    "offlineSaveLoadSmoke": "not run"
+  },
+  "implemented": [
+    "made KolfWindow own an application page stack containing the offline and online surfaces",
+    "converted the top-level online shell into an embedded OnlineWidget",
+    "made cancel and disconnect restore the prior offline view and action states",
+    "paused and resumed an existing offline game while visiting the online flow",
+    "made native automation launch an ordinary KolfWindow and navigate through the embedded flow",
+    "sanitized npm-only environment variables before launching Craft-driven native clients"
+  ],
+  "notes": [
+    "Stage 2 will move the online match itself into the shared game surface and shared main-window chrome.",
+    "The bounded native rematch run exercised Connect, Create/Join, Lobby, Game, Results, Return, and rematch through the main-window path.",
+    "Human-only UI and offline save/load checks remain unverified and are reserved for the milestone validation budget."
+  ]
+}

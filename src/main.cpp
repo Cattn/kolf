@@ -18,7 +18,6 @@
 
 #include "kolf.h"
 #include "kolf_version.h"
-#include "online/onlinewindow.h"
 #include "session/onlineprotocol.h"
 #include <QJsonDocument>
 
@@ -106,8 +105,9 @@ int main(int argc, char **argv)
         QJsonParseError error;
         const auto document = QJsonDocument::fromJson(config.readAll(), &error);
         if (error.error != QJsonParseError::NoError || !document.isObject()) return 2;
-        Kolf::Online::OnlineWindow window;
-        window.startAutomation(document.object());
+        KolfWindow window;
+        window.closeGame();
+        window.startOnlineAutomation(document.object());
         window.show();
         return app.exec();
     }

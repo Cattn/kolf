@@ -24,15 +24,18 @@
 
 #include "game.h"
 #include "itemfactory.h"
+#include <QHash>
 #include <QUrl>
 class QGridLayout;
+class QJsonObject;
+class QStackedWidget;
 class QAction;
 class KSelectAction;
 class KToggleAction;
 
 class Editor;
 class ScoreBoard;
-namespace Kolf::Online { class OnlineWindow; }
+namespace Kolf::Online { class OnlineWidget; }
 
 class KolfWindow : public KXmlGuiWindow
 {
@@ -43,6 +46,7 @@ public:
 	~KolfWindow() override;
 
 	void openUrl(const QUrl &url);
+	void startOnlineAutomation(const QJsonObject &config);
 
 public Q_SLOTS:
 	void closeGame();
@@ -56,6 +60,7 @@ protected Q_SLOTS:
 	void loadGame();
 	void tutorial();
 	void showOnline();
+	void leaveOnline();
 	void newGame();
 	void save();
 	void saveAs();
@@ -88,6 +93,7 @@ protected Q_SLOTS:
 
 private:
 	QWidget *dummy;
+	QStackedWidget *applicationStack;
 	KolfGame *game;
 	Editor *editor;
 	KolfGame *spacer;
@@ -138,7 +144,9 @@ private:
 	bool courseModified;
 	QString title;
 	QString tempStatusBarText;
-	Kolf::Online::OnlineWindow *onlineWindow = nullptr;
+	Kolf::Online::OnlineWidget *onlineWidget = nullptr;
+	QHash<QAction *, bool> offlineActionStates;
+	bool offlineGamePausedForOnline = false;
 };
 
 struct HighScore
