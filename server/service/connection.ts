@@ -91,8 +91,19 @@ export class LobbyProtocolController {
             case 'SetReady': lobby.setReady(memberId, message.requestId!, message.payload.lobbyRevision, message.payload.ready); break;
             case 'StartMatch': lobby.start(memberId, message.requestId!, message.payload.lobbyRevision); break;
             case 'CourseReady': {
-              const result = lobby.courseReady(memberId, message.requestId!, message.matchId!, message.payload.courseHash,
-                message.payload.compatibilityId);
+              let result;
+              try {
+                result = lobby.courseReady(memberId, message.requestId!, message.matchId!, message.payload.courseHash,
+                  message.payload.compatibilityId);
+              } catch (error) {
+                if (error instanceof LobbyError && error.code === 'StaleMatch' && lobby.phase === 'Open')
+                  return this.broadcast(lobby.state(), 'LobbyState', {}, requestId);
+                if (!(error instanceof LobbyError)
+                  || (error.code !== 'CourseMismatch' && error.code !== 'CompatibilityMismatch')) throw error;
+                const state = lobby.abortPreparation(message.matchId!, error.message);
+                this.matches.delete(message.matchId!);
+                return this.broadcast(state, 'PreparationAborted', { reason: error.message }, requestId);
+              }
               if (result.allReady) {
                 const match = new MatchCoordinator(lobby.state()); this.matches.set(message.matchId!, match);
                 return [...this.broadcast(lobby.state(), 'PreparationReady', {}, requestId),

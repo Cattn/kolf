@@ -284,15 +284,11 @@ export class LobbySession {
       const match = this.match!;
       if (!validators.hash(courseHash) || !validators.hash(compatibilityId))
         throw new LobbyError('InvalidPreparation', 'course and compatibility identities must be SHA-256 values');
-      if (courseHash !== match.course.expectedHash) {
-        this.abortPreparationInternal();
+      if (courseHash !== match.course.expectedHash)
         throw new LobbyError('CourseMismatch', 'local course does not match the catalog');
-      }
       const existingIdentity = [...match.courseReady.values()][0]?.compatibilityId;
-      if (existingIdentity && existingIdentity !== compatibilityId) {
-        this.abortPreparationInternal();
+      if (existingIdentity && existingIdentity !== compatibilityId)
         throw new LobbyError('CompatibilityMismatch', 'clients have different gameplay identities');
-      }
       match.compatibilityId = compatibilityId;
       match.courseReady.set(actor, { courseHash, compatibilityId });
       return { allReady: match.courseReady.size === this.members.size, match: cloneMatch(match) };

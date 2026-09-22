@@ -17,5 +17,6 @@ struct OnlineEnvelope {
 bool decodeOnlineEnvelope(const QByteArray &raw, OnlineEnvelope &envelope, QString &errorCode);
 QJsonObject onlineEnvelope(const QString &type, const QJsonObject &payload = {}, const QString &requestId = {},
                        const QString &lobbyId = {}, const QString &matchId = {});
+QString onlineCourseHash(QByteArray content);
 int runOnlineProtocolFixtures(const QString &path);
 }

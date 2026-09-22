@@ -5,7 +5,7 @@ import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
 import { WebSocket } from 'ws';
 import { envelope } from '../protocol/envelope.ts';
-import { loadCourseCatalog } from '../service/course-catalog.ts';
+import { courseHash, loadCourseCatalog } from '../service/course-catalog.ts';
 import { LobbyWebSocketService } from '../service/websocket-service.ts';
 
 const courseRoot = fileURLToPath(new URL('../../courses/', import.meta.url));
@@ -25,10 +25,12 @@ async function openedWithHello(url: string) {
   return { socket, hello: await helloMessage };
 }
 
-test('shipped course catalog hashes raw allowlisted files', () => {
+test('shipped course catalog hashes allowlisted files with platform-neutral line endings', () => {
   const catalog = loadCourseCatalog(courseRoot);
   assert.deepEqual(catalog.map(course => course.courseId), ['classic', 'easy', 'practice']);
   assert(catalog.every(course => /^[a-f0-9]{64}$/.test(course.expectedHash)));
+  assert.equal(courseHash(Buffer.from("[0-course]\r\nName=Classic\r\n")),
+    courseHash(Buffer.from("[0-course]\nName=Classic\n")));
   assert.throws(() => loadCourseCatalog(courseRoot, [{ courseId: 'escape', displayName: 'Escape', fileName: '../intro' }]));
 });
 

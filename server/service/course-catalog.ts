@@ -17,13 +17,18 @@ export const shippedDevelopmentCourses: CatalogFile[] = [
   { courseId: 'practice', displayName: 'Practice', fileName: 'Practice' },
 ];
 
+export function courseHash(content: Buffer): string {
+  const normalized = content.toString('utf8').replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+  return createHash('sha256').update(normalized).digest('hex');
+}
+
 export function loadCourseCatalog(root: string, files: CatalogFile[] = shippedDevelopmentCourses): CourseCatalogEntry[] {
   const catalogRoot = resolve(root);
   return files.map(file => {
     const path = resolve(catalogRoot, file.fileName);
     const fromRoot = relative(catalogRoot, path);
     if (!fromRoot || fromRoot.startsWith('..') || isAbsolute(fromRoot)) throw Error(`catalog path escapes root: ${file.fileName}`);
-    const expectedHash = createHash('sha256').update(readFileSync(path)).digest('hex');
+    const expectedHash = courseHash(readFileSync(path));
     return { courseId: file.courseId, displayName: file.displayName, resourceName: file.fileName,
       expectedHash, par: file.par ? [...file.par] : undefined };
   });

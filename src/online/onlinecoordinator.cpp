@@ -4,7 +4,6 @@
 #include "session/onlineprotocol.h"
 #include "rules_build_id.h"
 
-#include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
@@ -198,7 +197,7 @@ void OnlineCoordinator::prepareCourse()
         return;
     }
     m_coursePath = path;
-    const auto hash = QString::fromLatin1(QCryptographicHash::hash(file.readAll(), QCryptographicHash::Sha256).toHex());
+    const auto hash = Session::onlineCourseHash(file.readAll());
     send(QStringLiteral("CourseReady"), {{QStringLiteral("courseHash"), hash},
          {QStringLiteral("compatibilityId"), QStringLiteral(KOLF_RULES_BUILD_ID)}}, true);
     Q_EMIT statusChanged(tr("Course verified. Waiting for the other members…"));

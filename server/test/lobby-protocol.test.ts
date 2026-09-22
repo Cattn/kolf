@@ -77,6 +77,34 @@ test('two protocol clients can complete a lobby shell and start a fresh rematch'
   assert.equal(reusedMatchRequest[0].message.type, 'LobbyState', 'a rematch has a fresh request namespace');
 });
 
+test('course mismatch aborts preparation coherently for every member', () => {
+  const controller = new LobbyProtocolController(catalog, ids());
+  const alice = controller.connect(), bob = controller.connect();
+  const created = send(controller, alice, envelope('CreateLobby', {
+    displayName: 'Alice', color: '#ff0000ff', courseId: 'classic',
+  }, { requestId: 'create_mismatch' }));
+  const firstState = stateOf(created), lobbyId = firstState.lobbyId as string;
+  send(controller, bob, envelope('JoinLobby', {
+    joinCode: firstState.joinCode, displayName: 'Bob', color: '#0000ffff',
+  }, { requestId: 'join_mismatch' }));
+  const revision = controller.service.activeLobby(lobbyId).lobbyRevision;
+  send(controller, alice, envelope('SetReady', { lobbyRevision: revision, ready: true },
+    { requestId: 'ready_mismatch_a', lobbyId }));
+  send(controller, bob, envelope('SetReady', { lobbyRevision: revision, ready: true },
+    { requestId: 'ready_mismatch_b', lobbyId }));
+  const started = send(controller, alice, envelope('StartMatch', { lobbyRevision: revision },
+    { requestId: 'start_mismatch', lobbyId }));
+  const matchId = stateOf(started).match.matchId as string;
+  const aborted = send(controller, alice, envelope('CourseReady', {
+    courseHash: 'c'.repeat(64), compatibilityId,
+  }, { requestId: 'course_mismatch_a', lobbyId, matchId }));
+  assert.deepEqual(aborted.map(delivery => delivery.message.type), ['PreparationAborted', 'PreparationAborted']);
+  assert(aborted.every(delivery => (delivery.message.payload.state as any).phase === 'Open'));
+  const late = send(controller, bob, envelope('CourseReady', { courseHash, compatibilityId },
+    { requestId: 'course_mismatch_b', lobbyId, matchId }));
+  assert.equal(late[0].message.type, 'LobbyState');
+});
+
 test('non-current versions get a clear protocol mismatch response', () => {
   const controller = new LobbyProtocolController(catalog, ids());
   const connection = controller.connect();

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "onlineprotocol.h"
 
+#include <QCryptographicHash>
 #include <QDebug>
 #include <QFile>
 #include <QJsonArray>
@@ -69,6 +70,13 @@ QJsonObject onlineEnvelope(const QString &type, const QJsonObject &payload, cons
     if (!lobbyId.isEmpty()) message[QStringLiteral("lobbyId")] = lobbyId;
     if (!matchId.isEmpty()) message[QStringLiteral("matchId")] = matchId;
     return message;
+}
+
+QString onlineCourseHash(QByteArray content)
+{
+    content.replace("\r\n", "\n");
+    content.replace('\r', '\n');
+    return QString::fromLatin1(QCryptographicHash::hash(content, QCryptographicHash::Sha256).toHex());
 }
 
 int runOnlineProtocolFixtures(const QString &path)
