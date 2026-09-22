@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "onlinewidget.h"
 #include "color.h"
+#include "playerprofileeditor.h"
 
 #include <KConfigGroup>
 #include <KLocalizedString>
@@ -22,17 +23,43 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
-#include <QInputDialog>
+#include <QDialog>
+#include <QDialogButtonBox>
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QStackedWidget>
 #include <QTextEdit>
+#include <QTextCharFormat>
+#include <QTextCursor>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QUrl>
 #include <QPixmap>
 
 using namespace Kolf::Online;
+
+static bool editProfile(QWidget *parent, const QString &title, QString &name, QString &mode, QString &customColor)
+{
+    QDialog dialog(parent);
+    dialog.setWindowTitle(title);
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *editor = new PlayerProfileEditor(&dialog);
+    editor->setProfile(name, mode, customColor);
+    layout->addWidget(editor);
+    auto *error = new QLabel(&dialog);
+    error->setWordWrap(true);
+    layout->addWidget(error);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    layout->addWidget(buttons);
+    QObject::connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, [&] {
+        if (!editor->isValid()) { error->setText(i18n("Enter a player name.")); return; }
+        dialog.accept();
+    });
+    if (dialog.exec() != QDialog::Accepted) return false;
+    name = editor->playerName(); mode = editor->colorMode(); customColor = editor->customColor();
+    return true;
+}
 
 OnlineWidget::OnlineWidget(QWidget *parent)
     : QWidget(parent)
@@ -83,13 +110,12 @@ OnlineWidget::OnlineWidget(QWidget *parent)
 
     auto *entryPage = new QWidget(this);
     auto *entryLayout = new QVBoxLayout(entryPage);
+    m_profile = new PlayerProfileEditor(entryPage);
+    m_profile->setProfile(onlineConfig.readEntry("displayName", QStringLiteral("Player")),
+        onlineConfig.readEntry("colorMode", QStringLiteral("auto")),
+        onlineConfig.readEntry("customColor", QStringLiteral("#0072b2ff")));
+    entryLayout->addWidget(m_profile);
     auto *profileForm = new QFormLayout;
-    m_name = new QLineEdit(onlineConfig.readEntry("displayName", QStringLiteral("Player")), entryPage);
-    m_name->setMaxLength(32);
-    m_color = new QLineEdit(onlineConfig.readEntry("color", QStringLiteral("#3daee9ff")), entryPage);
-    m_color->setMaxLength(9);
-    profileForm->addRow(i18nc("@label", "Display name:"), m_name);
-    profileForm->addRow(i18nc("@label", "Ball color (#RRGGBBAA):"), m_color);
     m_createCourse = new QComboBox(entryPage);
     profileForm->addRow(i18nc("@label", "Course:"), m_createCourse);
     entryLayout->addLayout(profileForm);
@@ -133,6 +159,7 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     m_lobbyCourse = new QComboBox(lobbyPage);
     courseRow->addRow(i18nc("@label", "Course:"), m_lobbyCourse); setupColumn->addLayout(courseRow);
     m_lobbyStatus = new QLabel(lobbyPage); m_lobbyStatus->setWordWrap(true); setupColumn->addWidget(m_lobbyStatus);
+    m_colorWarning = new QLabel(lobbyPage); m_colorWarning->setWordWrap(true); setupColumn->addWidget(m_colorWarning);
     setupColumn->addStretch();
     columns->addLayout(setupColumn, 1);
     lobbyLayout->addLayout(columns, 1);
@@ -178,13 +205,17 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         if (m_entryRequestPending) return;
         m_entryRequestPending = true;
         m_createButton->setEnabled(false); m_joinButton->setEnabled(false);
-        savePreferences(); m_coordinator.createLobby(m_name->text(), m_color->text(), m_createCourse->currentData().toString());
+        if (!m_profile->isValid()) { m_entryStatus->setText(i18n("Enter a player name.")); m_entryRequestPending = false; m_createButton->setEnabled(true); m_joinButton->setEnabled(true); return; }
+        savePreferences(); m_coordinator.createLobby(m_profile->playerName(), m_profile->colorMode(),
+            m_profile->customColor(), m_createCourse->currentData().toString());
     });
     connect(m_joinButton, &QPushButton::clicked, this, [this] {
         if (m_entryRequestPending) return;
         m_entryRequestPending = true;
         m_createButton->setEnabled(false); m_joinButton->setEnabled(false);
-        savePreferences(); m_coordinator.joinLobby(m_joinCode->text(), m_name->text(), m_color->text());
+        if (!m_profile->isValid()) { m_entryStatus->setText(i18n("Enter a player name.")); m_entryRequestPending = false; m_createButton->setEnabled(true); m_joinButton->setEnabled(true); return; }
+        savePreferences(); m_coordinator.joinLobby(m_joinCode->text(), m_profile->playerName(),
+            m_profile->colorMode(), m_profile->customColor());
     });
     connect(entryDisconnect, &QPushButton::clicked, this, [this] {
         m_coordinator.disconnectFromService();
@@ -204,24 +235,19 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     });
     connect(m_start, &QPushButton::clicked, &m_coordinator, &OnlineCoordinator::startMatch);
     connect(m_addPlayer, &QPushButton::clicked, this, [this] {
-        bool accepted = false;
-        const auto name = QInputDialog::getText(this, i18nc("@title:window", "Add local player"),
-            i18nc("@label", "Player name:"), QLineEdit::Normal, m_name->text(), &accepted).trimmed();
-        if (!accepted || name.isEmpty()) return;
-        const auto color = QInputDialog::getText(this, i18nc("@title:window", "Add local player"),
-            i18nc("@label", "Ball color (#RRGGBBAA):"), QLineEdit::Normal, m_color->text(), &accepted).trimmed();
-        if (accepted) m_coordinator.addPlayer(name, color);
+        QString name = i18n("Player %1", m_state.value(QStringLiteral("players")).toArray().size() + 1);
+        QString mode = QStringLiteral("auto"), customColor;
+        if (editProfile(this, i18nc("@title:window", "Add local player"), name, mode, customColor))
+            m_coordinator.addPlayer(name, mode, customColor);
     });
     connect(m_editPlayer, &QPushButton::clicked, this, [this] {
         const auto *item = m_players->currentItem();
         if (!item) return;
-        bool accepted = false;
-        const auto name = QInputDialog::getText(this, i18nc("@title:window", "Edit player"),
-            i18nc("@label", "Player name:"), QLineEdit::Normal, item->data(Qt::UserRole + 1).toString(), &accepted).trimmed();
-        if (!accepted || name.isEmpty()) return;
-        const auto color = QInputDialog::getText(this, i18nc("@title:window", "Edit player"),
-            i18nc("@label", "Ball color (#RRGGBBAA):"), QLineEdit::Normal, item->data(Qt::UserRole + 2).toString(), &accepted).trimmed();
-        if (accepted) m_coordinator.updatePlayer(item->data(Qt::UserRole).toString(), name, color);
+        QString name = item->data(Qt::UserRole + 1).toString();
+        QString mode = item->data(Qt::UserRole + 2).toString();
+        QString customColor = item->data(Qt::UserRole + 5).toString();
+        if (editProfile(this, i18nc("@title:window", "Edit player"), name, mode, customColor))
+            m_coordinator.updatePlayer(item->data(Qt::UserRole).toString(), name, mode, customColor);
     });
     connect(m_removePlayer, &QPushButton::clicked, this, [this] {
         if (const auto *item = m_players->currentItem()) m_coordinator.removePlayer(item->data(Qt::UserRole).toString());
@@ -366,8 +392,8 @@ void OnlineWidget::startAutomation(const QJsonObject &config)
     }
     m_automation = config;
     m_endpoint->setText(endpoint);
-    m_name->setText(config.value(QStringLiteral("displayName")).toString());
-    m_color->setText(config.value(QStringLiteral("color")).toString());
+    m_profile->setProfile(config.value(QStringLiteral("displayName")).toString(), QStringLiteral("custom"),
+        config.value(QStringLiteral("color")).toString());
     QDir().mkpath(logDirectory);
     m_coordinator.connectToService(endpoint);
 }
@@ -420,7 +446,8 @@ void OnlineWidget::advanceAutomation(const QJsonObject &state)
             const auto player = additionalPlayers.at(m_automationAddedPlayers).toObject();
             ++m_automationAddedPlayers;
             m_automationMutationPending = true;
-            m_coordinator.addPlayer(player.value(QStringLiteral("displayName")).toString(), player.value(QStringLiteral("color")).toString());
+            m_coordinator.addPlayer(player.value(QStringLiteral("displayName")).toString(), QStringLiteral("custom"),
+                player.value(QStringLiteral("color")).toString());
         }
         return;
     }
@@ -470,7 +497,8 @@ void OnlineWidget::showEntry()
     if (m_automation.isEmpty() || m_automationCreateOrJoinSent) return;
     m_automationCreateOrJoinSent = true;
     if (m_automation.value(QStringLiteral("role")) == QLatin1String("owner")) {
-        m_coordinator.createLobby(m_name->text(), m_color->text(), m_automation.value(QStringLiteral("courseId")).toString());
+        m_coordinator.createLobby(m_profile->playerName(), m_profile->colorMode(), m_profile->customColor(),
+            m_automation.value(QStringLiteral("courseId")).toString());
         return;
     }
     auto *timer = new QTimer(this);
@@ -481,7 +509,7 @@ void OnlineWidget::showEntry()
         const auto joinCode = QString::fromUtf8(file.readAll()).trimmed();
         if (joinCode.isEmpty()) return;
         timer->stop(); timer->deleteLater();
-        m_coordinator.joinLobby(joinCode, m_name->text(), m_color->text());
+        m_coordinator.joinLobby(joinCode, m_profile->playerName(), m_profile->colorMode(), m_profile->customColor());
     });
     timer->start();
 }
@@ -501,6 +529,17 @@ void OnlineWidget::showLobby(const QJsonObject &state)
     if (!m_matchActive) m_pages->setCurrentIndex(2);
     m_lobbySummary->setText(i18n("Join code: %1", state.value(QStringLiteral("joinCode")).toString()));
     m_players->clear();
+    QSet<QString> manualColors;
+    bool duplicateManualColor = false;
+    for (const auto &value : state.value(QStringLiteral("players")).toArray()) {
+        const auto player = value.toObject();
+        if (player.value(QStringLiteral("colorMode")) != QLatin1String("custom")) continue;
+        const auto selected = player.value(QStringLiteral("customColor")).toString().toLower();
+        if (manualColors.contains(selected)) duplicateManualColor = true;
+        manualColors.insert(selected);
+    }
+    m_colorWarning->setText(duplicateManualColor
+        ? i18n("Some players selected the same color. Names will still identify them.") : QString());
     bool localReady = false, allReady = true;
     const auto members = state.value(QStringLiteral("members")).toArray();
     for (const auto &value : members) {
@@ -516,16 +555,18 @@ void OnlineWidget::showLobby(const QJsonObject &state)
         for (const auto &playerValue : state.value(QStringLiteral("players")).toArray()) {
             const auto player = playerValue.toObject();
             if (player.value(QStringLiteral("ownerMemberId")).toString() != member.value(QStringLiteral("memberId")).toString()) continue;
-            auto *item = new QListWidgetItem(i18n("    %1 — %2", player.value(QStringLiteral("displayName")).toString(),
-                player.value(QStringLiteral("color")).toString()), m_players);
-            const QColor color = colorFromRgba(player.value(QStringLiteral("color")).toString());
+            const auto resolved = player.value(QStringLiteral("resolvedColor")).toString();
+            auto *item = new QListWidgetItem(i18n("    %1 — %2 (%3)", player.value(QStringLiteral("displayName")).toString(),
+                player.value(QStringLiteral("colorMode")) == QLatin1String("auto") ? i18n("Auto") : i18n("Custom"), resolved), m_players);
+            const QColor color = colorFromRgba(resolved);
             if (color.isValid()) {
                 QPixmap swatch(16, 16); swatch.fill(color); item->setIcon(QIcon(swatch));
             }
             item->setData(Qt::UserRole, player.value(QStringLiteral("playerId")));
             item->setData(Qt::UserRole + 1, player.value(QStringLiteral("displayName")));
-            item->setData(Qt::UserRole + 2, player.value(QStringLiteral("color")));
+            item->setData(Qt::UserRole + 2, player.value(QStringLiteral("colorMode")));
             item->setData(Qt::UserRole + 3, member.value(QStringLiteral("memberId")));
+            item->setData(Qt::UserRole + 5, player.value(QStringLiteral("customColor")));
         }
     }
     const auto players = state.value(QStringLiteral("players")).toArray();
@@ -563,16 +604,24 @@ void OnlineWidget::showResults(const QJsonObject &state)
         Q_EMIT matchEnded();
     }
     const auto result = state.value(QStringLiteral("latestResult")).toObject();
-    QString text = i18n("Status: %1\nCourse: %2\n", result.value(QStringLiteral("status")).toString(),
-                        result.value(QStringLiteral("courseId")).toString());
+    m_result->clear();
+    QTextCursor cursor = m_result->textCursor();
+    cursor.insertText(i18n("Status: %1\nCourse: %2\n", result.value(QStringLiteral("status")).toString(),
+                           result.value(QStringLiteral("courseId")).toString()));
     const auto roster = result.value(QStringLiteral("roster")).toArray();
     const auto totals = result.value(QStringLiteral("totals")).toArray();
-    for (qsizetype i = 0; i < roster.size(); ++i)
-        text += i18n("%1: %2\n", roster[i].toObject().value(QStringLiteral("displayName")).toString(),
-                     i < totals.size() ? totals.at(i).toInt() : 0);
+    for (qsizetype i = 0; i < roster.size(); ++i) {
+        const auto player = roster[i].toObject();
+        const auto rgba = player.value(QStringLiteral("resolvedColor")).toString();
+        QTextCharFormat swatch;
+        swatch.setForeground(colorFromRgba(rgba));
+        swatch.setToolTip(rgba);
+        cursor.insertText(QStringLiteral("■ "), swatch);
+        cursor.insertText(i18n("%1: %2 (%3)\n", player.value(QStringLiteral("displayName")).toString(),
+            i < totals.size() ? totals.at(i).toInt() : 0, rgba), QTextCharFormat());
+    }
     if (result.value(QStringLiteral("status")) == QLatin1String("Interrupted"))
-        text += i18n("Reason: %1\n", result.value(QStringLiteral("reason")).toString());
-    m_result->setPlainText(text);
+        cursor.insertText(i18n("Reason: %1\n", result.value(QStringLiteral("reason")).toString()));
 }
 
 void OnlineWidget::leaveOnline()
@@ -591,7 +640,9 @@ void OnlineWidget::leaveOnline()
 void OnlineWidget::savePreferences()
 {
     KConfigGroup onlineConfig(KSharedConfig::openConfig(), QStringLiteral("Online"));
-    onlineConfig.writeEntry("displayName", m_name->text().trimmed());
-    onlineConfig.writeEntry("color", m_color->text().trimmed());
+    onlineConfig.writeEntry("displayName", m_profile->playerName());
+    onlineConfig.writeEntry("colorMode", m_profile->colorMode());
+    onlineConfig.writeEntry("customColor", m_profile->customColor());
+    onlineConfig.deleteEntry("color");
     onlineConfig.sync();
 }

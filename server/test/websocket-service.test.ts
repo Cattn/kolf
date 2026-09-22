@@ -55,7 +55,7 @@ test('two remote WebSocket clients create and join a v3 lobby', async t => {
 
   const createdMessage = nextMessage(alice);
   alice.send(JSON.stringify(envelope('CreateLobby', {
-    displayName: 'Alice', color: '#ff0000ff', courseId: 'classic',
+    displayName: 'Alice', colorMode: 'custom', customColor: '#ff0000ff', courseId: 'classic',
   }, { requestId: 'create_1' })));
   const created = await createdMessage;
   assert.equal(created.type, 'LobbyCreated');
@@ -63,7 +63,7 @@ test('two remote WebSocket clients create and join a v3 lobby', async t => {
 
   const aliceJoined = nextMessage(alice), bobJoined = nextMessage(bob);
   bob.send(JSON.stringify(envelope('JoinLobby', {
-    joinCode: state.joinCode, displayName: 'Bob', color: '#0000ffff',
+    joinCode: state.joinCode, displayName: 'Bob', colorMode: 'custom', customColor: '#0000ffff',
   }, { requestId: 'join_1' })));
   const [forAlice, forBob] = await Promise.all([aliceJoined, bobJoined]);
   assert.equal(forAlice.type, 'LobbyState');
@@ -88,20 +88,20 @@ test('two rooms accept interleaved roster and start traffic without cross-room l
   const [a, b, c, d] = sockets; t.after(() => sockets.forEach(socket => socket.terminate()));
 
   const createdA = nextMessage(a), createdC = nextMessage(c);
-  a.send(JSON.stringify(envelope('CreateLobby', { displayName: 'A', color: '#ff0000ff', courseId: 'classic' }, { requestId: 'create_a' })));
-  c.send(JSON.stringify(envelope('CreateLobby', { displayName: 'C', color: '#00ff00ff', courseId: 'classic' }, { requestId: 'create_c' })));
+  a.send(JSON.stringify(envelope('CreateLobby', { displayName: 'A', colorMode: 'custom', customColor: '#ff0000ff', courseId: 'classic' }, { requestId: 'create_a' })));
+  c.send(JSON.stringify(envelope('CreateLobby', { displayName: 'C', colorMode: 'custom', customColor: '#00ff00ff', courseId: 'classic' }, { requestId: 'create_c' })));
   const [roomA, roomC] = (await Promise.all([createdA, createdC])).map(message => message.payload.state);
   assert.notEqual(roomA.lobbyId, roomC.lobbyId);
 
   const joinA1 = nextMessage(a), joinA2 = nextMessage(b), joinC1 = nextMessage(c), joinC2 = nextMessage(d);
-  b.send(JSON.stringify(envelope('JoinLobby', { joinCode: roomA.joinCode, displayName: 'B', color: '#0000ffff' }, { requestId: 'join_b' })));
-  d.send(JSON.stringify(envelope('JoinLobby', { joinCode: roomC.joinCode, displayName: 'D', color: '#ffff00ff' }, { requestId: 'join_d' })));
+  b.send(JSON.stringify(envelope('JoinLobby', { joinCode: roomA.joinCode, displayName: 'B', colorMode: 'custom', customColor: '#0000ffff' }, { requestId: 'join_b' })));
+  d.send(JSON.stringify(envelope('JoinLobby', { joinCode: roomC.joinCode, displayName: 'D', colorMode: 'custom', customColor: '#ffff00ff' }, { requestId: 'join_d' })));
   const joined = await Promise.all([joinA1, joinA2, joinC1, joinC2]);
   assert(joined.slice(0, 2).every(message => message.payload.state.lobbyId === roomA.lobbyId));
   assert(joined.slice(2).every(message => message.payload.state.lobbyId === roomC.lobbyId));
 
   const addA1 = nextMessage(a), addA2 = nextMessage(b);
-  a.send(JSON.stringify(envelope('AddPlayer', { displayName: 'A2', color: '#ff00ffff' },
+  a.send(JSON.stringify(envelope('AddPlayer', { displayName: 'A2', colorMode: 'custom', customColor: '#ff00ffff' },
     { requestId: 'add_a2', lobbyId: roomA.lobbyId })));
   const added = await Promise.all([addA1, addA2]);
   assert(added.every(message => message.payload.state.players.length === 3));

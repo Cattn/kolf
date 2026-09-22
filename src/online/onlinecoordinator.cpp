@@ -64,16 +64,27 @@ void OnlineCoordinator::disconnectFromService()
     m_state = {}; m_serviceHello = {}; m_memberId.clear(); m_lobbyId.clear(); m_matchId.clear(); m_preparedMatchId.clear(); m_coursePath.clear();
 }
 
-void OnlineCoordinator::createLobby(const QString &displayName, const QString &color, const QString &courseId)
+static QJsonObject colorChoice(const QString &mode, const QString &color)
 {
-    send(QStringLiteral("CreateLobby"), {{QStringLiteral("displayName"), displayName.trimmed()},
-         {QStringLiteral("color"), canonicalColor(color)}, {QStringLiteral("courseId"), courseId}});
+    QJsonObject choice{{QStringLiteral("colorMode"), mode}};
+    if (mode == QLatin1String("custom")) choice[QStringLiteral("customColor")] = canonicalColor(color);
+    return choice;
 }
 
-void OnlineCoordinator::joinLobby(const QString &joinCode, const QString &displayName, const QString &color)
+void OnlineCoordinator::createLobby(const QString &displayName, const QString &colorMode, const QString &customColor, const QString &courseId)
 {
-    send(QStringLiteral("JoinLobby"), {{QStringLiteral("joinCode"), joinCode.trimmed().toUpper()},
-         {QStringLiteral("displayName"), displayName.trimmed()}, {QStringLiteral("color"), canonicalColor(color)}});
+    auto payload = colorChoice(colorMode, customColor);
+    payload[QStringLiteral("displayName")] = displayName.trimmed();
+    payload[QStringLiteral("courseId")] = courseId;
+    send(QStringLiteral("CreateLobby"), payload);
+}
+
+void OnlineCoordinator::joinLobby(const QString &joinCode, const QString &displayName, const QString &colorMode, const QString &customColor)
+{
+    auto payload = colorChoice(colorMode, customColor);
+    payload[QStringLiteral("joinCode")] = joinCode.trimmed().toUpper();
+    payload[QStringLiteral("displayName")] = displayName.trimmed();
+    send(QStringLiteral("JoinLobby"), payload);
 }
 
 void OnlineCoordinator::setReady(bool ready)
@@ -82,16 +93,19 @@ void OnlineCoordinator::setReady(bool ready)
          {QStringLiteral("ready"), ready}});
 }
 
-void OnlineCoordinator::addPlayer(const QString &displayName, const QString &color)
+void OnlineCoordinator::addPlayer(const QString &displayName, const QString &colorMode, const QString &customColor)
 {
-    send(QStringLiteral("AddPlayer"), {{QStringLiteral("displayName"), displayName.trimmed()},
-         {QStringLiteral("color"), canonicalColor(color)}});
+    auto payload = colorChoice(colorMode, customColor);
+    payload[QStringLiteral("displayName")] = displayName.trimmed();
+    send(QStringLiteral("AddPlayer"), payload);
 }
 
-void OnlineCoordinator::updatePlayer(const QString &playerId, const QString &displayName, const QString &color)
+void OnlineCoordinator::updatePlayer(const QString &playerId, const QString &displayName, const QString &colorMode, const QString &customColor)
 {
-    send(QStringLiteral("UpdatePlayer"), {{QStringLiteral("playerId"), playerId},
-         {QStringLiteral("displayName"), displayName.trimmed()}, {QStringLiteral("color"), canonicalColor(color)}});
+    auto payload = colorChoice(colorMode, customColor);
+    payload[QStringLiteral("playerId")] = playerId;
+    payload[QStringLiteral("displayName")] = displayName.trimmed();
+    send(QStringLiteral("UpdatePlayer"), payload);
 }
 
 void OnlineCoordinator::removePlayer(const QString &playerId)

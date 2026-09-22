@@ -19,11 +19,11 @@ public:
 public Q_SLOTS:
     void connectToService(const QString &endpoint);
     void disconnectFromService();
-    void createLobby(const QString &displayName, const QString &color, const QString &courseId);
-    void joinLobby(const QString &joinCode, const QString &displayName, const QString &color);
+    void createLobby(const QString &displayName, const QString &colorMode, const QString &customColor, const QString &courseId);
+    void joinLobby(const QString &joinCode, const QString &displayName, const QString &colorMode, const QString &customColor);
     void setReady(bool ready);
-    void addPlayer(const QString &displayName, const QString &color);
-    void updatePlayer(const QString &playerId, const QString &displayName, const QString &color);
+    void addPlayer(const QString &displayName, const QString &colorMode, const QString &customColor);
+    void updatePlayer(const QString &playerId, const QString &displayName, const QString &colorMode, const QString &customColor);
     void removePlayer(const QString &playerId);
     void setCourse(const QString &courseId);
     void startMatch();

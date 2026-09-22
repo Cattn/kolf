@@ -26,10 +26,19 @@ server derives ownership from the authenticated connection. A lobby freezes
 the ordered 2–8-player roster at Start and assigns contiguous `engineIndex`
 values only at that boundary.
 
+Player requests use `colorMode: "auto" | "custom"` and include `customColor`
+only for manual preset or custom choices. Colors use canonical `#RRGGBBAA`
+channels. The server assigns each player's `resolvedColor` in roster order,
+avoiding manual choices where possible. Lobby state publishes that resolved
+color and Start freezes it in the match roster and Results. Duplicate manual
+colors remain valid; clients warn players without rejecting their names.
+
 Lobby mutations are `CreateLobby`, `JoinLobby`, `LeaveLobby`, `UpdateMember`,
 `AddPlayer`, `UpdatePlayer`, `RemovePlayer`, `ReorderPlayers`, `SetCourse`,
-`SetReady`, and `StartMatch`. Roster, member, and course changes advance the
-lobby revision and clear readiness. Runtime codecs bound identifiers, strings,
+`SetReady`, and `StartMatch`. Roster and course changes advance the lobby
+revision and clear readiness. A member display-name change advances the revision
+while retaining readiness because the frozen player roster is unchanged.
+Runtime codecs bound identifiers, strings,
 arrays, numeric fields, snapshots, and message bytes.
 
 The selected authority member alone publishes authoritative states and frames.

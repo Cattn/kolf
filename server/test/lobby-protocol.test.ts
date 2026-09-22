@@ -29,12 +29,12 @@ test('two protocol clients can complete a lobby shell and start a fresh rematch'
   const controller = new LobbyProtocolController(catalog, ids());
   const alice = controller.connect(), bob = controller.connect();
   const created = send(controller, alice, envelope('CreateLobby', {
-    displayName: 'Alice', color: '#ff0000ff', courseId: 'classic',
+    displayName: 'Alice', colorMode: 'custom', customColor: '#ff0000ff', courseId: 'classic',
   }, { requestId: 'create_1' }));
   const firstState = created[0].message.payload.state as any;
   const lobbyId = firstState.lobbyId as string, joinCode = firstState.joinCode as string;
   const joined = send(controller, bob, envelope('JoinLobby', {
-    joinCode, displayName: 'Bob', color: '#0000ffff',
+    joinCode, displayName: 'Bob', colorMode: 'custom', customColor: '#0000ffff',
   }, { requestId: 'join_1' }));
   assert.equal(joined.length, 2);
   assert.equal(stateOf(joined).members.length, 2);
@@ -81,11 +81,11 @@ test('course mismatch aborts preparation coherently for every member', () => {
   const controller = new LobbyProtocolController(catalog, ids());
   const alice = controller.connect(), bob = controller.connect();
   const created = send(controller, alice, envelope('CreateLobby', {
-    displayName: 'Alice', color: '#ff0000ff', courseId: 'classic',
+    displayName: 'Alice', colorMode: 'custom', customColor: '#ff0000ff', courseId: 'classic',
   }, { requestId: 'create_mismatch' }));
   const firstState = stateOf(created), lobbyId = firstState.lobbyId as string;
   send(controller, bob, envelope('JoinLobby', {
-    joinCode: firstState.joinCode, displayName: 'Bob', color: '#0000ffff',
+    joinCode: firstState.joinCode, displayName: 'Bob', colorMode: 'custom', customColor: '#0000ffff',
   }, { requestId: 'join_mismatch' }));
   const revision = controller.service.activeLobby(lobbyId).lobbyRevision;
   send(controller, alice, envelope('SetReady', { lobbyRevision: revision, ready: true },
@@ -119,11 +119,11 @@ test('prepared v3 clients cross the scene and initial-state barriers', () => {
   const controller = new LobbyProtocolController(catalog, ids());
   const alice = controller.connect(), bob = controller.connect();
   const created = send(controller, alice, envelope('CreateLobby', {
-    displayName: 'Alice', color: '#ff0000ff', courseId: 'classic',
+    displayName: 'Alice', colorMode: 'custom', customColor: '#ff0000ff', courseId: 'classic',
   }, { requestId: 'create_scene' }));
   const createdState = stateOf(created), lobbyId = createdState.lobbyId as string;
   send(controller, bob, envelope('JoinLobby', {
-    joinCode: createdState.joinCode, displayName: 'Bob', color: '#0000ffff',
+    joinCode: createdState.joinCode, displayName: 'Bob', colorMode: 'custom', customColor: '#0000ffff',
   }, { requestId: 'join_scene' }));
   const revision = controller.service.activeLobby(lobbyId).lobbyRevision;
   send(controller, alice, envelope('SetReady', { lobbyRevision: revision, ready: true }, { requestId: 'ready_scene_a', lobbyId }));
@@ -175,11 +175,11 @@ test('disconnect during a live match does not crash tick', () => {
   const controller = new LobbyProtocolController(catalog, ids());
   const alice = controller.connect(), bob = controller.connect();
   const created = send(controller, alice, envelope('CreateLobby', {
-    displayName: 'Alice', color: '#ff0000ff', courseId: 'classic',
+    displayName: 'Alice', colorMode: 'custom', customColor: '#ff0000ff', courseId: 'classic',
   }, { requestId: 'create_live' }));
   const createdState = stateOf(created), lobbyId = createdState.lobbyId as string;
   send(controller, bob, envelope('JoinLobby', {
-    joinCode: createdState.joinCode, displayName: 'Bob', color: '#0000ffff',
+    joinCode: createdState.joinCode, displayName: 'Bob', colorMode: 'custom', customColor: '#0000ffff',
   }, { requestId: 'join_live' }));
   const revision = controller.service.activeLobby(lobbyId).lobbyRevision;
   send(controller, alice, envelope('SetReady', { lobbyRevision: revision, ready: true }, { requestId: 'ready_live_a', lobbyId }));

@@ -15,17 +15,19 @@ export interface CourseCatalogEntry {
 }
 
 export interface MemberProfile { displayName: string }
-export interface PlayerProfile { displayName: string; color: string }
+export interface PlayerProfile { displayName: string; colorMode: 'auto' | 'custom'; customColor?: string }
 export interface LobbyMember extends MemberProfile {
   memberId: MemberId;
   connectionId: ConnectionId;
 }
 export interface LobbyPlayer extends PlayerProfile {
+  resolvedColor: string;
   playerId: PlayerId;
   ownerMemberId: MemberId;
   order: number;
 }
 export interface FrozenPlayer extends PlayerProfile {
+  resolvedColor: string;
   playerId: PlayerId;
   ownerMemberId: MemberId;
   engineIndex: number;
@@ -72,7 +74,7 @@ interface LobbyOptions {
   lobbyId: LobbyId;
   joinCode: JoinCode;
   creator: LobbyMember;
-  creatorPlayer: LobbyPlayer;
+  creatorPlayer: Omit<LobbyPlayer, 'resolvedColor'>;
   selectedCourseId: string;
   catalog: CourseCatalogEntry[];
   ids: IdFactory;
@@ -83,6 +85,14 @@ interface LobbyOptions {
 }
 
 const cloneCourse = (course: CourseCatalogEntry): CourseCatalogEntry => ({ ...course, par: course.par ? [...course.par] : undefined });
+// Eight fixed, opaque colors chosen to stand out against green courses.
+export const AUTO_COLORS = ['#0072b2ff', '#e69f00ff', '#cc79a7ff', '#d55e00ff',
+  '#56b4e9ff', '#332288ff', '#aa3377ff', '#333333ff'] as const;
+const rgb = (color: string) => [1, 3, 5].map(index => parseInt(color.slice(index, index + 2), 16));
+const distance = (a: string, b: string) => {
+  const left = rgb(a), right = rgb(b);
+  return Math.sqrt(left.reduce((sum, channel, index) => sum + (channel - right[index]) ** 2, 0));
+};
 const cloneRoster = (roster: FrozenPlayer[]) => roster.map(player => ({ ...player }));
 const cloneMatch = (match: MatchShell): MatchView => ({
   matchId: match.matchId,
@@ -140,7 +150,8 @@ export class LobbySession {
     if (options.creatorPlayer.ownerMemberId !== options.creator.memberId || options.creatorPlayer.order !== 0)
       throw new LobbyError('InvalidPlayer', 'creator player ownership is invalid');
     this.members.set(options.creator.memberId, { ...options.creator });
-    this.players.set(options.creatorPlayer.playerId, { ...options.creatorPlayer });
+    this.players.set(options.creatorPlayer.playerId, { ...options.creatorPlayer, resolvedColor: '' });
+    this.resolveColors();
   }
 
   get phase() { return this.lifecycle; }
@@ -167,7 +178,7 @@ export class LobbySession {
     return { ...member };
   }
 
-  join(member: LobbyMember, defaultPlayer: LobbyPlayer) {
+  join(member: LobbyMember, defaultPlayer: Omit<LobbyPlayer, 'resolvedColor'>) {
     this.requirePhase('Open');
     if (this.members.size >= this.maximumMembers) throw new LobbyError('LobbyFull', 'this lobby has reached its member limit');
     if (this.players.size >= this.maximumPlayers) throw new LobbyError('LobbyFull', 'this lobby has reached its player limit');
@@ -177,7 +188,8 @@ export class LobbySession {
     if (defaultPlayer.ownerMemberId !== member.memberId || defaultPlayer.order !== this.players.size)
       throw new LobbyError('InvalidPlayer', 'default player ownership is invalid');
     this.members.set(member.memberId, { ...member });
-    this.players.set(defaultPlayer.playerId, { ...defaultPlayer });
+    this.players.set(defaultPlayer.playerId, { ...defaultPlayer, resolvedColor: '' });
+    this.resolveColors();
     this.changed();
     return this.state();
   }
@@ -188,7 +200,7 @@ export class LobbySession {
       const member = this.requireMember(actor);
       const displayName = patch.displayName ?? member.displayName;
       this.assertMemberProfile({ displayName });
-      if (displayName !== member.displayName) { member.displayName = displayName; this.changed(); }
+      if (displayName !== member.displayName) { member.displayName = displayName; this.changed(false); }
       return this.state();
     });
   }
@@ -197,8 +209,9 @@ export class LobbySession {
     return this.mutate(actor, requestId, 'AddPlayer', profile, () => {
       this.requirePhase('Open'); this.assertPlayerProfile(profile);
       if (this.players.size >= this.maximumPlayers) throw new LobbyError('LobbyFull', 'this lobby has reached its player limit');
-      const player: LobbyPlayer = { playerId: this.ids.player(), ownerMemberId: actor, order: this.players.size, ...profile };
-      this.players.set(player.playerId, player); this.changed();
+      const player: LobbyPlayer = { playerId: this.ids.player(), ownerMemberId: actor, order: this.players.size,
+        ...profile, resolvedColor: '' };
+      this.players.set(player.playerId, player); this.resolveColors(); this.changed();
       return { playerId: player.playerId, state: this.state() };
     });
   }
@@ -207,9 +220,16 @@ export class LobbySession {
     return this.mutate(actor, requestId, 'UpdatePlayer', { playerId, ...patch }, () => {
       this.requirePhase('Open');
       const player = this.requireOwnedPlayer(actor, playerId);
-      const next = { displayName: patch.displayName ?? player.displayName, color: patch.color ?? player.color };
+      const next = { displayName: patch.displayName ?? player.displayName,
+        colorMode: patch.colorMode ?? player.colorMode,
+        customColor: patch.colorMode === 'auto' ? undefined : patch.customColor ?? player.customColor };
       this.assertPlayerProfile(next);
-      if (next.displayName !== player.displayName || next.color !== player.color) { Object.assign(player, next); this.changed(); }
+      if (next.displayName !== player.displayName || next.colorMode !== player.colorMode
+        || next.customColor?.toLowerCase() !== player.customColor?.toLowerCase()) {
+        Object.assign(player, next);
+        if (next.colorMode === 'auto') delete player.customColor;
+        this.resolveColors(); this.changed();
+      }
       return this.state();
     });
   }
@@ -218,7 +238,7 @@ export class LobbySession {
     return this.mutate(actor, requestId, 'RemovePlayer', { playerId }, () => {
       this.requirePhase('Open'); this.requireOwnedPlayer(actor, playerId);
       if (this.ownedPlayers(actor).length <= 1) throw new LobbyError('LastPlayer', 'a member must keep at least one player');
-      this.players.delete(playerId); this.normalizeOrder(); this.changed();
+      this.players.delete(playerId); this.normalizeOrder(); this.resolveColors(); this.changed();
       return this.state();
     });
   }
@@ -231,8 +251,11 @@ export class LobbySession {
         || playerIds.some(id => !owned.some(player => player.playerId === id)))
         throw new LobbyError('InvalidPlayerOrder', 'order must contain every locally owned player exactly once');
       const positions = owned.map(player => player.order).sort((a, b) => a - b);
-      playerIds.forEach((id, index) => { this.players.get(id)!.order = positions[index]; });
-      this.normalizeOrder(); this.changed();
+      const changed = playerIds.some((id, index) => this.players.get(id)!.order !== positions[index]);
+      if (changed) {
+        playerIds.forEach((id, index) => { this.players.get(id)!.order = positions[index]; });
+        this.normalizeOrder(); this.resolveColors(); this.changed();
+      }
       return this.state();
     });
   }
@@ -267,7 +290,8 @@ export class LobbySession {
       const course = this.catalog.get(this.selectedCourseId)!;
       const roster = this.orderedPlayers().map((player, engineIndex) => ({
         playerId: player.playerId, ownerMemberId: player.ownerMemberId, engineIndex,
-        displayName: player.displayName, color: player.color,
+        displayName: player.displayName, colorMode: player.colorMode, customColor: player.customColor,
+        resolvedColor: player.resolvedColor,
       }));
       this.match = {
         matchId: this.ids.match(), authorityMemberId: this.ownerMemberId, course: cloneCourse(course), roster,
@@ -348,7 +372,7 @@ export class LobbySession {
     this.requireMember(memberId);
     this.members.delete(memberId); this.readiness.delete(memberId);
     for (const player of this.ownedPlayers(memberId)) this.players.delete(player.playerId);
-    this.normalizeOrder();
+    this.normalizeOrder(); this.resolveColors();
     if (this.members.size === 0) return this.close();
     this.changed();
     if (this.lifecycle === 'Results' && this.match) {
@@ -388,19 +412,41 @@ export class LobbySession {
   private requireMatch(matchId: MatchId) {
     if (!this.match || this.match.matchId !== matchId) throw new LobbyError('StaleMatch', 'message does not belong to the current match');
   }
-  private changed() {
+  private changed(clearReadiness = true) {
     if (this.revision >= 1_000_000_000) throw new LobbyError('RevisionLimit', 'lobby revision limit reached');
-    ++this.revision; this.readiness.clear();
+    ++this.revision;
+    if (clearReadiness) this.readiness.clear();
+    else for (const memberId of this.readiness.keys()) this.readiness.set(memberId, this.revision);
   }
   private abortPreparationInternal() { this.match = undefined; this.lifecycle = 'Open'; this.changed(); }
   private ownedPlayers(memberId: MemberId) { return this.orderedPlayers().filter(player => player.ownerMemberId === memberId); }
   private orderedPlayers() { return [...this.players.values()].sort((a, b) => a.order - b.order || a.playerId.localeCompare(b.playerId)); }
   private normalizeOrder() { this.orderedPlayers().forEach((player, order) => { player.order = order; }); }
+  private resolveColors() {
+    const roster = this.orderedPlayers();
+    const used = roster.filter(player => player.colorMode === 'custom').map(player => player.customColor!.toLowerCase());
+    for (const player of roster) {
+      if (player.colorMode === 'custom') {
+        player.resolvedColor = player.customColor!.toLowerCase();
+        continue;
+      }
+      const unused = AUTO_COLORS.filter(candidate => !used.includes(candidate));
+      const choices = unused.length ? unused : [...AUTO_COLORS];
+      const best = choices.map(candidate => ({ candidate,
+        separation: used.length ? Math.min(...used.map(other => distance(candidate, other))) : Infinity }))
+        .sort((a, b) => b.separation - a.separation || AUTO_COLORS.indexOf(a.candidate) - AUTO_COLORS.indexOf(b.candidate))[0];
+      player.resolvedColor = best.candidate;
+      used.push(best.candidate);
+    }
+  }
   private assertMemberProfile(profile: MemberProfile) {
     if (!validators.displayName(profile.displayName)) throw new LobbyError('InvalidProfile', 'member display name is invalid');
   }
   private assertPlayerProfile(profile: PlayerProfile) {
-    if (!validators.displayName(profile.displayName) || !validators.color(profile.color))
+    if (!validators.displayName(profile.displayName)
+      || (profile.colorMode !== 'auto' && profile.colorMode !== 'custom')
+      || (profile.colorMode === 'auto' && profile.customColor !== undefined)
+      || (profile.colorMode === 'custom' && !validators.color(profile.customColor)))
       throw new LobbyError('InvalidPlayer', 'player display name or color is invalid');
   }
   private validateScores(scores: number[][], rosterSize: number) {

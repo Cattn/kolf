@@ -65,7 +65,8 @@ export class LobbyProtocolController {
       switch (message.type) {
         case 'CreateLobby': {
           const profile = { displayName: message.payload.displayName };
-          const player = { displayName: message.payload.displayName, color: message.payload.color };
+          const player = { displayName: message.payload.displayName, colorMode: message.payload.colorMode,
+            customColor: message.payload.customColor };
           const created = this.service.create(connectionId, message.requestId!, profile, player, message.payload.courseId);
           return [{ connectionId, message: envelope('LobbyCreated', {
             memberId: created.memberId, state: publicState(created.state),
@@ -73,7 +74,8 @@ export class LobbyProtocolController {
         }
         case 'JoinLobby': {
           const profile = { displayName: message.payload.displayName };
-          const player = { displayName: message.payload.displayName, color: message.payload.color };
+          const player = { displayName: message.payload.displayName, colorMode: message.payload.colorMode,
+            customColor: message.payload.customColor };
           const joined = this.service.join(connectionId, message.requestId!, message.payload.joinCode, profile, player);
           return this.broadcast(joined.state, 'LobbyState', { joinedMemberId: joined.memberId }, requestId);
         }

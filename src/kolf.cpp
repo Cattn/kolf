@@ -319,6 +319,7 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 			? i18n("%1 (local)", name) : name);
 	}
 	onlineScoreboard->resetPlayers(playerNames);
+	onlineScoreboard->setOnlineColors(config.value(QStringLiteral("roster")).toArray());
 
 	onlineMatchController = new Kolf::Session::SessionController(config, onlineWidget->networkClient(), onlineGamePage, this);
 	connect(onlineMatchController, &Kolf::Session::SessionController::gameReady, this, [this](KolfGame *onlineGame) {

@@ -36,6 +36,7 @@ public Q_SLOTS:
 	void setScore(int id, int hole, int score);
 	void parChanged(int hole, int par);
 	void resetPlayers(const QStringList &names);
+	void setOnlineColors(const QJsonArray &roster);
 	void setOnlineSnapshot(const QJsonArray &scores, const QJsonArray &pars, int activePlayer, int currentHole);
 
 private:

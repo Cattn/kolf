@@ -15,6 +15,7 @@ class QPushButton;
 class QStackedWidget;
 class QTextEdit;
 class QTimer;
+namespace Kolf::Online { class PlayerProfileEditor; }
 
 namespace Kolf::Online {
 class OnlineWidget : public QWidget {
@@ -56,13 +57,13 @@ private:
     QPushButton *m_createButton;
     QPushButton *m_joinButton;
     QTimer *m_connectTimeout;
-    QLineEdit *m_name;
-    QLineEdit *m_color;
+    PlayerProfileEditor *m_profile;
     QLineEdit *m_joinCode;
     QComboBox *m_createCourse;
     QLabel *m_entryStatus;
     QLabel *m_lobbySummary;
     QLabel *m_lobbyStatus;
+    QLabel *m_colorWarning;
     QListWidget *m_players;
     QComboBox *m_lobbyCourse;
     QPushButton *m_ready;

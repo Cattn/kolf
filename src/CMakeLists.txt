@@ -36,6 +36,7 @@ target_sources(kolfprivate PRIVATE
     session/sessioncontroller.cpp
     online/onlinecoordinator.cpp
     online/onlinewidget.cpp
+    online/playerprofileeditor.cpp
     net/networkclient.cpp
     replication/snapshot.cpp
     replication/presentationcontroller.cpp

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "onlineprotocol.h"
+#include "online/color.h"
 
 #include <QCryptographicHash>
 #include <QDebug>
@@ -81,6 +82,14 @@ QString onlineCourseHash(QByteArray content)
 
 int runOnlineProtocolFixtures(const QString &path)
 {
+    for (const auto &rgba : {QStringLiteral("#0072b2ff"), QStringLiteral("#5a82c317"),
+                             QStringLiteral("#00000000"), QStringLiteral("#ffffffff")}) {
+        const auto parsed = Online::colorFromRgba(rgba);
+        if (!parsed.isValid() || Online::rgbaFromColor(parsed) != rgba) {
+            qCritical() << "FAIL online RGBA round trip" << rgba;
+            return 1;
+        }
+    }
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) return 2;
     QJsonParseError parseError;

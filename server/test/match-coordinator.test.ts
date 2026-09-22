@@ -12,7 +12,9 @@ function lobbyState(owners: string[]): LobbyState {
     memberId, connectionId: `connection_${index}`, displayName: memberId, ready: true as const, connected: true as const,
   }));
   const roster = owners.map((ownerMemberId, engineIndex) => ({ playerId: `player_${engineIndex}`, ownerMemberId, engineIndex,
-    displayName: `Player ${engineIndex}`, color: `#${String(engineIndex + 1).padStart(6, '0')}ff` }));
+    displayName: `Player ${engineIndex}`, colorMode: 'custom' as const,
+    customColor: `#${String(engineIndex + 1).padStart(6, '0')}ff`,
+    resolvedColor: `#${String(engineIndex + 1).padStart(6, '0')}ff` }));
   return {
     lobbyId: 'lobby_1', joinCode: 'ABCDEFGH', ownerMemberId: owners[0], lobbyRevision: 4,
     phase: 'Preparing', selectedCourseId: 'classic', members,

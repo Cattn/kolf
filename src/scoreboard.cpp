@@ -17,8 +17,10 @@
 */
 
 #include "scoreboard.h"
+#include "online/color.h"
 
 #include <QHeaderView>
+#include <QJsonObject>
 #include <KLocalizedString>
 
 ScoreBoard::ScoreBoard(QWidget *parent)
@@ -101,6 +103,19 @@ void ScoreBoard::resetPlayers(const QStringList &names)
 	setVerticalHeaderItem(names.size(), new QTableWidgetItem(i18nc("@title:row", "Par")));
 	setItem(names.size(), 0, new QTableWidgetItem(QStringLiteral("0")));
 	doUpdateHeight();
+}
+
+void ScoreBoard::setOnlineColors(const QJsonArray &roster)
+{
+	for (int row = 0; row < roster.size() && row < rowCount() - 1; ++row) {
+		auto *heading = verticalHeaderItem(row);
+		if (!heading) continue;
+		const auto rgba = roster.at(row).toObject().value(QStringLiteral("resolvedColor")).toString();
+		const auto color = Kolf::Online::colorFromRgba(rgba);
+		if (!color.isValid()) continue;
+		heading->setBackground(QBrush(color));
+		heading->setToolTip(rgba);
+	}
 }
 
 void ScoreBoard::setOnlineSnapshot(const QJsonArray &scores, const QJsonArray &pars, int activePlayer, int currentHole)

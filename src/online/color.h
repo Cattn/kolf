@@ -3,8 +3,15 @@
 
 #include <QColor>
 #include <QString>
+#include <QStringList>
 
 namespace Kolf::Online {
+inline QStringList presetColors()
+{
+    return {QStringLiteral("#0072b2ff"), QStringLiteral("#e69f00ff"), QStringLiteral("#cc79a7ff"),
+        QStringLiteral("#d55e00ff"), QStringLiteral("#56b4e9ff"), QStringLiteral("#332288ff"),
+        QStringLiteral("#aa3377ff"), QStringLiteral("#333333ff")};
+}
 // The wire format is #RRGGBBAA. QColor's eight-digit parser uses #AARRGGBB.
 inline QColor colorFromRgba(const QString &rgba)
 {

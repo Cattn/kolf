@@ -18,8 +18,13 @@ test('shared online envelope fixtures', () => {
 });
 
 test('online client codecs validate scope and bounded profile fields', () => {
-  const create = envelope('CreateLobby', { displayName: 'Alice', color: '#ff0000ff', courseId: 'classic' }, { requestId: 'request_1' });
+  const create = envelope('CreateLobby', { displayName: 'Alice', colorMode: 'custom', customColor: '#ff0000ff', courseId: 'classic' }, { requestId: 'request_1' });
   assert.equal(decodeClientMessage(JSON.stringify(create)).type, 'CreateLobby');
+  assert.equal(decodeClientMessage(JSON.stringify(envelope('JoinLobby', {
+    joinCode: 'ABCDEFGH', displayName: 'Bob', colorMode: 'auto',
+  }, { requestId: 'request_auto' }))).type, 'JoinLobby');
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...create,
+    payload: { ...create.payload, colorMode: 'auto', customColor: '#ff0000ff' } })), ProtocolError);
   assert.throws(() => decodeClientMessage(JSON.stringify({ ...create, protocolVersion: 2 })),
     (error: unknown) => error instanceof ProtocolError && error.code === 'UnsupportedProtocol');
   assert.throws(() => decodeClientMessage(JSON.stringify({ ...create, lobbyId: 'not_allowed' })), ProtocolError);
