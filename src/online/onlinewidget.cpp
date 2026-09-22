@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "onlinewidget.h"
-#include "session/sessioncontroller.h"
 
 #include <KConfigGroup>
 #include <KLocalizedString>
@@ -179,16 +178,22 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         }
     });
     connect(&m_coordinator, &OnlineCoordinator::connectionClosed, this, [this] {
-        closeMatch();
+        if (m_matchActive) {
+            m_matchActive = false;
+            Q_EMIT matchEnded();
+        }
         m_connectStatus->setText(i18n("Disconnected from the online service."));
         m_pages->setCurrentIndex(0);
     });
     connect(&m_coordinator, &OnlineCoordinator::lobbyChanged, this, &OnlineWidget::showLobby);
     connect(&m_coordinator, &OnlineCoordinator::lobbyClosed, this, [this](const QString &reason) {
-        closeMatch(); showEntry(); m_entryStatus->setText(reason);
+        if (m_matchActive) {
+            m_matchActive = false;
+            Q_EMIT matchEnded();
+        }
+        showEntry(); m_entryStatus->setText(reason);
     });
     connect(&m_coordinator, &OnlineCoordinator::matchPrepared, this, [this](const QJsonObject &config) {
-        closeMatch();
         auto sessionConfig = config;
         if (!m_automation.isEmpty()) {
             sessionConfig[QStringLiteral("scriptedShots")] = m_automation.value(QStringLiteral("scriptedShots"));
@@ -201,12 +206,13 @@ OnlineWidget::OnlineWidget(QWidget *parent)
             sessionConfig[QStringLiteral("logDirectory")] = QDir(m_automation.value(QStringLiteral("logDirectory")).toString())
                 .filePath(config.value(QStringLiteral("matchId")).toString());
         }
-        m_matchController = new Kolf::Session::SessionController(sessionConfig, m_coordinator.networkClient(), m_pages);
-        resize(900, 760);
-        m_pages->addWidget(m_matchController);
-        m_pages->setCurrentWidget(m_matchController);
+        m_matchActive = true;
+        Q_EMIT matchRequested(sessionConfig);
     });
-    connect(&m_coordinator, &OnlineCoordinator::statusChanged, m_lobbyStatus, &QLabel::setText);
+    connect(&m_coordinator, &OnlineCoordinator::statusChanged, this, [this](const QString &status) {
+        m_lobbyStatus->setText(status);
+        Q_EMIT statusChanged(status);
+    });
     connect(&m_coordinator, &OnlineCoordinator::failed, this, [this](const QString &reason) {
         m_connectStatus->setText(reason); m_entryStatus->setText(reason); m_lobbyStatus->setText(reason);
         if (!m_automation.isEmpty()) failAutomation(reason);
@@ -215,7 +221,6 @@ OnlineWidget::OnlineWidget(QWidget *parent)
 
 OnlineWidget::~OnlineWidget()
 {
-    closeMatch();
 }
 
 void OnlineWidget::startAutomation(const QJsonObject &config)
@@ -350,11 +355,7 @@ void OnlineWidget::showLobby(const QJsonObject &state)
         advanceAutomation(state);
         return;
     }
-    const bool showingMatch = m_matchController
-        && (state.value(QStringLiteral("phase")) == QLatin1String("Preparing")
-            || state.value(QStringLiteral("phase")) == QLatin1String("Playing"));
-    if (showingMatch) m_pages->setCurrentWidget(m_matchController);
-    else m_pages->setCurrentIndex(2);
+    if (!m_matchActive) m_pages->setCurrentIndex(2);
     m_lobbySummary->setText(i18n("Join code: %1    Revision: %2    State: %3",
         state.value(QStringLiteral("joinCode")).toString(), state.value(QStringLiteral("lobbyRevision")).toInt(),
         state.value(QStringLiteral("phase")).toString()));
@@ -412,8 +413,11 @@ void OnlineWidget::showLobby(const QJsonObject &state)
 
 void OnlineWidget::showResults(const QJsonObject &state)
 {
-    closeMatch();
     m_pages->setCurrentIndex(3);
+    if (m_matchActive) {
+        m_matchActive = false;
+        Q_EMIT matchEnded();
+    }
     const auto result = state.value(QStringLiteral("latestResult")).toObject();
     QString text = i18n("Status: %1\nCourse: %2\n", result.value(QStringLiteral("status")).toString(),
                         result.value(QStringLiteral("courseId")).toString());
@@ -427,17 +431,12 @@ void OnlineWidget::showResults(const QJsonObject &state)
     m_result->setPlainText(text);
 }
 
-void OnlineWidget::closeMatch()
-{
-    if (!m_matchController) return;
-    m_pages->removeWidget(m_matchController);
-    delete m_matchController;
-    m_matchController = nullptr;
-}
-
 void OnlineWidget::leaveOnline()
 {
-    closeMatch();
+    if (m_matchActive) {
+        m_matchActive = false;
+        Q_EMIT matchEnded();
+    }
     m_coordinator.disconnectFromService();
     m_state = {};
     m_connectStatus->setText(i18n("Connect to a Kolf multiplayer service."));

@@ -25,6 +25,7 @@
 #include "obstacles.h"
 #include "online/onlinewidget.h"
 #include "scoreboard.h"
+#include "session/sessioncontroller.h"
 
 #include <KGameHighScoreDialog>
 #include <KGameStandardAction>
@@ -42,12 +43,17 @@
 
 #include <QFileDialog>
 #include <QGridLayout>
+#include <QHBoxLayout>
+#include <QLabel>
 #include <QMimeDatabase>
+#include <QPushButton>
+#include <QSet>
 #include <QStandardPaths>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QTemporaryFile>
 #include <QTimer>
+#include <QVBoxLayout>
 
 KolfWindow::KolfWindow()
     : KXmlGuiWindow(nullptr)
@@ -97,6 +103,13 @@ void KolfWindow::setupActions()
 	onlineAction->setIcon(QIcon::fromTheme(QStringLiteral("network-connect")));
 	onlineAction->setText(i18nc("@action", "&Online…"));
 	connect(onlineAction, &QAction::triggered, this, &KolfWindow::showOnline);
+	onlineResyncAction = actionCollection()->addAction(QStringLiteral("online_resync"));
+	onlineResyncAction->setIcon(QIcon::fromTheme(QStringLiteral("view-refresh")));
+	onlineResyncAction->setText(i18nc("@action", "Resynchronize Online Match"));
+	onlineResyncAction->setVisible(false);
+	connect(onlineResyncAction, &QAction::triggered, this, [this] {
+		if (onlineMatchController) onlineMatchController->requestResync();
+	});
 	endAction = KGameStandardAction::end(this, &KolfWindow::closeGame, actionCollection());
 	KGameStandardAction::quit(this, &KolfWindow::close, actionCollection());
 
@@ -217,13 +230,19 @@ void KolfWindow::setupActions()
 
 void KolfWindow::showOnline()
 {
-	if (onlineWidget && applicationStack->currentWidget() == onlineWidget)
+	if (onlineModeActive)
 		return;
 	if (!onlineWidget) {
 		onlineWidget = new Kolf::Online::OnlineWidget(applicationStack);
 		applicationStack->addWidget(onlineWidget);
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::leaveRequested, this, &KolfWindow::leaveOnline);
+		connect(onlineWidget, &Kolf::Online::OnlineWidget::matchRequested, this, &KolfWindow::startOnlineMatch);
+		connect(onlineWidget, &Kolf::Online::OnlineWidget::matchEnded, this, &KolfWindow::finishOnlineMatch);
+		connect(onlineWidget, &Kolf::Online::OnlineWidget::statusChanged, this, [this](const QString &status) {
+			statusBar()->showMessage(status);
+		});
 	}
+	onlineModeActive = true;
 	offlineActionStates.clear();
 	const QList<QAction *> offlineActions{
 		editingAction, newHoleAction, resetHoleAction, undoShotAction, clearHoleAction,
@@ -245,9 +264,10 @@ void KolfWindow::showOnline()
 
 void KolfWindow::leaveOnline()
 {
-	if (!onlineWidget || applicationStack->currentWidget() != onlineWidget)
+	if (!onlineModeActive || !onlineWidget)
 		return;
 	onlineWidget->leaveOnline();
+	finishOnlineMatch();
 	applicationStack->setCurrentWidget(dummy);
 	for (auto it = offlineActionStates.constBegin(); it != offlineActionStates.constEnd(); ++it)
 		it.key()->setEnabled(it.value());
@@ -258,6 +278,96 @@ void KolfWindow::leaveOnline()
 		game->setFocus();
 	}
 	offlineGamePausedForOnline = false;
+	onlineModeActive = false;
+	statusBar()->clearMessage();
+}
+
+void KolfWindow::startOnlineMatch(const QJsonObject &config)
+{
+	finishOnlineMatch();
+	if (!onlineGamePage) {
+		onlineGamePage = new QWidget(applicationStack);
+		onlineGameLayout = new QVBoxLayout(onlineGamePage);
+		onlineGameLayout->setContentsMargins(0, 0, 0, 0);
+		onlineScoreboard = new ScoreBoard(onlineGamePage);
+		onlineGameLayout->addWidget(onlineScoreboard);
+
+		onlineHazardPanel = new QWidget(onlineGamePage);
+		auto *hazardLayout = new QHBoxLayout(onlineHazardPanel);
+		hazardLayout->setContentsMargins(6, 3, 6, 3);
+		hazardLayout->addWidget(new QLabel(i18n("Your ball is in a hazard. Choose how to continue:"), onlineHazardPanel));
+		hazardLayout->addStretch();
+		onlineDropButton = new QPushButton(i18nc("@action:button", "Drop Outside Hazard"), onlineHazardPanel);
+		onlineRehitButton = new QPushButton(i18nc("@action:button", "Rehit"), onlineHazardPanel);
+		hazardLayout->addWidget(onlineDropButton);
+		hazardLayout->addWidget(onlineRehitButton);
+		onlineGameLayout->addWidget(onlineHazardPanel);
+		onlineHazardPanel->hide();
+		applicationStack->addWidget(onlineGamePage);
+	}
+
+	QStringList playerNames;
+	QSet<QString> localPlayerIds;
+	for (const auto &value : config.value(QStringLiteral("localPlayerIds")).toArray())
+		localPlayerIds.insert(value.toString());
+	for (const auto &value : config.value(QStringLiteral("roster")).toArray()) {
+		const auto player = value.toObject();
+		const auto name = player.value(QStringLiteral("displayName")).toString();
+		playerNames.append(localPlayerIds.contains(player.value(QStringLiteral("playerId")).toString())
+			? i18n("%1 (local)", name) : name);
+	}
+	onlineScoreboard->resetPlayers(playerNames);
+
+	onlineMatchController = new Kolf::Session::SessionController(config, onlineWidget->networkClient(), onlineGamePage, this);
+	connect(onlineMatchController, &Kolf::Session::SessionController::gameReady, this, [this](KolfGame *onlineGame) {
+		onlineGameLayout->insertWidget(0, onlineGame, 1);
+		onlineGame->show();
+		onlineGame->setFocus();
+	});
+	connect(onlineMatchController, &Kolf::Session::SessionController::statusChanged, this, [this](const QString &status) {
+		statusBar()->showMessage(status);
+	});
+	connect(onlineMatchController, &Kolf::Session::SessionController::noticeChanged, this, [this](const QString &notice) {
+		statusBar()->showMessage(notice, 10000);
+	});
+	connect(onlineMatchController, &Kolf::Session::SessionController::scorecardChanged,
+		onlineScoreboard, &ScoreBoard::setOnlineSnapshot);
+	connect(onlineMatchController, &Kolf::Session::SessionController::hazardChoiceChanged,
+		this, &KolfWindow::updateOnlineHazardActions);
+	connect(onlineDropButton, &QPushButton::clicked, onlineMatchController, &Kolf::Session::SessionController::chooseDrop);
+	connect(onlineRehitButton, &QPushButton::clicked, onlineMatchController, &Kolf::Session::SessionController::chooseRehit);
+	connect(useMouseAction, &QAction::toggled, onlineMatchController, &Kolf::Session::SessionController::setUseMouse);
+	connect(useAdvancedPuttingAction, &QAction::toggled, onlineMatchController, &Kolf::Session::SessionController::setUseAdvancedPutting);
+	connect(soundAction, &QAction::toggled, onlineMatchController, &Kolf::Session::SessionController::setSound);
+	connect(showInfoAction, &QAction::toggled, onlineMatchController, &Kolf::Session::SessionController::setShowInfo);
+	connect(showGuideLineAction, &QAction::toggled, onlineMatchController, &Kolf::Session::SessionController::setShowGuideLine);
+	onlineMatchController->setUseMouse(useMouseAction->isChecked());
+	onlineMatchController->setUseAdvancedPutting(useAdvancedPuttingAction->isChecked());
+	onlineMatchController->setSound(soundAction->isChecked());
+	onlineMatchController->setShowInfo(showInfoAction->isChecked());
+	onlineMatchController->setShowGuideLine(showGuideLineAction->isChecked());
+	onlineResyncAction->setVisible(true);
+	onlineResyncAction->setEnabled(true);
+	applicationStack->setCurrentWidget(onlineGamePage);
+	resize(qMax(width(), 850), qMax(height(), 700));
+}
+
+void KolfWindow::finishOnlineMatch()
+{
+	onlineResyncAction->setVisible(false);
+	updateOnlineHazardActions(false);
+	delete onlineMatchController;
+	onlineMatchController = nullptr;
+	if (onlineModeActive && onlineWidget)
+		applicationStack->setCurrentWidget(onlineWidget);
+}
+
+void KolfWindow::updateOnlineHazardActions(bool available)
+{
+	if (!onlineHazardPanel) return;
+	onlineHazardPanel->setVisible(available);
+	onlineDropButton->setEnabled(available);
+	onlineRehitButton->setEnabled(available);
 }
 
 void KolfWindow::startOnlineAutomation(const QJsonObject &config)
@@ -268,9 +378,20 @@ void KolfWindow::startOnlineAutomation(const QJsonObject &config)
 
 bool KolfWindow::queryClose()
 {
+	if (onlineMatchController) {
+		const auto result = KMessageBox::warningTwoActions(this,
+			i18n("An online match is still in progress. Leaving now will end the match for everyone."),
+			i18nc("@title:window", "Leave Online Match?"),
+			KGuiItem(i18nc("@action:button", "Leave Match"), QStringLiteral("network-disconnect")),
+			KStandardGuiItem::cancel());
+		if (result != KMessageBox::PrimaryAction)
+			return false;
+	}
 	if (game)
 		if (game->askSave(true))
 			return false;
+	if (onlineModeActive)
+		leaveOnline();
 	return true;
 }
 

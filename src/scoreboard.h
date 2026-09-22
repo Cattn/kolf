@@ -19,6 +19,7 @@
 #ifndef SCOREBOARD_H
 #define SCOREBOARD_H
 
+#include <QJsonArray>
 #include <QTableWidget>
 
 class ScoreBoard : public QTableWidget
@@ -34,6 +35,8 @@ public Q_SLOTS:
 	void newPlayer(const QString &name);
 	void setScore(int id, int hole, int score);
 	void parChanged(int hole, int par);
+	void resetPlayers(const QStringList &names);
+	void setOnlineSnapshot(const QJsonArray &scores, const QJsonArray &pars, int activePlayer, int currentHole);
 
 private:
 	void doUpdateHeight();

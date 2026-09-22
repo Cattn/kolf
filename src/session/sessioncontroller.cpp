@@ -6,65 +6,25 @@
 #include "rules_build_id.h"
 #include "onlineprotocol.h"
 #include <QApplication>
-#include <QCheckBox>
 #include <QCryptographicHash>
 #include <QDir>
-#include <QHBoxLayout>
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QLabel>
-#include <QPushButton>
-#include <QSizePolicy>
-#include <QTableWidget>
-#include <QHeaderView>
 #include <QUuid>
-#include <QVBoxLayout>
+#include <QWidget>
 #include <KConfig>
 #include <QRegularExpression>
 
 using namespace Kolf::Session;
 
-SessionController::SessionController(const QJsonObject &config, Net::NetworkClient *network, QWidget *parent)
-    : QWidget(parent)
+SessionController::SessionController(const QJsonObject &config, Net::NetworkClient *network, QWidget *gameHost, QObject *parent)
+    : QObject(parent)
     , m_config(config)
     , m_role(config[QStringLiteral("role")] == QLatin1String("authority") ? Role::Authority : Role::Guest)
-    , m_network(network) {
+    , m_network(network)
+    , m_gameHost(gameHost) {
     for (const auto &value : config[QStringLiteral("localPlayerIds")].toArray())
         if (!value.toString().isEmpty()) m_localPlayerIds.insert(value.toString());
-    setWindowTitle(QStringLiteral("Kolf Online — %1").arg(config[QStringLiteral("role")].toString()));
-    m_layout = new QVBoxLayout(this);
-    m_status = new QLabel(QStringLiteral("Connecting")); m_status->setWordWrap(true); m_layout->addWidget(m_status);
-    m_notice = new QLabel; m_notice->setWordWrap(true); m_layout->addWidget(m_notice);
-    auto *controls = new QHBoxLayout;
-    auto *resync = new QPushButton(QStringLiteral("Resync")); controls->addWidget(resync);
-    auto *advanced = new QCheckBox(QStringLiteral("Advanced putting")); controls->addWidget(advanced);
-    auto *mouse = new QCheckBox(QStringLiteral("Mouse aiming")); mouse->setChecked(true); controls->addWidget(mouse);
-    m_drop = new QPushButton(QStringLiteral("Drop outside hazard")); controls->addWidget(m_drop);
-    m_rehit = new QPushButton(QStringLiteral("Rehit")); controls->addWidget(m_rehit);
-    m_drop->setEnabled(false); m_rehit->setEnabled(false); m_layout->addLayout(controls);
-    const auto configuredRoster = config[QStringLiteral("roster")].toArray();
-    const int rosterSize = configuredRoster.size();
-    m_scores = new QTableWidget(rosterSize, 0); m_scores->setMaximumHeight(180); m_scores->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    QStringList scoreLabels;
-    for (const auto &value : configuredRoster) {
-        const auto player = value.toObject();
-        const auto local = m_localPlayerIds.contains(player.value(QStringLiteral("playerId")).toString());
-        scoreLabels.append(local ? QStringLiteral("%1 (local)").arg(player.value(QStringLiteral("displayName")).toString())
-                                 : player.value(QStringLiteral("displayName")).toString());
-    }
-    m_scores->setVerticalHeaderLabels(scoreLabels); m_layout->addWidget(m_scores);
-    connect(advanced, &QCheckBox::toggled, this, [this](bool on) { if (m_game) m_game->setUseAdvancedPutting(on); });
-    connect(mouse, &QCheckBox::toggled, this, [this](bool on) { if (m_game) m_game->setUseMouse(on); });
-    connect(resync, &QPushButton::clicked, this, [this] { if (!m_interrupted) {
-        m_ready = false; m_awaitingResync = true; refresh(); send(QStringLiteral("RequestResync"));
-    } });
-    const auto choose = [this](const QString &action) {
-        m_drop->setEnabled(false); m_rehit->setEnabled(false);
-        send(QStringLiteral("ChooseHazardAction"), {{QStringLiteral("choiceId"), m_choiceId},
-            {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId}, {QStringLiteral("action"), action}});
-    };
-    connect(m_drop, &QPushButton::clicked, this, [choose] { choose(QStringLiteral("drop")); });
-    connect(m_rehit, &QPushButton::clicked, this, [choose] { choose(QStringLiteral("rehit")); });
     connect(m_network, &Net::NetworkClient::received, this, [this](const QJsonObject &message) {
         const auto type = message.value(QStringLiteral("type")).toString();
         static const QSet<QString> lobby{QStringLiteral("MatchResult"), QStringLiteral("MatchStarted"),
@@ -128,8 +88,7 @@ SessionController::SessionController(const QJsonObject &config, Net::NetworkClie
             {QStringLiteral("frameSeq"), ++m_frameSeq}, {QStringLiteral("hostMs"), double(m_clock.elapsed())}}, true);
     });
     m_frames.start(qBound(25, config[QStringLiteral("frameIntervalMs")].toInt(67), 1000));
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    if (!parent) resize(850, 700);
+    Q_EMIT statusChanged(tr("Preparing the online match…"));
 }
 SessionController::~SessionController() {
     log(QStringLiteral("shutdown"), {{QStringLiteral("frames"), double(m_frameCount)},
@@ -178,9 +137,14 @@ void SessionController::load() {
         const QColor configured(entry.value(QStringLiteral("color")).toString());
         p.ball()->setColor(configured.isValid() ? configured : fallback); m_players.append(p);
     }
-    m_game = new KolfGame(m_factory, &m_players, m_config[QStringLiteral("course")].toString(), this, m_role);
-    m_game->setSound(false);
-    m_adapter = new GameSessionAdapter(m_game); m_layout->insertWidget(1, m_game, 1);
+    m_game = new KolfGame(m_factory, &m_players, m_config[QStringLiteral("course")].toString(), m_gameHost, m_role);
+    m_game->setUseMouse(m_useMouse);
+    m_game->setUseAdvancedPutting(m_useAdvancedPutting);
+    m_game->setSound(m_sound);
+    m_game->setShowInfo(m_showInfo);
+    m_game->setShowGuideLine(m_showGuideLine);
+    m_adapter = new GameSessionAdapter(m_game);
+    Q_EMIT gameReady(m_game);
     QTimer::singleShot(0, this, [this] {
         if (!m_game) return;
         m_game->resetTransform();
@@ -325,7 +289,7 @@ void SessionController::receive(const QJsonObject &message) {
         refresh();
         if (!frame && m_config[QStringLiteral("capture")].toBool()) {
             const auto path = QDir(m_config[QStringLiteral("logDirectory")].toString()).filePath(QStringLiteral("revision-%1.png").arg(m_revision));
-            QTimer::singleShot(0, this, [this, path] { grab().save(path); });
+            QTimer::singleShot(0, this, [this, path] { if (m_game) m_game->grab().save(path); });
         }
         return;
     }
@@ -375,28 +339,103 @@ void SessionController::interrupt(const QString &reason) {
     if (m_adapter) { m_adapter->enableSimulation(false); m_adapter->enableInput(false); }
     m_frames.stop(); m_retry.stop(); m_presentation.clear();
     send(QStringLiteral("MatchInterrupted"), {{QStringLiteral("reason"), reason.left(160)}});
-    m_notice->setText(reason); log(QStringLiteral("interrupted"), {{QStringLiteral("reason"), reason}}); refresh();
+    Q_EMIT noticeChanged(reason);
+    log(QStringLiteral("interrupted"), {{QStringLiteral("reason"), reason}}); refresh();
     if (m_config[QStringLiteral("exitWhenFinished")].toBool()) QTimer::singleShot(500, qApp, [] { QCoreApplication::exit(3); });
 }
 void SessionController::refresh() {
     const int activeSlot = m_adapter ? m_adapter->activeSlot() : -1;
-    const auto activeName = activeSlot >= 0 && activeSlot < m_players.size() ? m_players[activeSlot].name() : QStringLiteral("?");
-    m_status->setText(QStringLiteral("%1 | %2 (%3) | %4 | turn %5 | generation %6 | revision %7 | frame %8 | %9")
-        .arg(m_role == Role::Authority ? QStringLiteral("Authority") : QStringLiteral("Guest"))
-        .arg(activeName, ownsSlot(activeSlot) ? QStringLiteral("local") : QStringLiteral("remote"))
-        .arg(m_phase).arg(m_turn).arg(m_generation).arg(m_revision).arg(m_receivedFrame)
-        .arg(!m_pending.isEmpty() ? QStringLiteral("Pending") : m_ready ? QStringLiteral("Ready") : QStringLiteral("Waiting")));
+    const auto activeName = activeSlot >= 0 && activeSlot < m_players.size() ? m_players[activeSlot].name() : tr("another player");
+    QString status;
+    if (m_interrupted)
+        status = tr("The online match was interrupted.");
+    else if (!m_adapter)
+        status = tr("Preparing the online match…");
+    else if (!m_pending.isEmpty())
+        status = tr("Sending %1's shot…").arg(activeName);
+    else if (m_phase == QLatin1String("AwaitingHazardChoice"))
+        status = ownsSlot(m_choiceSlot) ? tr("Choose how %1 should continue.").arg(activeName)
+                                        : tr("Waiting for %1 to choose how to continue…").arg(activeName);
+    else if (m_phase == QLatin1String("AwaitingShot"))
+        status = ownsSlot(activeSlot) && m_ready ? tr("%1: your turn.").arg(activeName)
+                                                : tr("Waiting for %1…").arg(activeName);
+    else if (m_phase == QLatin1String("Simulating"))
+        status = tr("%1's shot is in play.").arg(activeName);
+    else if (m_phase == QLatin1String("Finished"))
+        status = tr("Match complete.");
+    else
+        status = tr("Synchronizing the online match…");
+    Q_EMIT statusChanged(status);
     if (!m_adapter) return;
     const bool canAim = m_ready && !m_interrupted && m_phase == QLatin1String("AwaitingShot")
         && ownsSlot(m_adapter->activeSlot()) && m_pending.isEmpty();
     // Do not cancel an ongoing local power stroke on every visual frame.
     if (!canAim || m_game->inputIgnored()) m_adapter->enableInput(canAim);
     const bool canChoose = m_ready && !m_interrupted && m_phase == QLatin1String("AwaitingHazardChoice") && ownsSlot(m_choiceSlot);
-    m_drop->setEnabled(canChoose); m_rehit->setEnabled(canChoose);
-    m_scores->setColumnCount(m_adapter->hole());
-    for (int p = 0; p < m_players.size(); ++p) for (int h = 1; h <= m_adapter->hole(); ++h)
-        m_scores->setItem(p, h - 1, new QTableWidgetItem(QString::number(m_players[p].score(h))));
-    if (m_phase == QLatin1String("Finished")) m_notice->setText(QStringLiteral("Match complete. The final scorecard remains here until you close the window."));
+    Q_EMIT hazardChoiceChanged(canChoose);
+    while (m_pars.size() < m_adapter->hole()) m_pars.append(0);
+    m_pars[m_adapter->hole() - 1] = m_adapter->par();
+    QJsonArray scores;
+    for (const auto &player : std::as_const(m_players)) {
+        QJsonArray row;
+        for (int hole = 1; hole <= m_adapter->hole(); ++hole) row.append(player.score(hole));
+        scores.append(row);
+    }
+    Q_EMIT scorecardChanged(scores, m_pars, activeSlot, m_adapter->hole());
+    if (m_phase == QLatin1String("Finished"))
+        Q_EMIT noticeChanged(tr("Match complete. Results are ready."));
+}
+
+void SessionController::requestResync()
+{
+    if (m_interrupted) return;
+    m_ready = false;
+    m_awaitingResync = true;
+    refresh();
+    send(QStringLiteral("RequestResync"));
+}
+
+void SessionController::chooseHazardAction(const QString &action)
+{
+    if (!m_adapter || !m_ready || m_interrupted || m_phase != QLatin1String("AwaitingHazardChoice")
+        || !ownsSlot(m_choiceSlot)) return;
+    Q_EMIT hazardChoiceChanged(false);
+    send(QStringLiteral("ChooseHazardAction"), {{QStringLiteral("choiceId"), m_choiceId},
+        {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
+        {QStringLiteral("action"), action}});
+}
+
+void SessionController::chooseDrop() { chooseHazardAction(QStringLiteral("drop")); }
+void SessionController::chooseRehit() { chooseHazardAction(QStringLiteral("rehit")); }
+
+void SessionController::setUseMouse(bool enabled)
+{
+    m_useMouse = enabled;
+    if (m_game) m_game->setUseMouse(enabled);
+}
+
+void SessionController::setUseAdvancedPutting(bool enabled)
+{
+    m_useAdvancedPutting = enabled;
+    if (m_game) m_game->setUseAdvancedPutting(enabled);
+}
+
+void SessionController::setSound(bool enabled)
+{
+    m_sound = enabled;
+    if (m_game) m_game->setSound(enabled);
+}
+
+void SessionController::setShowInfo(bool enabled)
+{
+    m_showInfo = enabled;
+    if (m_game) m_game->setShowInfo(enabled);
+}
+
+void SessionController::setShowGuideLine(bool enabled)
+{
+    m_showGuideLine = enabled;
+    if (m_game) m_game->setShowGuideLine(enabled);
 }
 
 bool SessionController::ownsSlot(int slot) const

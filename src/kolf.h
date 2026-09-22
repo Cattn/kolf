@@ -27,8 +27,12 @@
 #include <QHash>
 #include <QUrl>
 class QGridLayout;
+class QHBoxLayout;
 class QJsonObject;
+class QLabel;
+class QPushButton;
 class QStackedWidget;
+class QVBoxLayout;
 class QAction;
 class KSelectAction;
 class KToggleAction;
@@ -36,6 +40,7 @@ class KToggleAction;
 class Editor;
 class ScoreBoard;
 namespace Kolf::Online { class OnlineWidget; }
+namespace Kolf::Session { class SessionController; }
 
 class KolfWindow : public KXmlGuiWindow
 {
@@ -61,6 +66,9 @@ protected Q_SLOTS:
 	void tutorial();
 	void showOnline();
 	void leaveOnline();
+	void startOnlineMatch(const QJsonObject &config);
+	void finishOnlineMatch();
+	void updateOnlineHazardActions(bool available);
 	void newGame();
 	void save();
 	void saveAs();
@@ -145,8 +153,17 @@ private:
 	QString title;
 	QString tempStatusBarText;
 	Kolf::Online::OnlineWidget *onlineWidget = nullptr;
+	QWidget *onlineGamePage = nullptr;
+	QVBoxLayout *onlineGameLayout = nullptr;
+	ScoreBoard *onlineScoreboard = nullptr;
+	QWidget *onlineHazardPanel = nullptr;
+	QPushButton *onlineDropButton = nullptr;
+	QPushButton *onlineRehitButton = nullptr;
+	QAction *onlineResyncAction = nullptr;
+	Kolf::Session::SessionController *onlineMatchController = nullptr;
 	QHash<QAction *, bool> offlineActionStates;
 	bool offlineGamePausedForOnline = false;
+	bool onlineModeActive = false;
 };
 
 struct HighScore

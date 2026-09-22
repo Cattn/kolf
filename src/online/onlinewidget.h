@@ -14,7 +14,6 @@ class QListWidget;
 class QPushButton;
 class QStackedWidget;
 class QTextEdit;
-namespace Kolf::Session { class SessionController; }
 
 namespace Kolf::Online {
 class OnlineWidget : public QWidget {
@@ -24,16 +23,19 @@ public:
     ~OnlineWidget() override;
     void startAutomation(const QJsonObject &config);
     void leaveOnline();
+    Net::NetworkClient *networkClient() { return m_coordinator.networkClient(); }
 
 Q_SIGNALS:
     void leaveRequested();
+    void matchRequested(const QJsonObject &config);
+    void matchEnded();
+    void statusChanged(const QString &status);
 
 private:
     void showEntry();
     void showLobby(const QJsonObject &state);
     void showResults(const QJsonObject &state);
     void savePreferences();
-    void closeMatch();
     void advanceAutomation(const QJsonObject &state);
     void failAutomation(const QString &reason);
 
@@ -64,6 +66,6 @@ private:
     int m_automationAddedPlayers = 0;
     bool m_automationCreateOrJoinSent = false;
     bool m_automationMutationPending = false;
-    Kolf::Session::SessionController *m_matchController = nullptr;
+    bool m_matchActive = false;
 };
 }

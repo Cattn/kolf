@@ -20,6 +20,7 @@ GameSessionAdapter::GameSessionAdapter(KolfGame *game) : QObject(game), g(game) 
 }
 int GameSessionAdapter::activeSlot() const { return int(g->curPlayer - g->players->begin()); }
 int GameSessionAdapter::hole() const { return g->curHole; }
+int GameSessionAdapter::par() const { return g->curPar; }
 bool GameSessionAdapter::prepareCourse() {
     if (!loadHole(1)) return false;
     const int count = g->highestHole;

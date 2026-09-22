@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-22",
+  "baselineCommit": "00eff19",
+  "scope": "productization Stage 2: shared main-window game surface, presentation, actions, and deterministic scene lifetime",
+  "environment": {
+    "platform": "Windows",
+    "craftAbi": "windows-cl-msvc2022-x86_64",
+    "craftRoot": "C:\\CraftRoot"
+  },
+  "checks": {
+    "typescriptCheck": "passed",
+    "craftCompileInstallQmerge": "passed",
+    "twoClientMainWindowRematch": "passed: 2 clients, 2 matches, fresh scene destruction, 2 clean native process exits",
+    "threeMemberFourPlayerMatch": "passed: 3 clients, 4 players, 3 clean native process exits",
+    "postRunWindowsProcessInventory": "passed: no new Kolf or Kolf-bundled D-Bus process",
+    "widgetFreeMatchControllerSourceCheck": "passed",
+    "humanUiSmoke": "not run",
+    "offlineSaveLoadSmoke": "not run"
+  },
+  "implemented": [
+    "converted SessionController from QWidget to a widget-free QObject match controller",
+    "made KolfWindow own the online game page and actual KolfGame surface",
+    "extended the normal ScoreBoard with reset and authoritative snapshot population APIs",
+    "bound online play to the existing mouse, advanced putting, sound, information, and guideline actions",
+    "moved concise online state into the main status bar and hazard choices into a contextual main-window panel",
+    "moved manual resynchronization from the match surface to a mode-scoped menu action",
+    "destroyed each match controller and scene before Results or rematch while preserving the lobby connection"
+  ],
+  "notes": [
+    "Companion commit 00eff19 removed unused KDBusService startup and KF6 DBusAddons linkage that left bundled dbus-daemon processes running on Windows.",
+    "A pre-existing C:\\Program Files\\kolf\\bin\\dbus-daemon.exe from an older installed build remained running during verification; the rebuilt Kolf created no replacement process.",
+    "The old daemon can be stopped manually or cleared by rebooting; older installed Kolf builds can start it again until replaced.",
+    "The Results page remains intentionally simple until Stage 5.",
+    "Human-only UI and offline save/load checks remain reserved for the milestone validation budget."
+  ]
+}

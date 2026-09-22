@@ -39,7 +39,9 @@ Use `-ClientCount 3` for the representative three-member/four-player check.
 The launcher reserves a local port, starts the service, launches ordinary Kolf
 clients through Craft, and prints the endpoint and log directory. Online pages
 are embedded in each ordinary `KolfWindow`; the launcher does not use a separate
-online window or test-only UI path.
+online window or test-only UI path. During a match, the main window owns the
+normal game area, `ScoreBoard`, settings actions, status bar, and contextual
+hazard controls; the online match controller contains no widgets.
 
 The bounded scripted scenarios are:
 
@@ -64,5 +66,5 @@ or hazard choice. State barriers wait for each current member once, and guest
 clients do not simulate gameplay.
 
 The current checkpoint is
-[evidence/2026-09-22-stage1-main-window.json](evidence/2026-09-22-stage1-main-window.json). Generated
+[evidence/2026-09-22-stage2-shared-game-surface.json](evidence/2026-09-22-stage2-shared-game-surface.json). Generated
 `local-session` directories contain development logs and are ignored by Git.

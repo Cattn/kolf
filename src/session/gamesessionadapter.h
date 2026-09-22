@@ -20,6 +20,7 @@ public:
     void enableInput(bool enabled);
     int activeSlot() const;
     int hole() const;
+    int par() const;
     int choiceSlot() const { return m_choiceSlot; }
     QString choiceId() const { return m_choiceId; }
     bool finished() const { return m_finished; }

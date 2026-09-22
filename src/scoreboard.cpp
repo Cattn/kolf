@@ -88,6 +88,57 @@ void ScoreBoard::parChanged(int hole, int par)
 	setItem(rowCount() - 1, columnCount() - 1, new QTableWidgetItem(QString::number(tot)));
 }
 
+void ScoreBoard::resetPlayers(const QStringList &names)
+{
+	clear();
+	setRowCount(names.size() + 1);
+	setColumnCount(1);
+	setHorizontalHeaderItem(0, new QTableWidgetItem(i18nc("@title:column", "Total")));
+	for (int row = 0; row < names.size(); ++row) {
+		setVerticalHeaderItem(row, new QTableWidgetItem(names.at(row)));
+		setItem(row, 0, new QTableWidgetItem(QStringLiteral("0")));
+	}
+	setVerticalHeaderItem(names.size(), new QTableWidgetItem(i18nc("@title:row", "Par")));
+	setItem(names.size(), 0, new QTableWidgetItem(QStringLiteral("0")));
+	doUpdateHeight();
+}
+
+void ScoreBoard::setOnlineSnapshot(const QJsonArray &scores, const QJsonArray &pars, int activePlayer, int currentHole)
+{
+	int holes = pars.size();
+	for (const auto &value : scores)
+		holes = qMax(holes, value.toArray().size());
+	setColumnCount(holes + 1);
+	for (int hole = 0; hole < holes; ++hole)
+		setHorizontalHeaderItem(hole, new QTableWidgetItem(QString::number(hole + 1)));
+	setHorizontalHeaderItem(holes, new QTableWidgetItem(i18nc("@title:column", "Total")));
+
+	const int playerRows = qMin(scores.size(), rowCount() - 1);
+	for (int player = 0; player < playerRows; ++player) {
+		const auto row = scores.at(player).toArray();
+		int total = 0;
+		for (int hole = 0; hole < holes; ++hole) {
+			const int score = hole < row.size() ? row.at(hole).toInt() : 0;
+			setItem(player, hole, new QTableWidgetItem(QString::number(score)));
+			total += score;
+		}
+		setItem(player, holes, new QTableWidgetItem(QString::number(total)));
+	}
+
+	int totalPar = 0;
+	for (int hole = 0; hole < holes; ++hole) {
+		const int par = hole < pars.size() ? pars.at(hole).toInt() : 0;
+		setItem(rowCount() - 1, hole, new QTableWidgetItem(QString::number(par)));
+		totalPar += par;
+		resizeColumnToContents(hole);
+	}
+	setItem(rowCount() - 1, holes, new QTableWidgetItem(QString::number(totalPar)));
+	resizeColumnToContents(holes);
+	if (activePlayer >= 0 && activePlayer < playerRows && currentHole > 0 && currentHole <= holes)
+		setCurrentCell(activePlayer, currentHole - 1);
+	doUpdateHeight();
+}
+
 int ScoreBoard::total(int id, QString &name)
 {
 	int tot = 0;

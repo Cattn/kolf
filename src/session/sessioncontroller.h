@@ -6,20 +6,36 @@
 #include "itemfactory.h"
 #include <QElapsedTimer>
 #include <QFile>
-#include <QWidget>
+#include <QJsonArray>
+#include <QObject>
 #include <QTimer>
 #include <QSet>
-class QLabel;
-class QPushButton;
-class QTableWidget;
-class QVBoxLayout;
+class QWidget;
 
 namespace Kolf::Session {
-class SessionController : public QWidget {
+class SessionController : public QObject {
     Q_OBJECT
 public:
-    explicit SessionController(const QJsonObject &config, Net::NetworkClient *network, QWidget *parent = nullptr);
+    explicit SessionController(const QJsonObject &config, Net::NetworkClient *network, QWidget *gameHost, QObject *parent = nullptr);
     ~SessionController() override;
+
+public Q_SLOTS:
+    void requestResync();
+    void chooseDrop();
+    void chooseRehit();
+    void setUseMouse(bool enabled);
+    void setUseAdvancedPutting(bool enabled);
+    void setSound(bool enabled);
+    void setShowInfo(bool enabled);
+    void setShowGuideLine(bool enabled);
+
+Q_SIGNALS:
+    void gameReady(KolfGame *game);
+    void statusChanged(const QString &status);
+    void noticeChanged(const QString &notice);
+    void scorecardChanged(const QJsonArray &scores, const QJsonArray &pars, int activePlayer, int currentHole);
+    void hazardChoiceChanged(bool available);
+
 private:
     void receive(const QJsonObject &message);
     void load();
@@ -34,6 +50,7 @@ private:
     QJsonObject state() const;
     bool ownsSlot(int slot) const;
     QString playerIdForSlot(int slot) const;
+    void chooseHazardAction(const QString &action);
     QJsonObject m_config;
     Role m_role;
     Kolf::ItemFactory m_factory;
@@ -41,13 +58,8 @@ private:
     KolfGame *m_game = nullptr;
     GameSessionAdapter *m_adapter = nullptr;
     Net::NetworkClient *m_network;
+    QWidget *m_gameHost;
     Replication::PresentationController m_presentation;
-    QVBoxLayout *m_layout;
-    QLabel *m_status;
-    QLabel *m_notice;
-    QPushButton *m_drop;
-    QPushButton *m_rehit;
-    QTableWidget *m_scores;
     QTimer m_frames;
     QFile m_log;
     QElapsedTimer m_clock;
@@ -69,5 +81,11 @@ private:
     QHash<QString, QJsonObject> m_admitted;
     QSet<int> m_scriptedTurns;
     QSet<QString> m_localPlayerIds;
+    QJsonArray m_pars;
+    bool m_useMouse = true;
+    bool m_useAdvancedPutting = false;
+    bool m_sound = true;
+    bool m_showInfo = true;
+    bool m_showGuideLine = true;
 };
 }

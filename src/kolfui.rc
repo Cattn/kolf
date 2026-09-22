@@ -8,6 +8,7 @@
 	<MenuBar>
 		<Menu name="game">
 			<Action name="online" />
+			<Action name="online_resync" />
 			<Separator />
 			<Action name="savegame" append="save_merge" />
 			<Action name="savegameas" append="save_merge" />
