@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-// Bounded Windows v3 integration runner. Native clients are launched only through Craft.
+// Bounded Windows online integration runner. Native clients are launched only through Craft.
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:net';
@@ -16,7 +16,7 @@ const hazardScenario = scenario === 'four-player-hazard';
 const clientCount = variableRoster ? 3 : 2;
 const matchCount = scenario === 'two-rematch' ? 2 : 1;
 const turnCount = hazardScenario ? 40 : variableRoster ? 8 : 4;
-const directory = resolve(root, 'server/prototype/local-session', `v3-${scenario}-${Date.now()}`);
+const directory = resolve(root, 'server/local-session', `online-${scenario}-${Date.now()}`);
 const joinCodeFile = resolve(directory, 'join-code.txt');
 const course = resolve(root, `tests/multiplayer/fixtures/${hazardScenario ? 'water' : 'static'}.kolf`);
 mkdirSync(directory, { recursive: true });
@@ -30,8 +30,8 @@ const port = await new Promise<number>((resolvePort, reject) => {
     reservation.close(() => resolvePort(address.port));
   });
 });
-const relay = spawn(process.execPath, [resolve(root, 'server/prototype/relay-v3.ts')], {
-  cwd: resolve(root, 'server/prototype'),
+const relay = spawn(process.execPath, [resolve(root, 'server/main.ts')], {
+  cwd: resolve(root, 'server'),
   env: { ...process.env, KOLF_BIND: '127.0.0.1', KOLF_PORT: String(port), KOLF_TEST_COURSE: course },
   windowsHide: true,
 });
@@ -68,7 +68,7 @@ const isAlive = (pid: number) => {
 let succeeded = false;
 try {
   for (let i = 0; !relayLog.join('').includes('"event":"listening"'); ++i) {
-    if (i > 100 || exited(relay)) throw Error(`v3 relay failed: ${relayLog.join('')}`);
+    if (i > 100 || exited(relay)) throw Error(`online service failed: ${relayLog.join('')}`);
     await pause(100);
   }
   for (let client = 0; client < clientCount; ++client) {
@@ -103,7 +103,7 @@ try {
     await pause(500);
     const failed = clients.findIndex(client => exited(client) && client.exitCode !== 0);
     if (failed >= 0) throw Error(`client ${failed} failed (${clients[failed].exitCode}): ${clientLogs[failed].join('')}`);
-    if (exited(relay)) throw Error(`v3 relay exited early: ${relayLog.join('')}`);
+    if (exited(relay)) throw Error(`online service exited early: ${relayLog.join('')}`);
     const interrupted = Array.from({ length: clientCount }, (_, client) => sessionDirectories(client))
       .flat().flatMap(sessionDirectory => events(sessionDirectory)).find(event => event.event === 'interrupted');
     if (interrupted) throw Error(`native session interrupted: ${interrupted.reason}`);
@@ -114,7 +114,7 @@ try {
           && log.some(event => event.event === 'applied' && event.state?.phase === 'Finished');
       }));
     if (complete) break;
-    if (i > 360) throw Error(`v3 native ${scenario} scenario exceeded 180 seconds`);
+    if (i > 360) throw Error(`online native ${scenario} scenario exceeded 180 seconds`);
   }
 
   for (let client = 0; client < clientCount; ++client) {

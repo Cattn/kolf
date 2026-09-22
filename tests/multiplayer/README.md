@@ -1,257 +1,66 @@
-# Kolf multiplayer development
+# Kolf online development
 
-The current product path is protocol v3 through ordinary Kolf. One service hosts
-multiple isolated rooms, each with 2–8 player slots distributed across 2–8
-members. One native client owns physics; every guest presents and acknowledges
-the authoritative snapshots. The original fixed two-client v1 relay remains in
-this directory only as a historical regression harness.
+Kolf currently uses one online protocol and one multi-room service. A room has
+2–8 player slots owned by 2–8 connected members. One client runs the
+authoritative simulation; the others render and acknowledge its state.
 
-For a person playing and checking this build, follow
-[HUMAN-TESTING.md](HUMAN-TESTING.md). It gives the exact launch steps, controls,
-checks to perform, and a report template. The status and evidence sections below
-distinguish scripted runs from play by a person.
+For human checks, use [HUMAN-TESTING.md](HUMAN-TESTING.md). Keep validation
+bounded to the scenarios listed there.
 
-## Build and launch on Windows
+## Server checks
 
-Requires the existing Craft Kolf environment, Qt Network/WebSockets, and Node
-22.18 or newer. Initialize Craft and run the command in the same Windows
-PowerShell process:
+From `server`:
 
 ```powershell
-$env:CRAFT_PYTHON = 'C:\Users\thecr\AppData\Local\Python\pythoncore-3.14-64\python.exe'
+npm test
+npm run check
+```
+
+Start the development service with `npm start`. It binds to `KOLF_BIND`
+(default `0.0.0.0`) and `KOLF_PORT` (default `3011`). `KOLF_COURSE_ROOT` can
+override the shipped-course directory.
+
+## Windows build and local play
+
+Build Kolf through Craft:
+
+```powershell
 & C:\CraftRoot\craft\craftenv.ps1
 craft --compile --install --qmerge kolf
 ```
 
-To play a shipped course on one PC, build as above, then from the repository
-root run `./tests/multiplayer/play.ps1` (defaults to Easy). Use `-Course Medium`,
-`-Course Hard`, or `-Course Classic` for the other bundled maps.
-
-For a fixture map or a manual launch, in `server/prototype` run `npm ci` once,
-then:
-
-```powershell
-$env:KOLF_COURSE = (Resolve-Path ../../tests/multiplayer/fixtures/static.kolf).Path
-npm start
-```
-
-The relay writes private role credentials and launch settings to
-`server/prototype/local-session/{authority,guest}.json`. From the repository root,
-run each of these in a separate Windows PowerShell window:
-
-```powershell
-./tests/multiplayer/launch.ps1 -Config ./server/prototype/local-session/authority.json
-./tests/multiplayer/launch.ps1 -Config ./server/prototype/local-session/guest.json
-```
-
-The launcher accepts `-CraftRootPath` and `-PythonPath`; its defaults match the
-development machine. Change the Python path on another machine. Without
-`KOLF_PROTOTYPE_CONFIG`, normal `craft --run kolf` opens offline Kolf. The prototype
-has a separate window, scorecard, resync button, putting options, and hazard choices.
-It does not write offline saves or submit the legacy data-server telemetry.
-
-For two machines, use matching source/build identities and byte-identical course
-files. Set `KOLF_BIND` to the relay's LAN interface before starting it, then edit
-each generated config's endpoint, local course path, and log directory. Transfer
-only that player's credential privately. This development relay uses plaintext
-WebSockets by default and is intended for a trusted LAN; internet deployment and
-authentication accounts are outside this milestone. A disconnect ends the match;
-restart the relay for a fresh session. There is no reconnect/migration protocol.
-
-## Protocol and implementation
-
-Messages carry version 1 and match ID `prototype`. Hello compares credentials,
-course SHA-256, and the generated native source fingerprint. Course readiness
-compares stable object manifests for source group IDs and semantic child IDs.
-Shot commands contain a unique command ID, hole generation, turn, owner slot,
-putting mode, radians, and canonical launch magnitude. Identical retries are
-idempotent; conflicting IDs, stale turns, nonfinite numbers, and wrong owners fail.
-
-Only the authority applies accepted commands through the shared offline/online
-shot seam. Hazard resolution suspends for the affected player's drop/rehit choice.
-Committed states include scores, turn, phase, hole, and full visual/ball state.
-Guests validate snapshots before applying them and do not run game physics,
-collision callbacks, or gameplay random choices. Bounded interpolation smooths
-compatible motion; discontinuities and committed states snap. Full resync clears
-presentation history without replaying a shot. Queues, message sizes, retries,
-heartbeats, and outstanding transitions are bounded.
-
-The source fingerprint hashes source bytes: different checkout line endings can
-reject an otherwise equivalent build. Snapshot resync restores presentation, not
-an authority's hidden physics state; authority migration is not supported.
-
-Each committed state and full resync now has a separate `syncId`. State
-acknowledgements, visual frames, input-ready notifications, and hazard choices
-must belong to the current round. A same-revision resync clears earlier
-acknowledgements and does not reopen input before its full state is applied.
-
-## Repeatable checks
-
-```powershell
-cd server/prototype
-npm test
-npm run check
-cd ../..
-node tests/multiplayer/run-native.ts static
-node tests/multiplayer/run-native.ts water rehit
-node tests/multiplayer/run-native.ts water drop
-node tests/multiplayer/run-native.ts water-slope drop
-node tests/multiplayer/run-native.ts water-bumper drop
-node tests/multiplayer/run-native.ts water-cup drop
-node tests/multiplayer/run-native.ts water-second-water drop
-node tests/multiplayer/run-native.ts water-stationary drop
-node tests/multiplayer/run-native.ts teleport
-node tests/multiplayer/run-native.ts dynamics
-$env:KOLF_DELAY_MS = '100'
-node tests/multiplayer/run-native.ts teleport rehit resync
-Remove-Item Env:KOLF_DELAY_MS
-node tests/multiplayer/run-native.ts teleport rehit disconnect
-```
-
-Each native run has a 120-second deadline and launches both clients through Craft.
-The runner chooses a free localhost port unless `KOLF_PORT` is set. It verifies
-both native processes exit and both scenes are destroyed, then stops only its own
-remaining Craft launchers. The delay is applied on each
-relay receive/send leg, not an estimate of network RTT. Native golden decoder
-fixtures can be run by setting `KOLF_PROTOCOL_TESTS` to the absolute path of
-`protocol/shot-fixtures.json`, then initializing Craft and using `craft --run kolf`.
-Unset the variable afterward.
-
-Ignored `local-session` directories retain private configs, JSONL traces, PNGs,
-and result summaries. Tests compare guest-applied scene state with authoritative
-commits and verify zero guest simulation counters. The scripts launch canonical
-shots directly; alternating mode fields do not test human power-meter timing.
-
-## Verification on 2026-09-18
-
-Craft compile/install/qmerge passed with MSVC 2022 and Qt 6.11.1. All 12 relay
-tests (including 19 shared shot cases) and TypeScript checking passed. The native
-golden-fixture Craft launch returned success. Earlier native runs completed the
-two-hole static fixture (scores 1,1 per player), water rehit, teleport, and the
-dynamic-object fixture. The final bounded pass completed water drop, teleport
-with delayed mid-motion resync, and terminal mid-motion disconnect. Both clients
-logged scene destruction in these final runs. Sanitized evidence is in `evidence/`.
-
-Remaining acceptance work: interactive mouse/keyboard and advanced-meter checks,
-offline gameplay regression, cross-platform/two-machine testing, repeated hazard
-and moving-obstacle edge cases, disconnects in every phase, and resource/endurance
-measurement. The requested 30-minute endurance run was intentionally skipped.
-The dynamics fixture includes every built-in object type but does not prove every
-collision interaction. Online hazard placement now checks collisions at the
-chosen point and resumes simulation when a slope starts motion. The
-`water-slope` fixture exercises this path; other overlaps and full offline
-parity still need targeted checks. This is a tested prototype, not a
-claim that all original acceptance criteria or the larger multiplayer plan are done.
-
-## Continuation evidence, 2026-09-18
-
-The checks in [evidence/2026-09-18-p0.json](evidence/2026-09-18-p0.json)
-were run after the changes above; the earlier evidence file remains unchanged.
-Craft compile/install/qmerge passed. All 15 relay tests and TypeScript checking
-passed. Native `water-slope drop` and delayed `teleport rehit resync` completed
-with matching committed states, zero guest mutation counters, and clean native
-scene/process shutdown. The native runner still uses scripted canonical shots;
-human mouse/keyboard and advanced-meter coverage remains open. The full lobby,
-multi-slot, results/rematch, test-kit and cross-platform goals remain open.
-
-## Sync-round follow-up, 2026-09-18
-
-The relay now coalesces resync requests while a full state is pending and
-queues an immediate retry for one second so the requester receives a fresh
-round. A newer committed state supersedes a queued or pending resync. The relay
-suite has 18 passing tests, including close requests, stale acknowledgements,
-a commit during resync, a queued retry, and a late full state. TypeScript
-checking passed. Native `water-slope drop` and `teleport rehit resync`
-completed through Craft using the installed build; their committed states
-matched, the guests performed no gameplay simulation, and both scenes were
-destroyed. See [evidence/2026-09-18-sync-followup.json](evidence/2026-09-18-sync-followup.json).
-
-The native runner now reports a Craft launcher failure during the run instead
-of waiting for the match timeout. Craft compilation was not needed for these
-TypeScript and test-runner changes. This does not close P0: actual mouse and
-keyboard normal/advanced putting, offline save/load and multi-hole behavior,
-and the remaining hazard overlaps still require checks.
-
-## Hazard-placement follow-up, 2026-09-19
-
-Drop placement now uses the same center-in-puddle predicate as the actual water
-collision rule in both offline and online code. This prevents a placement that
-looks clear from becoming a delayed water collision when the next shot begins.
-The authority also clears a stale legacy `inPlay` flag only when no online shot
-is active, and rejected admitted shots now report the concrete engine reason.
-
-Four focused fixtures cover a bumper that restarts motion, immediate cup entry,
-two adjacent water hazards, and stationary sand. Their runner assertions check
-the first committed continuation, unchanged stroke totals during placement,
-the intended motion/holed/stationary outcome, and final clearance of both water
-hazards. All four completed with matching authority/guest commits, zero guest
-simulation counters, clean scene/process teardown, and the existing slope and
-ordinary-water cases still passed. See
-[evidence/2026-09-19-placement.json](evidence/2026-09-19-placement.json).
-
-These scripted cases close the automated placement-fixture portion of Stage A.
-They do not replace the human normal/advanced input checklist or the offline
-multi-hole save/load regression, which remain unverified.
-
-## Protocol v3 multi-room and variable-roster path, 2026-09-21
-
-The current product service can be started from `server/prototype` with:
-
-```powershell
-npm run start:v3
-```
-
-It sends `ServiceHello` with the shipped course catalog and bounded service
-limits, hosts multiple isolated rooms, and separates connected members from
-their owned player slots. Each room supports 2–8 players across 2–8 members;
-one member can own several slots. Roster/course mutations advance the lobby
-revision and clear per-member readiness. Unsupported v1/v2 clients receive a
-clear response naming protocol 3.
-
-The product match coordinator is keyed by member/player IDs rather than the
-historical `authority | guest` map. One member simulates, state barriers wait
-for every member once, shots and hazard choices are checked against frozen
-player ownership, and visual frames fan out to every guest. The v1 `Session`
-and its runner remain only as a historical regression harness.
-
-Ordinary Kolf consumes the server course catalog, builds the full frozen
-2–8-player scene and scorecard, and automatically controls whichever locally
-owned slot is active. The lobby UI has separate member/player lists plus local
-Add/Edit/Remove controls. Results preserve frozen roster order and Return starts
-a fresh match identity.
-
-For a local session, run from the repository root:
+Then launch a two-client local session from the repository root:
 
 ```powershell
 .\tests\multiplayer\play.ps1 -ClientCount 2
 ```
 
-Use `-ClientCount 3` for the representative three-member/four-player case. The
-launcher reserves a free port, starts `relay-v3.ts`, launches ordinary Kolf
-through Craft, prints the endpoint and log directory, and stops only the
-processes it created. Configure the extra locally owned slot with **Add local
-player** in the owner window.
+Use `-ClientCount 3` for the representative three-member/four-player check.
+The launcher reserves a local port, starts the service, launches ordinary Kolf
+clients through Craft, and prints the endpoint and log directory.
 
-`npm run check` and `npm test` cover codecs, room capacity and cleanup,
-interleaved two-room WebSocket isolation, a 3-member/4-player coordinator, and
-the 8-player snapshot boundary. `KOLF_PROTOCOL_V3_TESTS` runs the shared v3
-envelope fixture through the native decoder. Current bounded evidence is in
-[`evidence/2026-09-21-v3-core.json`](evidence/2026-09-21-v3-core.json).
-
-The same ordinary-client path has bounded automation commands from
-`server/prototype`:
+The bounded scripted scenarios are:
 
 ```powershell
-npm run test:native:v3:rematch
-npm run test:native:v3:four-player
-npm run test:native:v3:hazard
+cd server
+npm run test:native:rematch
+npm run test:native:four-player
+npm run test:native:hazard
 ```
 
-The 2026-09-21 acceptance pass completed all three through Craft. The first used
-two clients for two consecutive matches; the second used three members/four
-slots with two slots owned by one member; the third reused the existing water
-fixture to exercise hazard choices with that variable roster. Every run verified
-clean scene/process shutdown and zero guest simulation counters. The server
-typecheck and all 42 tests passed, as did Craft compile/install/qmerge and both
-native protocol fixtures. Human lobby UI and offline save/load smoke remain
-honestly unverified.
+The native envelope fixture can be run by setting
+`KOLF_ONLINE_PROTOCOL_TESTS` to the absolute path of
+`protocol/online-envelope-fixtures.json`, then launching Kolf through Craft.
+
+## Current protocol boundary
+
+Every envelope carries `protocolVersion: 3`. Non-current clients receive an
+`UnsupportedProtocol` response; no compatibility decoder or fallback exists.
+Messages are bounded to 512 KiB. Request, lobby, and match identities scope
+mutating commands. Frozen roster ownership determines who may submit each shot
+or hazard choice. State barriers wait for each current member once, and guest
+clients do not simulate gameplay.
+
+The current checkpoint is
+[evidence/2026-09-22-stage0-cleanup.json](evidence/2026-09-22-stage0-cleanup.json). Generated
+`local-session` directories contain development logs and are ignored by Git.

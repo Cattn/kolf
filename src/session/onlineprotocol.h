@@ -6,7 +6,7 @@
 #include <QString>
 
 namespace Kolf::Session {
-struct EnvelopeV3 {
+struct OnlineEnvelope {
     QString type;
     QString requestId;
     QString lobbyId;
@@ -14,8 +14,8 @@ struct EnvelopeV3 {
     QJsonObject payload;
 };
 
-bool decodeEnvelopeV3(const QByteArray &raw, EnvelopeV3 &envelope, QString &errorCode);
-QJsonObject envelopeV3(const QString &type, const QJsonObject &payload = {}, const QString &requestId = {},
+bool decodeOnlineEnvelope(const QByteArray &raw, OnlineEnvelope &envelope, QString &errorCode);
+QJsonObject onlineEnvelope(const QString &type, const QJsonObject &payload = {}, const QString &requestId = {},
                        const QString &lobbyId = {}, const QString &matchId = {});
-int runV3ProtocolFixtures(const QString &path);
+int runOnlineProtocolFixtures(const QString &path);
 }

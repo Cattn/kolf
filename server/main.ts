@@ -6,7 +6,7 @@ import { LobbyWebSocketService } from './service/websocket-service.ts';
 const host = process.env.KOLF_BIND ?? '0.0.0.0';
 const port = Number(process.env.KOLF_PORT ?? 3011);
 if (!Number.isInteger(port) || port < 0 || port > 65535) throw Error('KOLF_PORT must be a valid port');
-const courseRoot = resolve(process.env.KOLF_COURSE_ROOT ?? '../../courses');
+const courseRoot = resolve(process.env.KOLF_COURSE_ROOT ?? '../courses');
 const testCourse = process.env.KOLF_TEST_COURSE;
 const catalog = testCourse
   ? loadCourseCatalog(dirname(resolve(testCourse)), [{ courseId: 'test', displayName: 'Automation fixture', fileName: basename(testCourse) }])

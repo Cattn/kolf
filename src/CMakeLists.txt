@@ -6,23 +6,22 @@ ecm_setup_version(${RELEASE_SERVICE_VERSION}
 add_library(kolfprivate STATIC)
 
 # Fingerprint normalized gameplay source, not checkout paths or line endings.
-# protocol/v2.md specifies the identical language-neutral preimage.
-file(GLOB_RECURSE PROTOTYPE_SOURCES CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+file(GLOB_RECURSE RULES_SOURCES CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
-list(SORT PROTOTYPE_SOURCES)
-set(PROTOTYPE_HASH_INPUT "kolf-rules-v2\n")
-set(PROTOTYPE_SOURCE_PATHS)
-foreach(source IN LISTS PROTOTYPE_SOURCES)
+list(SORT RULES_SOURCES)
+set(RULES_HASH_INPUT "kolf-rules-current\n")
+set(RULES_SOURCE_PATHS)
+foreach(source IN LISTS RULES_SOURCES)
     file(READ "${CMAKE_CURRENT_SOURCE_DIR}/${source}" source_text)
     string(REPLACE "\r\n" "\n" source_text "${source_text}")
     string(REPLACE "\r" "\n" source_text "${source_text}")
     string(SHA256 source_hash "${source_text}")
-    string(APPEND PROTOTYPE_HASH_INPUT "${source}\n${source_hash}\n")
-    list(APPEND PROTOTYPE_SOURCE_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/${source}")
+    string(APPEND RULES_HASH_INPUT "${source}\n${source_hash}\n")
+    list(APPEND RULES_SOURCE_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/${source}")
 endforeach()
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${PROTOTYPE_SOURCE_PATHS})
-string(SHA256 KOLF_PROTOTYPE_BUILD "${PROTOTYPE_HASH_INPUT}")
-configure_file(session/prototype_build.h.in prototype_build.h @ONLY)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${RULES_SOURCE_PATHS})
+string(SHA256 KOLF_RULES_BUILD_ID "${RULES_HASH_INPUT}")
+configure_file(session/rules_build_id.h.in rules_build_id.h @ONLY)
 
 # we have a static copy of Box2D in our source tree
 target_include_directories(kolfprivate PRIVATE
@@ -32,7 +31,7 @@ target_include_directories(kolfprivate PRIVATE
 
 target_sources(kolfprivate PRIVATE
     session/shotcommand.cpp
-    session/protocolv3.cpp
+    session/onlineprotocol.cpp
     session/gamesessionadapter.cpp
     session/sessioncontroller.cpp
     online/onlinecoordinator.cpp
@@ -127,8 +126,6 @@ target_sources(kolfprivate PRIVATE
 )
 
 target_sources(kolfprivate PRIVATE
-    dataserver.cpp
-    dataServer.h
     ball.cpp
     ball.h
     canvasitem.cpp
@@ -213,9 +210,7 @@ ecm_add_app_icon(kolf ICONS ${ICONS_SRCS})
 
 target_link_libraries(kolf PRIVATE kolfprivate)
 
-if(WIN32)
-    target_link_libraries(kolf PRIVATE wsock32 ws2_32)
-else()
+if(NOT WIN32)
     find_package(Threads REQUIRED)
     target_link_libraries(kolf PRIVATE Threads::Threads)
 endif()

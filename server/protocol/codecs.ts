@@ -2,7 +2,7 @@
 import { decodeEnvelope, isObject, ProtocolError } from './envelope.ts';
 import type { Envelope, JsonObject } from './envelope.ts';
 import { validId, validJoinCode } from './ids.ts';
-import { finite, integer, validRosterState } from '../protocol.ts';
+import { finite, integer, validRosterState } from './game-state.ts';
 
 export type ClientMessage =
   | Envelope<'CreateLobby', { displayName: string; color: string; courseId: string }>

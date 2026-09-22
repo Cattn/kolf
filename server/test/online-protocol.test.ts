@@ -8,8 +8,8 @@ import { compatibilityIdentity } from '../service/compatibility.ts';
 import { LobbyError } from '../service/errors.ts';
 import { RequestCache } from '../service/request-cache.ts';
 
-test('shared v3 envelope fixtures', () => {
-  const fixture = JSON.parse(readFileSync(new URL('../../../protocol/v3-envelope-fixtures.json', import.meta.url), 'utf8'));
+test('shared online envelope fixtures', () => {
+  const fixture = JSON.parse(readFileSync(new URL('../../protocol/online-envelope-fixtures.json', import.meta.url), 'utf8'));
   for (const entry of fixture.cases) {
     if (entry.valid) assert.equal(decodeEnvelope(JSON.stringify(entry.message)).type, entry.message.type, entry.name);
     else assert.throws(() => decodeEnvelope(JSON.stringify(entry.message)),
@@ -17,7 +17,7 @@ test('shared v3 envelope fixtures', () => {
   }
 });
 
-test('v3 client codecs validate scope and bounded profile fields', () => {
+test('online client codecs validate scope and bounded profile fields', () => {
   const create = envelope('CreateLobby', { displayName: 'Alice', color: '#ff0000ff', courseId: 'classic' }, { requestId: 'request_1' });
   assert.equal(decodeClientMessage(JSON.stringify(create)).type, 'CreateLobby');
   assert.throws(() => decodeClientMessage(JSON.stringify({ ...create, protocolVersion: 2 })),

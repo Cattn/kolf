@@ -77,14 +77,14 @@ test('two protocol clients can complete a lobby shell and start a fresh rematch'
   assert.equal(reusedMatchRequest[0].message.type, 'LobbyState', 'a rematch has a fresh request namespace');
 });
 
-test('v1 and v2 get a clear protocol mismatch response', () => {
+test('non-current versions get a clear protocol mismatch response', () => {
   const controller = new LobbyProtocolController(catalog, ids());
   const connection = controller.connect();
   const response = controller.receive(connection, JSON.stringify({ protocolVersion: 1, type: 'Hello', payload: {} }));
   assert.equal(response[0].message.type, 'UnsupportedProtocol');
   assert.equal(response[0].message.payload.supportedProtocolVersion, 3);
-  const v2 = controller.receive(connection, JSON.stringify({ protocolVersion: 2, type: 'Hello', payload: {} }));
-  assert.equal(v2[0].message.payload.supportedProtocolVersion, 3);
+  const outdated = controller.receive(connection, JSON.stringify({ protocolVersion: 2, type: 'Hello', payload: {} }));
+  assert.equal(outdated[0].message.payload.supportedProtocolVersion, 3);
 });
 
 test('prepared v3 clients cross the scene and initial-state barriers', () => {

@@ -39,7 +39,7 @@
       }
     },
     {
-      "name": "v2 is unsupported",
+      "name": "non-current protocol is unsupported",
       "valid": false,
       "error": "UnsupportedProtocol",
       "message": { "protocolVersion": 2, "type": "Hello", "payload": {} }

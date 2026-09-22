@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "networkclient.h"
-#include "session/protocolv3.h"
+#include "session/onlineprotocol.h"
 #include <QJsonDocument>
 
 using namespace Kolf::Net;
@@ -13,19 +13,16 @@ NetworkClient::NetworkClient(QObject *parent) : QObject(parent) {
         QJsonParseError error;
         const auto document = QJsonDocument::fromJson(text.toUtf8(), &error);
         const auto raw = text.toUtf8();
-        const auto m = document.object();
         bool valid = raw.size() <= MaxBytes && error.error == QJsonParseError::NoError && document.isObject();
-        if (valid && m_protocolVersion == 1)
-            valid = m[QStringLiteral("v")] == 1 && m[QStringLiteral("matchId")] == QLatin1String("prototype");
-        else if (valid && m_protocolVersion == 3) {
-            Session::EnvelopeV3 decoded;
+        if (valid) {
+            Session::OnlineEnvelope decoded;
             QString errorCode;
-            valid = Session::decodeEnvelopeV3(raw, decoded, errorCode);
-        } else valid = false;
+            valid = Session::decodeOnlineEnvelope(raw, decoded, errorCode);
+        }
         if (!valid) {
             Q_EMIT failed(QStringLiteral("Malformed protocol envelope")); close(); return;
         }
-        Q_EMIT received(m);
+        Q_EMIT received(document.object());
     });
     connect(&m_socket, &QWebSocket::binaryMessageReceived, this, [this] { Q_EMIT failed(QStringLiteral("Unexpected binary message")); close(); });
     connect(&m_socket, &QWebSocket::connected, this, [this] {
@@ -57,12 +54,12 @@ NetworkClient::NetworkClient(QObject *parent) : QObject(parent) {
         else m_socket.ping();
     });
 }
-void NetworkClient::open(const QUrl &url, const QJsonObject &initialMessage, int protocolVersion) {
+void NetworkClient::open(const QUrl &url, const QJsonObject &initialMessage) {
     if (m_socket.state() != QAbstractSocket::UnconnectedState) {
         Q_EMIT failed(QStringLiteral("Transport is already connected"));
         return;
     }
-    m_closed = false; m_protocolVersion = protocolVersion; m_initialMessage = initialMessage;
+    m_closed = false; m_initialMessage = initialMessage;
     m_frame.clear(); m_blocked.invalidate(); m_lastReceived.start(); m_flush.start(30); m_watchdog.start(5000);
     m_socket.open(url);
 }

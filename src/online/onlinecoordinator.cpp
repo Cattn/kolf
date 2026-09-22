@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "onlinecoordinator.h"
 
-#include "session/protocolv3.h"
-#include "prototype_build.h"
+#include "session/onlineprotocol.h"
+#include "rules_build_id.h"
 
 #include <QCryptographicHash>
 #include <QDir>
@@ -43,7 +43,7 @@ void OnlineCoordinator::connectToService(const QString &endpoint)
     }
     Q_EMIT statusChanged(tr("Connecting to %1…").arg(url.toDisplayString()));
     m_endpoint = url.toString();
-    m_network.open(url, {}, 3);
+    m_network.open(url);
 }
 
 void OnlineCoordinator::disconnectFromService()
@@ -109,7 +109,7 @@ QString OnlineCoordinator::requestId()
 
 void OnlineCoordinator::send(const QString &type, const QJsonObject &payload, bool matchScoped)
 {
-    m_network.send(Session::envelopeV3(type, payload, requestId(), m_lobbyId, matchScoped ? m_matchId : QString()));
+    m_network.send(Session::onlineEnvelope(type, payload, requestId(), m_lobbyId, matchScoped ? m_matchId : QString()));
 }
 
 void OnlineCoordinator::receive(const QJsonObject &message)
@@ -200,6 +200,6 @@ void OnlineCoordinator::prepareCourse()
     m_coursePath = path;
     const auto hash = QString::fromLatin1(QCryptographicHash::hash(file.readAll(), QCryptographicHash::Sha256).toHex());
     send(QStringLiteral("CourseReady"), {{QStringLiteral("courseHash"), hash},
-         {QStringLiteral("compatibilityId"), QStringLiteral(KOLF_PROTOTYPE_BUILD)}}, true);
+         {QStringLiteral("compatibilityId"), QStringLiteral(KOLF_RULES_BUILD_ID)}}, true);
     Q_EMIT statusChanged(tr("Course verified. Waiting for the other members…"));
 }

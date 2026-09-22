@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-#include "protocolv3.h"
+#include "onlineprotocol.h"
 
 #include <QDebug>
 #include <QFile>
@@ -19,7 +19,7 @@ bool identifier(const QJsonValue &value)
 }
 }
 
-bool decodeEnvelopeV3(const QByteArray &raw, EnvelopeV3 &envelope, QString &errorCode)
+bool decodeOnlineEnvelope(const QByteArray &raw, OnlineEnvelope &envelope, QString &errorCode)
 {
     errorCode.clear();
     if (raw.size() > MaximumMessageBytes) {
@@ -60,7 +60,7 @@ bool decodeEnvelopeV3(const QByteArray &raw, EnvelopeV3 &envelope, QString &erro
     return true;
 }
 
-QJsonObject envelopeV3(const QString &type, const QJsonObject &payload, const QString &requestId,
+QJsonObject onlineEnvelope(const QString &type, const QJsonObject &payload, const QString &requestId,
                        const QString &lobbyId, const QString &matchId)
 {
     QJsonObject message{{QStringLiteral("protocolVersion"), 3}, {QStringLiteral("type"), type},
@@ -71,7 +71,7 @@ QJsonObject envelopeV3(const QString &type, const QJsonObject &payload, const QS
     return message;
 }
 
-int runV3ProtocolFixtures(const QString &path)
+int runOnlineProtocolFixtures(const QString &path)
 {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) return 2;
@@ -82,16 +82,16 @@ int runV3ProtocolFixtures(const QString &path)
     for (const auto &value : cases) {
         const auto test = value.toObject();
         const auto raw = QJsonDocument(test.value(QStringLiteral("message")).toObject()).toJson(QJsonDocument::Compact);
-        EnvelopeV3 envelope;
+        OnlineEnvelope envelope;
         QString errorCode;
-        const bool valid = decodeEnvelopeV3(raw, envelope, errorCode);
+        const bool valid = decodeOnlineEnvelope(raw, envelope, errorCode);
         if (valid != test.value(QStringLiteral("valid")).toBool()
             || (!valid && errorCode != test.value(QStringLiteral("error")).toString())) {
-            qCritical() << "FAIL v3 envelope" << test.value(QStringLiteral("name")).toString() << errorCode;
+            qCritical() << "FAIL online envelope" << test.value(QStringLiteral("name")).toString() << errorCode;
             return 1;
         }
     }
-    qInfo() << "PASS native v3 envelope cases:" << cases.size();
+    qInfo() << "PASS native online envelope cases:" << cases.size();
     return 0;
 }
 }

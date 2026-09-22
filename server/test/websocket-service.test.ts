@@ -8,7 +8,7 @@ import { envelope } from '../protocol/envelope.ts';
 import { loadCourseCatalog } from '../service/course-catalog.ts';
 import { LobbyWebSocketService } from '../service/websocket-service.ts';
 
-const courseRoot = fileURLToPath(new URL('../../../courses/', import.meta.url));
+const courseRoot = fileURLToPath(new URL('../../courses/', import.meta.url));
 
 async function opened(url: string) {
   const socket = new WebSocket(url);
@@ -134,7 +134,7 @@ test('two rooms accept interleaved roster and start traffic without cross-room l
   assert(readyAB.every(message => message.payload.state.lobbyId === roomA.lobbyId));
 });
 
-test('v1 WebSocket client receives UnsupportedProtocol before close', async t => {
+test('non-current WebSocket client receives UnsupportedProtocol before close', async t => {
   const service = new LobbyWebSocketService({ catalog: loadCourseCatalog(courseRoot).slice(0, 1) });
   await service.ready();
   t.after(() => service.close());

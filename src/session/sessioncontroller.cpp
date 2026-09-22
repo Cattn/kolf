@@ -3,8 +3,8 @@
 #include "landscape.h"
 #include "objects.h"
 #include "obstacles.h"
-#include "prototype_build.h"
-#include "protocolv3.h"
+#include "rules_build_id.h"
+#include "onlineprotocol.h"
 #include <QApplication>
 #include <QCheckBox>
 #include <QCryptographicHash>
@@ -24,16 +24,14 @@
 
 using namespace Kolf::Session;
 
-SessionController::SessionController(const QJsonObject &config, Net::NetworkClient *sharedNetwork, QWidget *parent)
+SessionController::SessionController(const QJsonObject &config, Net::NetworkClient *network, QWidget *parent)
     : QWidget(parent)
     , m_config(config)
     , m_role(config[QStringLiteral("role")] == QLatin1String("authority") ? Role::Authority : Role::Guest)
-    , m_ownedNetwork(sharedNetwork ? nullptr : std::make_unique<Net::NetworkClient>())
-    , m_network(sharedNetwork ? sharedNetwork : m_ownedNetwork.get()) {
-    m_v3 = config[QStringLiteral("protocolVersion")].toInt(1) == 3;
+    , m_network(network) {
     for (const auto &value : config[QStringLiteral("localPlayerIds")].toArray())
         if (!value.toString().isEmpty()) m_localPlayerIds.insert(value.toString());
-    setWindowTitle(QStringLiteral("Kolf prototype — %1").arg(config[QStringLiteral("role")].toString()));
+    setWindowTitle(QStringLiteral("Kolf Online — %1").arg(config[QStringLiteral("role")].toString()));
     m_layout = new QVBoxLayout(this);
     m_status = new QLabel(QStringLiteral("Connecting")); m_status->setWordWrap(true); m_layout->addWidget(m_status);
     m_notice = new QLabel; m_notice->setWordWrap(true); m_layout->addWidget(m_notice);
@@ -45,16 +43,15 @@ SessionController::SessionController(const QJsonObject &config, Net::NetworkClie
     m_rehit = new QPushButton(QStringLiteral("Rehit")); controls->addWidget(m_rehit);
     m_drop->setEnabled(false); m_rehit->setEnabled(false); m_layout->addLayout(controls);
     const auto configuredRoster = config[QStringLiteral("roster")].toArray();
-    const int rosterSize = m_v3 ? configuredRoster.size() : 2;
+    const int rosterSize = configuredRoster.size();
     m_scores = new QTableWidget(rosterSize, 0); m_scores->setMaximumHeight(180); m_scores->setEditTriggers(QAbstractItemView::NoEditTriggers);
     QStringList scoreLabels;
-    if (m_v3) for (const auto &value : configuredRoster) {
+    for (const auto &value : configuredRoster) {
         const auto player = value.toObject();
         const auto local = m_localPlayerIds.contains(player.value(QStringLiteral("playerId")).toString());
         scoreLabels.append(local ? QStringLiteral("%1 (local)").arg(player.value(QStringLiteral("displayName")).toString())
                                  : player.value(QStringLiteral("displayName")).toString());
     }
-    else scoreLabels = {QStringLiteral("Authority"), QStringLiteral("Guest")};
     m_scores->setVerticalHeaderLabels(scoreLabels); m_layout->addWidget(m_scores);
     connect(advanced, &QCheckBox::toggled, this, [this](bool on) { if (m_game) m_game->setUseAdvancedPutting(on); });
     connect(mouse, &QCheckBox::toggled, this, [this](bool on) { if (m_game) m_game->setUseMouse(on); });
@@ -75,10 +72,9 @@ SessionController::SessionController(const QJsonObject &config, Net::NetworkClie
             QStringLiteral("ServiceHello"),
             QStringLiteral("PreparationReady"), QStringLiteral("PreparationAborted"),
             QStringLiteral("RequestRejected"), QStringLiteral("UnsupportedProtocol")};
-        if (!m_v3 || (message.value(QStringLiteral("matchId")).toString() == m_config.value(QStringLiteral("matchId")).toString()
-            && !lobby.contains(type))) receive(message);
+        if (message.value(QStringLiteral("matchId")).toString() == m_config.value(QStringLiteral("matchId")).toString()
+            && !lobby.contains(type)) receive(message);
     });
-    if (!m_v3) connect(m_network, &Net::NetworkClient::failed, this, &SessionController::interrupt);
     m_presentation.setDelay(config[QStringLiteral("presentationDelayMs")].toInt(100));
     connect(&m_presentation, &Replication::PresentationController::present, this, [this](const QJsonObject &s) {
         if (!m_adapter || m_interrupted) return;
@@ -120,13 +116,8 @@ SessionController::SessionController(const QJsonObject &config, Net::NetworkClie
             interrupt(QStringLiteral("Unsupported course group: %1").arg(name)); return;
         }
     }
-    const QUrl url(config[QStringLiteral("endpoint")].toString());
-    if ((url.scheme() != QLatin1String("ws") && url.scheme() != QLatin1String("wss")) || url.host().isEmpty()) { interrupt(QStringLiteral("Invalid WebSocket endpoint")); return; }
-    log(QStringLiteral("connect"), {{QStringLiteral("courseHash"), m_hash}, {QStringLiteral("buildId"), QStringLiteral(KOLF_PROTOTYPE_BUILD)},
+    log(QStringLiteral("connect"), {{QStringLiteral("courseHash"), m_hash}, {QStringLiteral("buildId"), QStringLiteral(KOLF_RULES_BUILD_ID)},
         {QStringLiteral("processId"), double(QCoreApplication::applicationPid())}});
-    if (!m_v3) m_network->open(url, envelope(QStringLiteral("Hello"), {{QStringLiteral("role"), config[QStringLiteral("role")]},
-        {QStringLiteral("credential"), config[QStringLiteral("credential")]}, {QStringLiteral("courseHash"), m_hash},
-        {QStringLiteral("buildId"), QStringLiteral(KOLF_PROTOTYPE_BUILD)}}));
     connect(&m_frames, &QTimer::timeout, this, [this] {
         if (!m_adapter || !m_ready || m_role != Role::Authority || m_interrupted || m_phase == QLatin1String("Finished")) return;
         const auto s = state();
@@ -143,7 +134,6 @@ SessionController::SessionController(const QJsonObject &config, Net::NetworkClie
 SessionController::~SessionController() {
     log(QStringLiteral("shutdown"), {{QStringLiteral("frames"), double(m_frameCount)},
         {QStringLiteral("frameBytes"), double(m_frameBytes)}, {QStringLiteral("coalesced"), double(m_network->coalescedFrames())}});
-    if (m_ownedNetwork) m_network->close();
     delete m_game;
     log(QStringLiteral("sceneDestroyed"));
 }
@@ -153,15 +143,13 @@ void SessionController::log(const QString &event, QJsonObject data) {
     m_log.write(QJsonDocument(data).toJson(QJsonDocument::Compact) + '\n'); m_log.flush();
 }
 QJsonObject SessionController::wireMessage(const QString &type, QJsonObject payload) const {
-    if (!m_v3) return envelope(type, payload);
-    return envelopeV3(type, payload, QStringLiteral("request_%1").arg(QUuid::createUuid().toString(QUuid::WithoutBraces)),
+    return onlineEnvelope(type, payload, QStringLiteral("request_%1").arg(QUuid::createUuid().toString(QUuid::WithoutBraces)),
         m_config.value(QStringLiteral("lobbyId")).toString(), m_config.value(QStringLiteral("matchId")).toString());
 }
 void SessionController::send(const QString &type, QJsonObject payload, bool visual) {
     m_network->send(wireMessage(type, payload), visual);
 }
 QJsonObject SessionController::unwrap(const QJsonObject &message) const {
-    if (!m_v3) return message;
     auto payload = message.value(QStringLiteral("payload")).toObject();
     payload[QStringLiteral("type")] = message.value(QStringLiteral("type"));
     const auto playerId = payload.value(QStringLiteral("playerId")).toString();
@@ -179,8 +167,8 @@ QJsonObject SessionController::unwrap(const QJsonObject &message) const {
 void SessionController::load() {
     if (m_game) { interrupt(QStringLiteral("Repeated course load")); return; }
     const auto roster = m_config.value(QStringLiteral("roster")).toArray();
-    const int rosterSize = m_v3 ? roster.size() : 2;
-    if (m_v3 && (rosterSize < 2 || rosterSize > 8 || m_localPlayerIds.isEmpty())) {
+    const int rosterSize = roster.size();
+    if (rosterSize < 2 || rosterSize > 8 || m_localPlayerIds.isEmpty()) {
         interrupt(QStringLiteral("Invalid frozen player roster")); return;
     }
     for (int i = 0; i < rosterSize; ++i) {
@@ -202,7 +190,7 @@ void SessionController::load() {
     connect(m_adapter, &GameSessionAdapter::transition, this, &SessionController::commit);
     connect(m_adapter, &GameSessionAdapter::failed, this, &SessionController::interrupt);
     if (!m_adapter->prepareCourse()) { interrupt(QStringLiteral("Scene registry failed")); return; }
-    send(m_v3 ? QStringLiteral("SceneReady") : QStringLiteral("CourseReady"), {{QStringLiteral("manifestHash"), m_adapter->manifestHash()}});
+    send(QStringLiteral("SceneReady"), {{QStringLiteral("manifestHash"), m_adapter->manifestHash()}});
     refresh();
 }
 QJsonObject SessionController::state() const {
@@ -230,8 +218,7 @@ void SessionController::submit(const ShotIntent &intent) {
         {QStringLiteral("holeGeneration"), m_generation}, {QStringLiteral("turnId"), m_turn},
         {QStringLiteral("puttingMode"), intent.advanced ? QStringLiteral("advanced") : QStringLiteral("normal")},
         {QStringLiteral("directionRadians"), intent.directionRadians}, {QStringLiteral("launchMagnitude"), intent.launchMagnitude}};
-    if (m_v3) shot[QStringLiteral("playerId")] = playerIdForSlot(m_adapter->activeSlot());
-    else shot[QStringLiteral("playerSlot")] = m_slot;
+    shot[QStringLiteral("playerId")] = playerIdForSlot(m_adapter->activeSlot());
     m_pendingMessage = wireMessage(QStringLiteral("SubmitShot"), shot);
     m_network->send(m_pendingMessage);
     refresh();
@@ -241,11 +228,9 @@ void SessionController::receive(const QJsonObject &message) {
     const auto m = unwrap(message);
     const auto type = m[QStringLiteral("type")].toString();
     if (type == QLatin1String("Welcome")) {
-        if (m_v3) {
-            QSet<QString> welcomeIds;
-            for (const auto &value : m[QStringLiteral("playerIds")].toArray()) welcomeIds.insert(value.toString());
-            if (welcomeIds.isEmpty() || welcomeIds != m_localPlayerIds) { interrupt(QStringLiteral("Player ownership changed during preparation")); return; }
-        } else m_slot = m[QStringLiteral("playerSlot")].toInt(-1);
+        QSet<QString> welcomeIds;
+        for (const auto &value : m[QStringLiteral("playerIds")].toArray()) welcomeIds.insert(value.toString());
+        if (welcomeIds.isEmpty() || welcomeIds != m_localPlayerIds) { interrupt(QStringLiteral("Player ownership changed during preparation")); return; }
         refresh(); return;
     }
     if (type == QLatin1String("LoadCourse")) { load(); return; }
@@ -254,7 +239,7 @@ void SessionController::receive(const QJsonObject &message) {
     if (type == QLatin1String("StartMatch") && m_role == Role::Authority) { commit(QStringLiteral("AwaitingShot")); return; }
     if (type == QLatin1String("AdmitShot") && m_role == Role::Authority) {
         ShotCommand c;
-        const int maximumPlayerSlot = m_v3 ? m_config.value(QStringLiteral("roster")).toArray().size() - 1 : 1;
+        const int maximumPlayerSlot = m_config.value(QStringLiteral("roster")).toArray().size() - 1;
         if (!decodeShot(m, c, maximumPlayerSlot)) { interrupt(QStringLiteral("Invalid admitted shot")); return; }
         if (m_admitted.contains(c.commandId)) {
             if (m_admitted[c.commandId] != m) { interrupt(QStringLiteral("Conflicting admitted command")); return; }
@@ -390,7 +375,6 @@ void SessionController::interrupt(const QString &reason) {
     if (m_adapter) { m_adapter->enableSimulation(false); m_adapter->enableInput(false); }
     m_frames.stop(); m_retry.stop(); m_presentation.clear();
     send(QStringLiteral("MatchInterrupted"), {{QStringLiteral("reason"), reason.left(160)}});
-    if (m_ownedNetwork) m_network->close();
     m_notice->setText(reason); log(QStringLiteral("interrupted"), {{QStringLiteral("reason"), reason}}); refresh();
     if (m_config[QStringLiteral("exitWhenFinished")].toBool()) QTimer::singleShot(500, qApp, [] { QCoreApplication::exit(3); });
 }
@@ -417,7 +401,6 @@ void SessionController::refresh() {
 
 bool SessionController::ownsSlot(int slot) const
 {
-    if (!m_v3) return slot == m_slot;
     const auto playerId = playerIdForSlot(slot);
     return !playerId.isEmpty() && m_localPlayerIds.contains(playerId);
 }

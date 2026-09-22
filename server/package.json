@@ -1,19 +1,16 @@
 {
-  "name": "kolf-23.08.4",
-  "version": "1.0.0",
-  "description": "Heya,",
-  "main": "index.js",
-  "directories": {
-    "doc": "doc"
-  },
+  "name": "kolf-server",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.18" },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node main.ts",
+    "test": "node --test test/*.test.ts",
+    "check": "tsc --noEmit",
+    "test:native:rematch": "node ../tests/multiplayer/run-online-native.ts two-rematch",
+    "test:native:four-player": "node ../tests/multiplayer/run-online-native.ts four-player",
+    "test:native:hazard": "node ../tests/multiplayer/run-online-native.ts four-player-hazard"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "discord-rpc": "^4.0.1",
-    "express": "^4.18.2"
-  }
+  "dependencies": { "ws": "^8.18.3" },
+  "devDependencies": { "@types/node": "^22.0.0", "@types/ws": "^8.18.1", "typescript": "^5.9.2" }
 }

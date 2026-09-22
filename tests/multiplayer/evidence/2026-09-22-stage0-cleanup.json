@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-22",
+  "baselineCommit": "225ba27565865ef25f2a3c423a06c06409fa6d24",
+  "scope": "productization Stage 0: one current online protocol, service, launcher, and documentation path",
+  "environment": {
+    "platform": "Windows",
+    "craftAbi": "windows-cl-msvc2022-x86_64",
+    "craftRoot": "C:\\CraftRoot",
+    "nodeSuite": "node --test test/*.test.ts"
+  },
+  "checks": {
+    "typescriptCheck": "passed",
+    "serverTests": "passed: 24/24 current-path tests",
+    "craftCompileInstallQmerge": "passed",
+    "nativeOnlineEnvelopeFixture": "passed",
+    "retiredPathSourceSearch": "passed",
+    "humanUiSmoke": "not run",
+    "offlineSaveLoadSmoke": "not run"
+  },
+  "implemented": [
+    "removed synchronous telemetry, the original Node/web dashboard, vendored JSON, and direct Winsock linkage",
+    "removed the fixed two-client relay/session, its tests, launchers, environment entry point, and shot fixture",
+    "promoted the current service to server/ with package name kolf-server and npm start as its default entry point",
+    "renamed native protocol and compatibility-build files to version-neutral product names",
+    "removed native protocol fallback branches so only the current envelope is accepted",
+    "replaced historical active multiplayer documentation and evidence with a concise current-only path"
+  ],
+  "notes": [
+    "Craft required its existing configured Python runtime and access outside the workspace; no Craft packages were installed or updated.",
+    "The first server test after promotion exposed one stale relative course path; it was corrected and the full current suite passed.",
+    "No native match campaign or human UI matrix was run during this deletion/refactor stage."
+  ]
+}

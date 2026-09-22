@@ -1,4 +1,4 @@
-# Kolf multiplayer protocol v3
+# Kolf online protocol
 
 Protocol v3 is the private-alpha room and variable-roster protocol. Every JSON
 text message uses this envelope:
@@ -39,7 +39,7 @@ Preparation and state barriers acknowledge each connected member once,
 regardless of how many player slots it owns. Frames are fanned out to every
 non-authority member.
 
-Clients using v1 or v2 receive `UnsupportedProtocol` with
-`supportedProtocolVersion: 3`. There is no compatibility shim for the
-unreleased v2 lobby protocol. Shared generic-envelope cases are in
-[`v3-envelope-fixtures.json`](v3-envelope-fixtures.json).
+Clients using any non-current version receive `UnsupportedProtocol` with
+`supportedProtocolVersion: 3`. There is no compatibility shim. Shared
+generic-envelope cases are in
+[`online-envelope-fixtures.json`](online-envelope-fixtures.json).

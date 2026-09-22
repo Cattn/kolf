@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-import { finite, integer, validRosterState } from '../protocol.ts';
+import { finite, integer, validRosterState } from '../protocol/game-state.ts';
 import type { Envelope, JsonObject } from '../protocol/envelope.ts';
 import { envelope } from '../protocol/envelope.ts';
 import type { MemberId } from '../protocol/ids.ts';

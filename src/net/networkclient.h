@@ -11,7 +11,7 @@ class NetworkClient : public QObject {
     Q_OBJECT
 public:
     explicit NetworkClient(QObject *parent = nullptr);
-    void open(const QUrl &url, const QJsonObject &initialMessage = {}, int protocolVersion = 1);
+    void open(const QUrl &url, const QJsonObject &initialMessage = {});
     void send(const QJsonObject &message, bool visual = false);
     void close();
     qint64 bufferedBytes() const { return m_socket.bytesToWrite(); }
@@ -30,7 +30,6 @@ private:
     QString m_frame;
     quint64 m_coalesced = 0;
     bool m_closed = false;
-    int m_protocolVersion = 1;
     QJsonObject m_initialMessage;
 };
 }
