@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "networkclient.h"
 #include "session/onlineprotocol.h"
+#include <QAbstractSocket>
 #include <QJsonDocument>
 
 using namespace Kolf::Net;
@@ -37,7 +38,16 @@ NetworkClient::NetworkClient(QObject *parent) : QObject(parent) {
         Q_EMIT disconnected();
     });
     connect(&m_socket, &QWebSocket::errorOccurred, this, [this] {
-        if (!m_closed) { const auto reason = m_socket.errorString(); Q_EMIT failed(reason); close(); }
+        if (!m_closed) {
+            QString reason;
+            switch (m_socket.error()) {
+            case QAbstractSocket::HostNotFoundError: reason = tr("Server address could not be found."); break;
+            case QAbstractSocket::ConnectionRefusedError: reason = tr("The server refused the connection."); break;
+            case QAbstractSocket::SslHandshakeFailedError: reason = tr("Secure connection failed. Check the server certificate."); break;
+            default: reason = m_socket.errorString(); break;
+            }
+            Q_EMIT failed(reason); close();
+        }
     });
     connect(&m_socket, &QWebSocket::pong, this, [this] { m_lastReceived.restart(); });
     connect(&m_flush, &QTimer::timeout, this, [this] {

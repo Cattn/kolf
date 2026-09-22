@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "onlinewidget.h"
+#include "color.h"
 
 #include <KConfigGroup>
 #include <KLocalizedString>
@@ -7,11 +8,15 @@
 
 #include <QComboBox>
 #include <QApplication>
+#include <QClipboard>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFormLayout>
+#include <QFont>
 #include <QHBoxLayout>
+#include <QGuiApplication>
+#include <QIcon>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLabel>
@@ -24,6 +29,8 @@
 #include <QTextEdit>
 #include <QTimer>
 #include <QVBoxLayout>
+#include <QUrl>
+#include <QPixmap>
 
 using namespace Kolf::Online;
 
@@ -40,18 +47,39 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     auto *connectForm = new QFormLayout;
     m_endpoint = new QLineEdit(connectPage);
     KConfigGroup onlineConfig(KSharedConfig::openConfig(), QStringLiteral("Online"));
-    m_endpoint->setText(onlineConfig.readEntry("endpoint", QStringLiteral("ws://127.0.0.1:3011")));
-    connectForm->addRow(i18nc("@label", "Server:"), m_endpoint);
-    connectLayout->addLayout(connectForm);
-    m_connectStatus = new QLabel(i18n("Connect to a Kolf multiplayer service."), connectPage);
+    const auto configuredEndpoint = qEnvironmentVariable("KOLF_ONLINE_DEFAULT_ENDPOINT").trimmed();
+    m_endpoint->setText(onlineConfig.readEntry("lastSuccessfulEndpoint",
+        onlineConfig.readEntry("endpoint", configuredEndpoint)));
+    m_serverLabel = new QLabel(connectPage);
+    m_serverLabel->setWordWrap(true);
+    connectLayout->addWidget(m_serverLabel);
+    m_serverControls = new QWidget(connectPage);
+    auto *serverLayout = new QVBoxLayout(m_serverControls);
+    serverLayout->setContentsMargins(0, 0, 0, 0);
+    m_recentServers = new QComboBox(m_serverControls);
+    m_recentServers->setAccessibleName(i18n("Recent servers"));
+    for (const auto &server : onlineConfig.readEntry("recentServers", QStringList()))
+        m_recentServers->addItem(server);
+    serverLayout->addWidget(m_recentServers);
+    connectForm->addRow(i18nc("@label", "Server address:"), m_endpoint);
+    serverLayout->addLayout(connectForm);
+    connectLayout->addWidget(m_serverControls);
+    m_serverControls->hide();
+    m_connectStatus = new QLabel(i18n("Choose a server to play online."), connectPage);
     m_connectStatus->setWordWrap(true);
     connectLayout->addWidget(m_connectStatus);
     auto *connectButtons = new QHBoxLayout;
-    auto *connectButton = new QPushButton(i18nc("@action:button", "Connect"), connectPage);
+    m_connectButton = new QPushButton(i18nc("@action:button", "Connect"), connectPage);
+    m_changeServerButton = new QPushButton(i18nc("@action:button", "Change Server"), connectPage);
     auto *cancelButton = new QPushButton(i18nc("@action:button", "Cancel"), connectPage);
-    connectButtons->addStretch(); connectButtons->addWidget(connectButton); connectButtons->addWidget(cancelButton);
+    connectButtons->addStretch(); connectButtons->addWidget(m_changeServerButton);
+    connectButtons->addWidget(m_connectButton); connectButtons->addWidget(cancelButton);
     connectLayout->addStretch(); connectLayout->addLayout(connectButtons);
     m_pages->addWidget(connectPage);
+    m_connectTimeout = new QTimer(this);
+    m_connectTimeout->setSingleShot(true);
+    m_connectTimeout->setInterval(10000);
+    setConnectionState(ConnectionState::Disconnected);
 
     auto *entryPage = new QWidget(this);
     auto *entryLayout = new QVBoxLayout(entryPage);
@@ -65,13 +93,13 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     m_createCourse = new QComboBox(entryPage);
     profileForm->addRow(i18nc("@label", "Course:"), m_createCourse);
     entryLayout->addLayout(profileForm);
-    auto *createButton = new QPushButton(i18nc("@action:button", "Create Lobby"), entryPage);
-    entryLayout->addWidget(createButton);
+    m_createButton = new QPushButton(i18nc("@action:button", "Create Lobby"), entryPage);
+    entryLayout->addWidget(m_createButton);
     auto *joinRow = new QHBoxLayout;
     m_joinCode = new QLineEdit(entryPage); m_joinCode->setMaxLength(12);
     m_joinCode->setPlaceholderText(i18nc("@info:placeholder", "Join code"));
-    auto *joinButton = new QPushButton(i18nc("@action:button", "Join Lobby"), entryPage);
-    joinRow->addWidget(m_joinCode); joinRow->addWidget(joinButton);
+    m_joinButton = new QPushButton(i18nc("@action:button", "Join Lobby"), entryPage);
+    joinRow->addWidget(m_joinCode); joinRow->addWidget(m_joinButton);
     entryLayout->addLayout(joinRow);
     m_entryStatus = new QLabel(i18n("Create a lobby or enter a friend's join code."), entryPage);
     m_entryStatus->setWordWrap(true);
@@ -83,21 +111,31 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     auto *lobbyPage = new QWidget(this);
     auto *lobbyLayout = new QVBoxLayout(lobbyPage);
     m_lobbySummary = new QLabel(lobbyPage); m_lobbySummary->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    lobbyLayout->addWidget(m_lobbySummary);
-    lobbyLayout->addWidget(new QLabel(i18n("Members"), lobbyPage));
-    m_members = new QListWidget(lobbyPage); lobbyLayout->addWidget(m_members);
-    lobbyLayout->addWidget(new QLabel(i18n("Players"), lobbyPage));
-    m_players = new QListWidget(lobbyPage); lobbyLayout->addWidget(m_players);
+    auto *heading = new QHBoxLayout;
+    heading->addWidget(m_lobbySummary, 1);
+    auto *copyInvite = new QPushButton(i18nc("@action:button", "Copy Join Code"), lobbyPage);
+    heading->addWidget(copyInvite);
+    lobbyLayout->addLayout(heading);
+    auto *columns = new QHBoxLayout;
+    auto *rosterColumn = new QVBoxLayout;
+    rosterColumn->addWidget(new QLabel(i18n("People and players"), lobbyPage));
+    m_players = new QListWidget(lobbyPage); rosterColumn->addWidget(m_players, 1);
     auto *playerButtons = new QHBoxLayout;
     m_addPlayer = new QPushButton(i18nc("@action:button", "Add local player"), lobbyPage);
     m_editPlayer = new QPushButton(i18nc("@action:button", "Edit player"), lobbyPage);
     m_removePlayer = new QPushButton(i18nc("@action:button", "Remove player"), lobbyPage);
     playerButtons->addWidget(m_addPlayer); playerButtons->addWidget(m_editPlayer); playerButtons->addWidget(m_removePlayer);
-    lobbyLayout->addLayout(playerButtons);
+    rosterColumn->addLayout(playerButtons);
+    columns->addLayout(rosterColumn, 2);
+    auto *setupColumn = new QVBoxLayout;
+    setupColumn->addWidget(new QLabel(i18n("Match setup"), lobbyPage));
     auto *courseRow = new QFormLayout;
     m_lobbyCourse = new QComboBox(lobbyPage);
-    courseRow->addRow(i18nc("@label", "Course:"), m_lobbyCourse); lobbyLayout->addLayout(courseRow);
-    m_lobbyStatus = new QLabel(lobbyPage); m_lobbyStatus->setWordWrap(true); lobbyLayout->addWidget(m_lobbyStatus);
+    courseRow->addRow(i18nc("@label", "Course:"), m_lobbyCourse); setupColumn->addLayout(courseRow);
+    m_lobbyStatus = new QLabel(lobbyPage); m_lobbyStatus->setWordWrap(true); setupColumn->addWidget(m_lobbyStatus);
+    setupColumn->addStretch();
+    columns->addLayout(setupColumn, 1);
+    lobbyLayout->addLayout(columns, 1);
     auto *lobbyButtons = new QHBoxLayout;
     auto *lobbyDisconnect = new QPushButton(i18nc("@action:button", "Disconnect"), lobbyPage);
     m_ready = new QPushButton(lobbyPage); m_start = new QPushButton(i18nc("@action:button", "Start"), lobbyPage);
@@ -112,12 +150,40 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     resultsLayout->addWidget(returnButton);
     m_pages->addWidget(resultsPage);
 
-    connect(connectButton, &QPushButton::clicked, this, [this] { m_coordinator.connectToService(m_endpoint->text()); });
-    connect(cancelButton, &QPushButton::clicked, this, &OnlineWidget::leaveRequested);
-    connect(createButton, &QPushButton::clicked, this, [this] {
+    connect(m_connectButton, &QPushButton::clicked, this, &OnlineWidget::beginConnection);
+    connect(copyInvite, &QPushButton::clicked, this, [this] {
+        QGuiApplication::clipboard()->setText(m_state.value(QStringLiteral("joinCode")).toString());
+    });
+    connect(m_changeServerButton, &QPushButton::clicked, this, [this] {
+        m_serverControls->setVisible(true);
+        m_endpoint->setFocus();
+    });
+    connect(m_recentServers, &QComboBox::activated, this, [this](int index) {
+        if (index >= 0) m_endpoint->setText(m_recentServers->itemText(index));
+    });
+    connect(m_endpoint, &QLineEdit::textChanged, this, [this] {
+        if (m_connectionState != ConnectionState::Connecting) setConnectionState(m_connectionState);
+    });
+    connect(cancelButton, &QPushButton::clicked, this, [this] {
+        m_connectTimeout->stop();
+        m_coordinator.disconnectFromService();
+        setConnectionState(ConnectionState::Disconnected);
+        Q_EMIT leaveRequested();
+    });
+    connect(m_connectTimeout, &QTimer::timeout, this, [this] {
+        setConnectionState(ConnectionState::Failed, i18n("The server did not respond in time. Check its address and try again."));
+        m_coordinator.disconnectFromService();
+    });
+    connect(m_createButton, &QPushButton::clicked, this, [this] {
+        if (m_entryRequestPending) return;
+        m_entryRequestPending = true;
+        m_createButton->setEnabled(false); m_joinButton->setEnabled(false);
         savePreferences(); m_coordinator.createLobby(m_name->text(), m_color->text(), m_createCourse->currentData().toString());
     });
-    connect(joinButton, &QPushButton::clicked, this, [this] {
+    connect(m_joinButton, &QPushButton::clicked, this, [this] {
+        if (m_entryRequestPending) return;
+        m_entryRequestPending = true;
+        m_createButton->setEnabled(false); m_joinButton->setEnabled(false);
         savePreferences(); m_coordinator.joinLobby(m_joinCode->text(), m_name->text(), m_color->text());
     });
     connect(entryDisconnect, &QPushButton::clicked, this, [this] {
@@ -168,21 +234,30 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         if (!m_state.isEmpty()) m_coordinator.setCourse(m_lobbyCourse->currentData().toString());
     });
     connect(returnButton, &QPushButton::clicked, &m_coordinator, &OnlineCoordinator::returnToLobby);
-    connect(&m_coordinator, &OnlineCoordinator::connected, this, &OnlineWidget::showEntry);
+    connect(&m_coordinator, &OnlineCoordinator::connected, this, [this] {
+        setConnectionState(ConnectionState::Connecting, i18n("Verifying the server…"));
+    });
     connect(&m_coordinator, &OnlineCoordinator::serviceChanged, this, [this](const QJsonObject &hello) {
+        m_connectTimeout->stop();
+        setConnectionState(ConnectionState::Connected);
         m_createCourse->clear(); m_lobbyCourse->clear();
         for (const auto &value : hello.value(QStringLiteral("courses")).toArray()) {
             const auto course = value.toObject();
             m_createCourse->addItem(course.value(QStringLiteral("displayName")).toString(), course.value(QStringLiteral("courseId")));
             m_lobbyCourse->addItem(course.value(QStringLiteral("displayName")).toString(), course.value(QStringLiteral("courseId")));
         }
+        showEntry();
     });
     connect(&m_coordinator, &OnlineCoordinator::connectionClosed, this, [this] {
         if (m_matchActive) {
             m_matchActive = false;
             Q_EMIT matchEnded();
         }
-        m_connectStatus->setText(i18n("Disconnected from the online service."));
+        m_connectTimeout->stop();
+        m_entryRequestPending = false;
+        m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
+        if (m_connectionState != ConnectionState::Failed)
+            setConnectionState(ConnectionState::Failed, i18n("The connection closed. Retry or choose another server."));
         m_pages->setCurrentIndex(0);
     });
     connect(&m_coordinator, &OnlineCoordinator::lobbyChanged, this, &OnlineWidget::showLobby);
@@ -214,13 +289,63 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         Q_EMIT statusChanged(status);
     });
     connect(&m_coordinator, &OnlineCoordinator::failed, this, [this](const QString &reason) {
-        m_connectStatus->setText(reason); m_entryStatus->setText(reason); m_lobbyStatus->setText(reason);
+        if (m_connectionState == ConnectionState::Connecting) {
+            m_connectTimeout->stop();
+            setConnectionState(ConnectionState::Failed, reason);
+        }
+        m_entryRequestPending = false;
+        m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
+        m_entryStatus->setText(reason); m_lobbyStatus->setText(reason);
         if (!m_automation.isEmpty()) failAutomation(reason);
     });
 }
 
 OnlineWidget::~OnlineWidget()
 {
+}
+
+void OnlineWidget::enterOnline()
+{
+    if (!m_automation.isEmpty()) return;
+    m_pages->setCurrentIndex(0);
+    if (!m_endpoint->text().trimmed().isEmpty()) {
+        beginConnection();
+    } else {
+        setConnectionState(ConnectionState::Disconnected, i18n("Choose a private server to play online."));
+        m_serverControls->show();
+    }
+}
+
+void OnlineWidget::setConnectionState(ConnectionState state, const QString &message)
+{
+    m_connectionState = state;
+    const auto address = m_endpoint->text().trimmed();
+    const QUrl url(address.contains(QStringLiteral("://")) ? address : QStringLiteral("ws://") + address);
+    const bool plaintextRemote = url.scheme() == QLatin1String("ws")
+        && !url.host().isEmpty() && url.host() != QLatin1String("localhost")
+        && url.host() != QLatin1String("127.0.0.1") && url.host() != QLatin1String("::1");
+    const auto configuredAddress = qEnvironmentVariable("KOLF_ONLINE_DEFAULT_ENDPOINT").trimmed();
+    const auto friendlyName = address == configuredAddress
+        ? qEnvironmentVariable("KOLF_ONLINE_DEFAULT_SERVER_NAME").trimmed() : QString();
+    m_serverLabel->setText(address.isEmpty() ? i18n("No server selected")
+        : i18n("Server: %1 (%2)%3", friendlyName.isEmpty() ? i18n("Private server") : friendlyName, address,
+            plaintextRemote ? i18n(" (unencrypted; use only on a trusted network)") : QString()));
+    m_connectStatus->setText(!message.isEmpty() ? message : state == ConnectionState::Connecting ? i18n("Connecting…")
+        : state == ConnectionState::Failed ? i18n("Connection failed. Retry or change server.")
+        : state == ConnectionState::Connected ? i18n("Connected.") : i18n("Ready to connect."));
+    m_connectButton->setEnabled(state != ConnectionState::Connecting && !address.isEmpty());
+    m_connectButton->setText(state == ConnectionState::Failed ? i18nc("@action:button", "Retry")
+        : i18nc("@action:button", "Connect"));
+    m_changeServerButton->setEnabled(state != ConnectionState::Connecting);
+    m_endpoint->setEnabled(state != ConnectionState::Connecting);
+}
+
+void OnlineWidget::beginConnection()
+{
+    if (m_connectionState == ConnectionState::Connecting) return;
+    setConnectionState(ConnectionState::Connecting);
+    m_connectTimeout->start();
+    m_coordinator.connectToService(m_endpoint->text());
 }
 
 void OnlineWidget::startAutomation(const QJsonObject &config)
@@ -261,6 +386,7 @@ void OnlineWidget::advanceAutomation(const QJsonObject &state)
             joinCode.write(state.value(QStringLiteral("joinCode")).toString().toUtf8());
     }
     if (phase == QLatin1String("Results")) {
+        m_automationStartRequested = false;
         const auto matchId = state.value(QStringLiteral("latestResult")).toObject().value(QStringLiteral("matchId")).toString();
         if (!matchId.isEmpty() && !m_automationReturnedMatches.contains(matchId)) {
             m_automationReturnedMatches.insert(matchId);
@@ -304,8 +430,9 @@ void OnlineWidget::advanceAutomation(const QJsonObject &state)
         m_coordinator.setReady(true);
         return;
     }
-    if (role == QLatin1String("owner") && allReady && !m_automationMutationPending) {
+    if (role == QLatin1String("owner") && allReady && !m_automationMutationPending && !m_automationStartRequested) {
         m_automationMutationPending = true;
+        m_automationStartRequested = true;
         m_coordinator.startMatch();
     }
 }
@@ -323,9 +450,21 @@ void OnlineWidget::failAutomation(const QString &reason)
 
 void OnlineWidget::showEntry()
 {
+    setConnectionState(ConnectionState::Connected);
     KConfigGroup onlineConfig(KSharedConfig::openConfig(), QStringLiteral("Online"));
-    onlineConfig.writeEntry("endpoint", m_endpoint->text().trimmed());
+    const auto endpoint = m_endpoint->text().trimmed();
+    onlineConfig.writeEntry("lastSuccessfulEndpoint", endpoint);
+    onlineConfig.deleteEntry("endpoint");
+    auto recent = onlineConfig.readEntry("recentServers", QStringList());
+    recent.removeAll(endpoint);
+    recent.prepend(endpoint);
+    while (recent.size() > 5) recent.removeLast();
+    onlineConfig.writeEntry("recentServers", recent);
+    m_recentServers->clear();
+    m_recentServers->addItems(recent);
     onlineConfig.sync();
+    m_entryRequestPending = false;
+    m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
     m_entryStatus->setText(i18n("Connected. Create a lobby or enter a friend's join code."));
     m_pages->setCurrentIndex(1);
     if (m_automation.isEmpty() || m_automationCreateOrJoinSent) return;
@@ -350,16 +489,18 @@ void OnlineWidget::showEntry()
 void OnlineWidget::showLobby(const QJsonObject &state)
 {
     m_state = state;
+    setConnectionState(state.value(QStringLiteral("phase")) == QLatin1String("Playing")
+        ? ConnectionState::InMatch : ConnectionState::InLobby);
+    m_entryRequestPending = false;
+    m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
     if (state.value(QStringLiteral("phase")) == QLatin1String("Results")) {
         showResults(state);
         advanceAutomation(state);
         return;
     }
     if (!m_matchActive) m_pages->setCurrentIndex(2);
-    m_lobbySummary->setText(i18n("Join code: %1    Revision: %2    State: %3",
-        state.value(QStringLiteral("joinCode")).toString(), state.value(QStringLiteral("lobbyRevision")).toInt(),
-        state.value(QStringLiteral("phase")).toString()));
-    m_members->clear();
+    m_lobbySummary->setText(i18n("Join code: %1", state.value(QStringLiteral("joinCode")).toString()));
+    m_players->clear();
     bool localReady = false, allReady = true;
     const auto members = state.value(QStringLiteral("members")).toArray();
     for (const auto &value : members) {
@@ -368,27 +509,30 @@ void OnlineWidget::showLobby(const QJsonObject &state)
         allReady = allReady && ready;
         if (member.value(QStringLiteral("memberId")).toString() == m_coordinator.memberId()) localReady = ready;
         const bool memberOwner = member.value(QStringLiteral("memberId")).toString() == state.value(QStringLiteral("ownerMemberId")).toString();
-        m_members->addItem(i18n("%1%2 — %3", member.value(QStringLiteral("displayName")).toString(),
-            memberOwner ? i18n(" (owner)") : QString(), ready ? i18n("Ready") : i18n("Not ready")));
+        auto *headingItem = new QListWidgetItem(i18n("%1%2 — %3", member.value(QStringLiteral("displayName")).toString(),
+            memberOwner ? i18n(" (owner)") : QString(), ready ? i18n("Ready") : i18n("Not ready")), m_players);
+        headingItem->setFlags(Qt::ItemIsEnabled);
+        QFont font = headingItem->font(); font.setBold(true); headingItem->setFont(font);
+        for (const auto &playerValue : state.value(QStringLiteral("players")).toArray()) {
+            const auto player = playerValue.toObject();
+            if (player.value(QStringLiteral("ownerMemberId")).toString() != member.value(QStringLiteral("memberId")).toString()) continue;
+            auto *item = new QListWidgetItem(i18n("    %1 — %2", player.value(QStringLiteral("displayName")).toString(),
+                player.value(QStringLiteral("color")).toString()), m_players);
+            const QColor color = colorFromRgba(player.value(QStringLiteral("color")).toString());
+            if (color.isValid()) {
+                QPixmap swatch(16, 16); swatch.fill(color); item->setIcon(QIcon(swatch));
+            }
+            item->setData(Qt::UserRole, player.value(QStringLiteral("playerId")));
+            item->setData(Qt::UserRole + 1, player.value(QStringLiteral("displayName")));
+            item->setData(Qt::UserRole + 2, player.value(QStringLiteral("color")));
+            item->setData(Qt::UserRole + 3, member.value(QStringLiteral("memberId")));
+        }
     }
-    m_players->clear();
     const auto players = state.value(QStringLiteral("players")).toArray();
     int localPlayers = 0;
     for (const auto &value : players) {
         const auto player = value.toObject();
-        const auto ownerId = player.value(QStringLiteral("ownerMemberId")).toString();
-        QString ownerName = ownerId;
-        for (const auto &memberValue : members) {
-            const auto member = memberValue.toObject();
-            if (member.value(QStringLiteral("memberId")).toString() == ownerId) ownerName = member.value(QStringLiteral("displayName")).toString();
-        }
-        auto *item = new QListWidgetItem(i18n("%1 — %2 — %3", player.value(QStringLiteral("displayName")).toString(),
-            player.value(QStringLiteral("color")).toString(), ownerName), m_players);
-        item->setData(Qt::UserRole, player.value(QStringLiteral("playerId")));
-        item->setData(Qt::UserRole + 1, player.value(QStringLiteral("displayName")));
-        item->setData(Qt::UserRole + 2, player.value(QStringLiteral("color")));
-        item->setData(Qt::UserRole + 3, ownerId);
-        if (ownerId == m_coordinator.memberId()) ++localPlayers;
+        if (player.value(QStringLiteral("ownerMemberId")).toString() == m_coordinator.memberId()) ++localPlayers;
     }
     for (int i = 0; i < m_players->count(); ++i) m_players->item(i)->setData(Qt::UserRole + 4, localPlayers);
     const bool open = state.value(QStringLiteral("phase")) == QLatin1String("Open");
@@ -433,13 +577,14 @@ void OnlineWidget::showResults(const QJsonObject &state)
 
 void OnlineWidget::leaveOnline()
 {
+    m_connectTimeout->stop();
     if (m_matchActive) {
         m_matchActive = false;
         Q_EMIT matchEnded();
     }
     m_coordinator.disconnectFromService();
     m_state = {};
-    m_connectStatus->setText(i18n("Connect to a Kolf multiplayer service."));
+    setConnectionState(ConnectionState::Disconnected);
     m_pages->setCurrentIndex(0);
 }
 

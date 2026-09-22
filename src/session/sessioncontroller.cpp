@@ -5,6 +5,7 @@
 #include "obstacles.h"
 #include "rules_build_id.h"
 #include "onlineprotocol.h"
+#include "online/color.h"
 #include <QApplication>
 #include <QDir>
 #include <QJsonArray>
@@ -133,7 +134,7 @@ void SessionController::load() {
         const auto entry = i < roster.size() ? roster.at(i).toObject() : QJsonObject();
         Player p; p.setId(i + 1); p.setName(entry.value(QStringLiteral("displayName")).toString(i ? QStringLiteral("Guest") : QStringLiteral("Authority")));
         const QColor fallback = QColor::fromHsv((i * 47) % 360, 190, 245);
-        const QColor configured(entry.value(QStringLiteral("color")).toString());
+        const QColor configured = Kolf::Online::colorFromRgba(entry.value(QStringLiteral("color")).toString());
         p.ball()->setColor(configured.isValid() ? configured : fallback); m_players.append(p);
     }
     m_game = new KolfGame(m_factory, &m_players, m_config[QStringLiteral("course")].toString(), m_gameHost, m_role);

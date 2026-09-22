@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "onlinecoordinator.h"
+#include "color.h"
 
 #include "session/onlineprotocol.h"
 #include "rules_build_id.h"
@@ -17,7 +18,11 @@ OnlineCoordinator::OnlineCoordinator(QObject *parent)
     : QObject(parent)
 {
     connect(&m_network, &Net::NetworkClient::connected, this, &OnlineCoordinator::connected);
-    connect(&m_network, &Net::NetworkClient::disconnected, this, &OnlineCoordinator::connectionClosed);
+    connect(&m_network, &Net::NetworkClient::disconnected, this, [this] {
+        m_state = {}; m_serviceHello = {}; m_memberId.clear(); m_lobbyId.clear();
+        m_matchId.clear(); m_preparedMatchId.clear(); m_coursePath.clear();
+        Q_EMIT connectionClosed();
+    });
     connect(&m_network, &Net::NetworkClient::failed, this, &OnlineCoordinator::failed);
     connect(&m_network, &Net::NetworkClient::received, this, &OnlineCoordinator::receive);
 }
@@ -33,11 +38,19 @@ static QUrl parseServiceEndpoint(QString text)
     return QUrl(text);
 }
 
+static QString canonicalColor(const QString &text)
+{
+    const auto parsed = Kolf::Online::colorFromRgba(text.trimmed());
+    return parsed.isValid() ? Kolf::Online::rgbaFromColor(parsed) : text.trimmed();
+}
+
 void OnlineCoordinator::connectToService(const QString &endpoint)
 {
     const QUrl url = parseServiceEndpoint(endpoint);
-    if (!url.isValid() || (url.scheme() != QLatin1String("ws") && url.scheme() != QLatin1String("wss")) || url.host().isEmpty()) {
-        Q_EMIT failed(tr("Enter a valid ws:// or wss:// endpoint."));
+    if (!url.isValid() || (url.scheme() != QLatin1String("ws") && url.scheme() != QLatin1String("wss"))
+        || url.host().isEmpty() || !url.userName().isEmpty() || !url.password().isEmpty()
+        || url.hasQuery() || url.hasFragment()) {
+        Q_EMIT failed(tr("Enter a ws:// or wss:// server address without credentials or a query string."));
         return;
     }
     Q_EMIT statusChanged(tr("Connecting to %1…").arg(url.toDisplayString()));
@@ -54,13 +67,13 @@ void OnlineCoordinator::disconnectFromService()
 void OnlineCoordinator::createLobby(const QString &displayName, const QString &color, const QString &courseId)
 {
     send(QStringLiteral("CreateLobby"), {{QStringLiteral("displayName"), displayName.trimmed()},
-         {QStringLiteral("color"), color.trimmed()}, {QStringLiteral("courseId"), courseId}});
+         {QStringLiteral("color"), canonicalColor(color)}, {QStringLiteral("courseId"), courseId}});
 }
 
 void OnlineCoordinator::joinLobby(const QString &joinCode, const QString &displayName, const QString &color)
 {
     send(QStringLiteral("JoinLobby"), {{QStringLiteral("joinCode"), joinCode.trimmed().toUpper()},
-         {QStringLiteral("displayName"), displayName.trimmed()}, {QStringLiteral("color"), color.trimmed()}});
+         {QStringLiteral("displayName"), displayName.trimmed()}, {QStringLiteral("color"), canonicalColor(color)}});
 }
 
 void OnlineCoordinator::setReady(bool ready)
@@ -72,13 +85,13 @@ void OnlineCoordinator::setReady(bool ready)
 void OnlineCoordinator::addPlayer(const QString &displayName, const QString &color)
 {
     send(QStringLiteral("AddPlayer"), {{QStringLiteral("displayName"), displayName.trimmed()},
-         {QStringLiteral("color"), color.trimmed()}});
+         {QStringLiteral("color"), canonicalColor(color)}});
 }
 
 void OnlineCoordinator::updatePlayer(const QString &playerId, const QString &displayName, const QString &color)
 {
     send(QStringLiteral("UpdatePlayer"), {{QStringLiteral("playerId"), playerId},
-         {QStringLiteral("displayName"), displayName.trimmed()}, {QStringLiteral("color"), color.trimmed()}});
+         {QStringLiteral("displayName"), displayName.trimmed()}, {QStringLiteral("color"), canonicalColor(color)}});
 }
 
 void OnlineCoordinator::removePlayer(const QString &playerId)
@@ -121,7 +134,14 @@ void OnlineCoordinator::receive(const QJsonObject &message)
         return;
     }
     if (type == QLatin1String("UnsupportedProtocol") || type == QLatin1String("RequestRejected")) {
-        Q_EMIT failed(payload.value(QStringLiteral("message")).toString(tr("The online request was rejected.")));
+        const auto code = payload.value(QStringLiteral("code")).toString();
+        const auto message = type == QLatin1String("UnsupportedProtocol")
+            ? tr("This server uses a different Kolf online protocol version.")
+            : code == QLatin1String("ServiceFull") ? tr("The server is full. Try again later or choose another server.")
+            : code == QLatin1String("LobbyNotFound") ? tr("That join code was not found. Check the code and try again.")
+            : code == QLatin1String("LobbyFull") ? tr("That lobby is full.")
+            : payload.value(QStringLiteral("message")).toString(tr("The online request was rejected."));
+        Q_EMIT failed(message);
         return;
     }
     if (type == QLatin1String("LobbyClosed")) {

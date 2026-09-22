@@ -14,6 +14,7 @@ class QListWidget;
 class QPushButton;
 class QStackedWidget;
 class QTextEdit;
+class QTimer;
 
 namespace Kolf::Online {
 class OnlineWidget : public QWidget {
@@ -23,6 +24,7 @@ public:
     ~OnlineWidget() override;
     void startAutomation(const QJsonObject &config);
     void leaveOnline();
+    void enterOnline();
     Net::NetworkClient *networkClient() { return m_coordinator.networkClient(); }
 
 Q_SIGNALS:
@@ -32,10 +34,13 @@ Q_SIGNALS:
     void statusChanged(const QString &status);
 
 private:
+    enum class ConnectionState { Disconnected, Connecting, Connected, InLobby, InMatch, Failed };
     void showEntry();
     void showLobby(const QJsonObject &state);
     void showResults(const QJsonObject &state);
     void savePreferences();
+    void beginConnection();
+    void setConnectionState(ConnectionState state, const QString &message = {});
     void advanceAutomation(const QJsonObject &state);
     void failAutomation(const QString &reason);
 
@@ -43,6 +48,14 @@ private:
     QStackedWidget *m_pages;
     QLineEdit *m_endpoint;
     QLabel *m_connectStatus;
+    QLabel *m_serverLabel;
+    QComboBox *m_recentServers;
+    QWidget *m_serverControls;
+    QPushButton *m_connectButton;
+    QPushButton *m_changeServerButton;
+    QPushButton *m_createButton;
+    QPushButton *m_joinButton;
+    QTimer *m_connectTimeout;
     QLineEdit *m_name;
     QLineEdit *m_color;
     QLineEdit *m_joinCode;
@@ -50,7 +63,6 @@ private:
     QLabel *m_entryStatus;
     QLabel *m_lobbySummary;
     QLabel *m_lobbyStatus;
-    QListWidget *m_members;
     QListWidget *m_players;
     QComboBox *m_lobbyCourse;
     QPushButton *m_ready;
@@ -66,6 +78,9 @@ private:
     int m_automationAddedPlayers = 0;
     bool m_automationCreateOrJoinSent = false;
     bool m_automationMutationPending = false;
+    bool m_automationStartRequested = false;
     bool m_matchActive = false;
+    bool m_entryRequestPending = false;
+    ConnectionState m_connectionState = ConnectionState::Disconnected;
 };
 }

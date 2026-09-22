@@ -260,6 +260,8 @@ void KolfWindow::showOnline()
 		game->pause();
 	applicationStack->setCurrentWidget(onlineWidget);
 	onlineWidget->setFocus();
+	if (qEnvironmentVariableIsEmpty("KOLF_ONLINE_TEST_CONFIG"))
+		onlineWidget->enterOnline();
 }
 
 void KolfWindow::leaveOnline()
