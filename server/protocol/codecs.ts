@@ -26,6 +26,8 @@ export type ClientMessage =
   | Envelope<'InitialState' | 'CommitTransition', { state: JsonObject }>
   | Envelope<'StateApplied', { stateRevision: number; syncId: number; manifestHash: string }>
   | Envelope<'StateFrame', { state: JsonObject; syncId: number; frameSeq: number; hostMs: number }>
+  | Envelope<'AimUpdate', { playerId: string; stateRevision: number; syncId: number; holeGeneration: number;
+      turnId: number; directionRadians: number; strength: number }>
   | Envelope<'ChooseHazardAction', { choiceId: string; stateRevision: number; syncId: number; action: 'drop' | 'rehit' }>
   | Envelope<'RequestResync', Record<string, never>>
   | Envelope<'FullState', { state: JsonObject; syncId: number }>
@@ -165,6 +167,13 @@ export function decodeClientMessage(raw: string): ClientMessage {
       requireGameplayScope(message); assertState(p.state);
       if (!integer(p.syncId, 1) || !integer(p.frameSeq, 1) || !finite(p.hostMs, 0, Number.MAX_SAFE_INTEGER))
         throw new ProtocolError('InvalidPayload', 'invalid state frame');
+      return message as ClientMessage;
+    case 'AimUpdate':
+      requireGameplayScope(message);
+      if (!validId(p.playerId) || !integer(p.stateRevision, 1) || !integer(p.syncId, 1)
+        || !integer(p.holeGeneration, 1) || !integer(p.turnId, 1)
+        || !finite(p.directionRadians, -Math.PI, Math.PI) || !finite(p.strength, 0, 1))
+        throw new ProtocolError('InvalidPayload', 'invalid aim update');
       return message as ClientMessage;
     case 'ChooseHazardAction':
       requireGameplayScope(message);

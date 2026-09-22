@@ -76,12 +76,36 @@ test('three members coordinate four players with multi-slot ownership and frame 
   assert.equal(wrong.deliveries[0].message.type, 'CommandRejected');
   const admitted = coordinator.receive('member_b', scoped('SubmitShot', { commandId: 'shot_right', holeGeneration: 1, turnId: 1,
     playerId: 'player_1', puttingMode: 'normal', directionRadians: 0, launchMagnitude: 1 }));
-  assert.deepEqual(admitted.deliveries.map(delivery => [delivery.memberId, delivery.message.type]),
+  assert.deepEqual(admitted.deliveries.filter(delivery => delivery.message.type !== 'AimClear')
+    .map(delivery => [delivery.memberId, delivery.message.type]),
     [['member_b', 'ShotPending'], ['member_a', 'AdmitShot']]);
 
   const frame = coordinator.receive('member_a', scoped('StateFrame', { state: state(4, 1), syncId, frameSeq: 1, hostMs: 10 }));
   assert.deepEqual(frame.deliveries.map(delivery => delivery.memberId), ['member_b', 'member_c']);
   assert(frame.deliveries.every(delivery => delivery.visual));
+});
+
+test('remote aim is relayed only for the active owner and cleared when a shot begins', () => {
+  let now = 1_000;
+  const coordinator = new MatchCoordinator(lobbyState(['member_a', 'member_b', 'member_c']), () => now);
+  const syncId = open(coordinator, ['member_a', 'member_b', 'member_c'], state(3, 1));
+  const aim = { playerId: 'player_1', stateRevision: 1, syncId, holeGeneration: 1, turnId: 1,
+    directionRadians: 0.5, strength: 0.4 };
+  assert.equal(coordinator.receive('member_c', scoped('AimUpdate', aim)).deliveries.length, 0);
+  assert.equal(coordinator.receive('member_b', scoped('AimUpdate', { ...aim, turnId: 2 })).deliveries.length, 0);
+  const relayed = coordinator.receive('member_b', scoped('AimUpdate', aim));
+  assert.deepEqual(relayed.deliveries.map(delivery => [delivery.memberId, delivery.message.type]),
+    [['member_a', 'AimPreview'], ['member_c', 'AimPreview']]);
+  assert(relayed.deliveries.every(delivery => delivery.visual));
+  now += 20;
+  assert.equal(coordinator.receive('member_b', scoped('AimUpdate', { ...aim, strength: 0.6 })).deliveries.length, 0);
+  now += 50;
+  assert.equal(coordinator.receive('member_b', scoped('AimUpdate', { ...aim, strength: 0.8 })).deliveries.length, 2);
+  const shot = coordinator.receive('member_b', scoped('SubmitShot', { commandId: 'shot_aim',
+    holeGeneration: 1, turnId: 1, playerId: 'player_1', puttingMode: 'normal',
+    directionRadians: 0.5, launchMagnitude: 1 }));
+  assert.equal(shot.deliveries.filter(delivery => delivery.message.type === 'AimClear').length, 3);
+  assert.equal(coordinator.receive('member_b', scoped('AimUpdate', aim)).deliveries.length, 0);
 });
 
 test('eight-player boundary accepts exact state and rejects a smaller snapshot', () => {

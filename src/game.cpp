@@ -949,6 +949,15 @@ void KolfGame::setShowInfo(bool yes)
 		qitem->setVisible(m_showInfo);
 }
 
+Kolf::Session::ShotIntent KolfGame::currentAim() const
+{
+	// The putter angle is opposite the ball's travel direction. Strength is
+	// meaningful only while the local player is charging a stroke.
+	return {std::remainder(-(putter->curAngle() + M_PI), 2 * M_PI),
+		(putting || stroking) ? qBound(0.0, strength / maxStrength, 1.0) : 0.0,
+		m_useAdvancedPutting};
+}
+
 void KolfGame::puttPress()
 {
 	if (m_ignoreEvents) return;

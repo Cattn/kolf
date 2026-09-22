@@ -48,6 +48,14 @@ Preparation and state barriers acknowledge each connected member once,
 regardless of how many player slots it owns. Frames are fanned out to every
 non-authority member.
 
+During an open shot turn, its owner may send bounded `AimUpdate` messages
+(`playerId`, `stateRevision`, `syncId`, `holeGeneration`, `turnId`,
+`directionRadians`, and normalized `strength`). The server validates ownership
+and turn identity, limits relays to one every 50 ms, and sends ephemeral
+`AimPreview` messages to other members. `AimClear` clears the overlay when a
+shot is admitted or synchronization restarts. These visual messages do not
+change the match state, physics, or command sequence.
+
 Clients using any non-current version receive `UnsupportedProtocol` with
 `supportedProtocolVersion: 3`. There is no compatibility shim. Shared
 generic-envelope cases are in

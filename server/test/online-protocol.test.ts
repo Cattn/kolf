@@ -33,6 +33,18 @@ test('online client codecs validate scope and bounded profile fields', () => {
     (error: unknown) => error instanceof ProtocolError && error.code === 'MessageTooLarge');
 });
 
+test('aim updates require finite bounded values and match scope', () => {
+  const aim = envelope('AimUpdate', { playerId: 'player_1', stateRevision: 1, syncId: 1,
+    holeGeneration: 1, turnId: 1, directionRadians: 0.5, strength: 0.75 },
+  { requestId: 'request_aim', lobbyId: 'lobby_1', matchId: 'match_1' });
+  assert.equal(decodeClientMessage(JSON.stringify(aim)).type, 'AimUpdate');
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...aim, matchId: undefined })), ProtocolError);
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...aim,
+    payload: { ...aim.payload, strength: 1.1 } })), ProtocolError);
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...aim,
+    payload: { ...aim.payload, directionRadians: null } })), ProtocolError);
+});
+
 test('compatibility identity ignores ordering and text line endings only', () => {
   const first = compatibilityIdentity([
     { path: 'game/b.cpp', content: 'two\r\nlines\r\n' },

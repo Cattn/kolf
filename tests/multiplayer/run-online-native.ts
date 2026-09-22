@@ -142,6 +142,8 @@ try {
       if (client > 0) for (const applied of log.filter(event => event.event === 'applied')) {
         assert.equal(applied.physicsSteps, 0); assert.equal(applied.collisions, 0); assert.equal(applied.gameplayRandomCalls, 0);
       }
+      assert(log.some(event => event.event === 'aimPreview'), `client ${client} saw the remote turn's aim`);
+      assert(log.some(event => event.event === 'aimClear'), `client ${client} cleared the remote aim`);
     }
   }
   if (hazardScenario) assert(sessionDirectories(0).flatMap(events)

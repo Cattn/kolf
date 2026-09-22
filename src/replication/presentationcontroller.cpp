@@ -14,6 +14,8 @@ QJsonArray blend(const QJsonArray &a, const QJsonArray &b, double t) {
         if (from[QStringLiteral("id")] == to[QStringLiteral("id")]
             && from[QStringLiteral("visible")] == to[QStringLiteral("visible")]
             && from[QStringLiteral("state")] == to[QStringLiteral("state")]
+            // Stopped and holed balls must use the exact authoritative point.
+            && (!to.contains(QStringLiteral("state")) || to[QStringLiteral("state")].toInt() == 0)
             && std::hypot(to[QStringLiteral("x")].toDouble() - from[QStringLiteral("x")].toDouble(),
                           to[QStringLiteral("y")].toDouble() - from[QStringLiteral("y")].toDouble()) < 50) {
             for (const auto *key : {"x", "y"}) {

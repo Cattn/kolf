@@ -14,6 +14,10 @@
 #include <QWidget>
 #include <KConfig>
 #include <QRegularExpression>
+#include <QGraphicsPathItem>
+#include <QPainterPath>
+#include <QPen>
+#include <cmath>
 
 using namespace Kolf::Session;
 
@@ -39,7 +43,17 @@ SessionController::SessionController(const QJsonObject &config, Net::NetworkClie
     connect(&m_presentation, &Replication::PresentationController::present, this, [this](const QJsonObject &s) {
         if (!m_adapter || m_interrupted) return;
         QString error;
-        if (!m_adapter->apply(s, error)) interrupt(error);
+        if (!m_adapter->apply(s, error)) { interrupt(error); return; }
+        if (m_config[QStringLiteral("logFrames")].toBool()) {
+            const auto balls = s[QStringLiteral("balls")].toArray();
+            const int slot = s[QStringLiteral("activeSlot")].toInt(-1);
+            if (slot >= 0 && slot < balls.size()) {
+                const auto ball = balls[slot].toObject();
+                log(QStringLiteral("presentedFrame"), {{QStringLiteral("x"), ball[QStringLiteral("x")]},
+                    {QStringLiteral("y"), ball[QStringLiteral("y")]},
+                    {QStringLiteral("phase"), s[QStringLiteral("phase")]}});
+            }
+        }
     });
     m_clock.start();
     connect(&m_retry, &QTimer::timeout, this, [this] {
@@ -88,6 +102,8 @@ SessionController::SessionController(const QJsonObject &config, Net::NetworkClie
             {QStringLiteral("frameSeq"), ++m_frameSeq}, {QStringLiteral("hostMs"), double(m_clock.elapsed())}}, true);
     });
     m_frames.start(qBound(25, config[QStringLiteral("frameIntervalMs")].toInt(67), 1000));
+    connect(&m_aimTimer, &QTimer::timeout, this, &SessionController::sendAim);
+    m_aimTimer.start(70);
     Q_EMIT statusChanged(tr("Preparing the online match…"));
 }
 SessionController::~SessionController() {
@@ -144,6 +160,10 @@ void SessionController::load() {
     m_game->setShowInfo(m_showInfo);
     m_game->setShowGuideLine(m_showGuideLine);
     m_adapter = new GameSessionAdapter(m_game);
+    m_remoteAim = new QGraphicsPathItem(m_game->curBall()->parentItem());
+    m_remoteAim->setZValue(1000000);
+    m_remoteAim->setPen(QPen(QColor(255, 255, 255), 2, Qt::DashLine));
+    m_remoteAim->setVisible(false);
     Q_EMIT gameReady(m_game);
     QTimer::singleShot(0, this, [this] {
         if (!m_game) return;
@@ -165,6 +185,7 @@ QJsonObject SessionController::state() const {
 void SessionController::commit(const QString &phase) {
     if (m_interrupted || m_role != Role::Authority) return;
     m_ready = false; m_phase = phase; ++m_revision;
+    clearRemoteAim(); m_lastAim = {};
     if (phase == QLatin1String("AwaitingShot") && m_revision > 1) ++m_turn;
     if (m_adapter->hole() != m_lastHole) { m_lastHole = m_adapter->hole(); ++m_generation; }
     m_adapter->enableInput(false);
@@ -178,6 +199,7 @@ void SessionController::submit(const ShotIntent &intent) {
     if (!m_ready || m_interrupted || !m_adapter || m_phase != QLatin1String("AwaitingShot")
         || !ownsSlot(m_adapter->activeSlot()) || !intent.valid() || !m_pending.isEmpty()) return;
     m_pending = QUuid::createUuid().toString(QUuid::WithoutBraces); m_pendingClock.start(); m_ready = false;
+    m_lastAim = {}; clearRemoteAim();
     QJsonObject shot{{QStringLiteral("commandId"), m_pending},
         {QStringLiteral("holeGeneration"), m_generation}, {QStringLiteral("turnId"), m_turn},
         {QStringLiteral("puttingMode"), intent.advanced ? QStringLiteral("advanced") : QStringLiteral("normal")},
@@ -200,6 +222,8 @@ void SessionController::receive(const QJsonObject &message) {
     if (type == QLatin1String("LoadCourse")) { load(); return; }
     if (type == QLatin1String("MatchInterrupted")) { interrupt(m[QStringLiteral("reason")].toString()); return; }
     if (!m_adapter) { interrupt(QStringLiteral("State arrived before course load")); return; }
+    if (type == QLatin1String("AimClear")) { clearRemoteAim(); return; }
+    if (type == QLatin1String("AimPreview")) { showRemoteAim(m); return; }
     if (type == QLatin1String("StartMatch") && m_role == Role::Authority) { commit(QStringLiteral("AwaitingShot")); return; }
     if (type == QLatin1String("AdmitShot") && m_role == Role::Authority) {
         ShotCommand c;
@@ -226,7 +250,9 @@ void SessionController::receive(const QJsonObject &message) {
         }
         return;
     }
-    if (type == QLatin1String("ShotPending") || type == QLatin1String("ShotResolved")) return;
+    if (type == QLatin1String("ShotPending") || type == QLatin1String("ShotResolved")) {
+        clearRemoteAim(); return;
+    }
     if (type == QLatin1String("ShotRejected") || type == QLatin1String("CommandRejected")) {
         m_pending.clear(); interrupt(QStringLiteral("Command rejected: %1").arg(m[QStringLiteral("reason")].toString())); return;
     }
@@ -260,10 +286,12 @@ void SessionController::receive(const QJsonObject &message) {
             m_receivedFrame = m[QStringLiteral("frameSeq")].toInt();
             if (!m[QStringLiteral("hostMs")].isDouble()) { interrupt(QStringLiteral("Invalid frame timestamp")); return; }
             m_presentation.push(s, m[QStringLiteral("hostMs")].toDouble());
-            if (m_config[QStringLiteral("logFrames")].toBool()) log(QStringLiteral("receivedFrame"), {{QStringLiteral("state"), s}, {QStringLiteral("frameSeq"), m_receivedFrame}});
+            if (m_config[QStringLiteral("logFrames")].toBool()) log(QStringLiteral("receivedFrame"), {{QStringLiteral("state"), s},
+                {QStringLiteral("frameSeq"), m_receivedFrame}, {QStringLiteral("hostMs"), m[QStringLiteral("hostMs")]}});
             return;
         }
         m_presentation.clear();
+        clearRemoteAim(); m_lastAim = {};
         if (m_role == Role::Guest) {
             QString error;
             if (!m_adapter->apply(s, error)) { interrupt(error); return; }
@@ -338,6 +366,7 @@ void SessionController::interrupt(const QString &reason) {
     m_interrupted = true; m_ready = false; m_phase = QStringLiteral("Interrupted");
     if (m_adapter) { m_adapter->enableSimulation(false); m_adapter->enableInput(false); }
     m_frames.stop(); m_retry.stop(); m_presentation.clear();
+    m_aimTimer.stop(); clearRemoteAim();
     send(QStringLiteral("MatchInterrupted"), {{QStringLiteral("reason"), reason.left(160)}});
     Q_EMIT noticeChanged(reason);
     log(QStringLiteral("interrupted"), {{QStringLiteral("reason"), reason}}); refresh();
@@ -389,6 +418,7 @@ void SessionController::refresh() {
 void SessionController::requestResync()
 {
     if (m_interrupted) return;
+    clearRemoteAim(); m_lastAim = {};
     m_ready = false;
     m_awaitingResync = true;
     refresh();
@@ -436,6 +466,57 @@ void SessionController::setShowGuideLine(bool enabled)
 {
     m_showGuideLine = enabled;
     if (m_game) m_game->setShowGuideLine(enabled);
+}
+
+void SessionController::sendAim()
+{
+    if (!m_game || !m_adapter || !m_ready || m_interrupted || !m_pending.isEmpty()
+        || m_phase != QLatin1String("AwaitingShot") || !ownsSlot(m_adapter->activeSlot())) return;
+    const auto aim = m_game->currentAim();
+    if (!std::isfinite(aim.directionRadians) || !std::isfinite(aim.launchMagnitude)) return;
+    QJsonObject update{{QStringLiteral("playerId"), playerIdForSlot(m_adapter->activeSlot())},
+        {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
+        {QStringLiteral("holeGeneration"), m_generation}, {QStringLiteral("turnId"), m_turn},
+        {QStringLiteral("directionRadians"), std::round(aim.directionRadians * 100.0) / 100.0},
+        {QStringLiteral("strength"), std::round(aim.launchMagnitude * 50.0) / 50.0}};
+    if (update == m_lastAim) return;
+    m_lastAim = update;
+    send(QStringLiteral("AimUpdate"), update, true);
+}
+
+void SessionController::showRemoteAim(const QJsonObject &aim)
+{
+    if (!m_remoteAim || !m_adapter || !m_ready || m_interrupted || m_phase != QLatin1String("AwaitingShot")
+        || aim[QStringLiteral("stateRevision")].toInt() != m_revision
+        || aim[QStringLiteral("syncId")].toInt() != m_syncId
+        || aim[QStringLiteral("holeGeneration")].toInt() != m_generation
+        || aim[QStringLiteral("turnId")].toInt() != m_turn
+        || aim[QStringLiteral("playerId")].toString() != playerIdForSlot(m_adapter->activeSlot())
+        || ownsSlot(m_adapter->activeSlot())) return;
+    const double direction = aim[QStringLiteral("directionRadians")].toDouble();
+    const double strength = aim[QStringLiteral("strength")].toDouble();
+    if (!std::isfinite(direction) || !std::isfinite(strength) || std::abs(direction) > M_PI
+        || strength < 0 || strength > 1) return;
+    const double length = 32 + 56 * strength;
+    const QPointF end(length * std::cos(direction), length * std::sin(direction));
+    const QPointF side(7 * std::cos(direction + 2.5), 7 * std::sin(direction + 2.5));
+    const QPointF other(7 * std::cos(direction - 2.5), 7 * std::sin(direction - 2.5));
+    QPainterPath path;
+    path.moveTo(0, 0); path.lineTo(end);
+    path.moveTo(end + side); path.lineTo(end); path.lineTo(end + other);
+    m_remoteAim->setPath(path);
+    m_remoteAim->setPos(m_players[m_adapter->activeSlot()].ball()->pos());
+    m_remoteAim->setVisible(true);
+    if (m_config[QStringLiteral("logFrames")].toBool()) log(QStringLiteral("aimPreview"),
+        {{QStringLiteral("directionRadians"), direction}, {QStringLiteral("strength"), strength}});
+}
+
+void SessionController::clearRemoteAim()
+{
+    if (m_remoteAim && m_remoteAim->isVisible()) {
+        m_remoteAim->setVisible(false);
+        if (m_config[QStringLiteral("logFrames")].toBool()) log(QStringLiteral("aimClear"));
+    }
 }
 
 bool SessionController::ownsSlot(int slot) const

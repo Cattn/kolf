@@ -11,6 +11,7 @@
 #include <QTimer>
 #include <QSet>
 class QWidget;
+class QGraphicsPathItem;
 
 namespace Kolf::Session {
 class SessionController : public QObject {
@@ -51,6 +52,9 @@ private:
     bool ownsSlot(int slot) const;
     QString playerIdForSlot(int slot) const;
     void chooseHazardAction(const QString &action);
+    void sendAim();
+    void showRemoteAim(const QJsonObject &aim);
+    void clearRemoteAim();
     QJsonObject m_config;
     Role m_role;
     Kolf::ItemFactory m_factory;
@@ -61,6 +65,7 @@ private:
     QWidget *m_gameHost;
     Replication::PresentationController m_presentation;
     QTimer m_frames;
+    QTimer m_aimTimer;
     QFile m_log;
     QElapsedTimer m_clock;
     QElapsedTimer m_pendingClock;
@@ -75,6 +80,8 @@ private:
     bool m_ready = false, m_interrupted = false, m_awaitingResync = false;
     bool m_testFaultScheduled = false;
     QJsonObject m_pendingMessage;
+    QJsonObject m_lastAim;
+    QGraphicsPathItem *m_remoteAim = nullptr;
     QTimer m_retry;
     qint64 m_frameBytes = 0;
     qint64 m_frameCount = 0;

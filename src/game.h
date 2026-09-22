@@ -278,6 +278,7 @@ public:
 	void hidePutter() { putter->setVisible(false); }
 	void ignoreEvents(bool ignore) { m_ignoreEvents = ignore; }
 	bool inputIgnored() const { return m_ignoreEvents; }
+	Kolf::Session::ShotIntent currentAim() const;
 
 	void setSelectedItem(CanvasItem* citem);
 

@@ -38,6 +38,7 @@ export class MatchCoordinator {
   private admissions = new Map<string, Admission>();
   private lastCommit = '';
   private lastFrame = 0;
+  private lastAimAt = 0;
   private resyncRound = 0;
   private nextResyncAt = 0;
   private queuedResync = false;
@@ -125,6 +126,7 @@ export class MatchCoordinator {
         if (p.turnId !== this.state.turnId || p.holeGeneration !== this.state.holeGeneration) return reject('stale turn');
         if (this.admissions.size >= 10_000) { this.interrupt('command retention limit reached'); return; }
         this.pending = p.commandId; this.pendingAt = this.now();
+        this.broadcast('AimClear', { playerId: player.playerId, turnId: p.turnId });
         const status = envelope('ShotPending', { commandId: p.commandId }, { lobbyId: this.lobbyId, matchId: this.match.matchId });
         this.admissions.set(p.commandId, { key, memberId, status });
         this.outbox.push({ memberId, message: status });
@@ -168,7 +170,7 @@ export class MatchCoordinator {
             throw Error('invalid generation progression');
         }
         const wasPending = this.pending;
-        this.state = next; this.lastCommit = key; this.lastFrame = 0; this.queuedResync = false;
+        this.state = next; this.lastCommit = key; this.lastFrame = 0; this.lastAimAt = 0; this.queuedResync = false;
         this.barrier = true; this.barrierPublished = true; ++this.syncId; this.pendingAt = this.now(); this.choicePending = undefined;
         for (const entry of this.members.values()) entry.applied = 0;
         if (['AwaitingShot', 'Finished'].includes(next.phase) && wasPending) {
@@ -200,6 +202,19 @@ export class MatchCoordinator {
         this.lastFrame = p.frameSeq;
         for (const target of this.members.keys()) if (target !== this.match.authorityMemberId)
           this.send(target, 'StateFrame', { ...p }, true);
+        return;
+      }
+      case 'AimUpdate': {
+        const active = this.playersByIndex.get(this.state?.activeSlot);
+        if (!this.state || this.barrier || this.pending || this.state.phase !== 'AwaitingShot'
+          || !active || active.playerId !== p.playerId || active.ownerMemberId !== memberId
+          || p.stateRevision !== this.state.stateRevision || p.syncId !== this.syncId
+          || p.holeGeneration !== this.state.holeGeneration || p.turnId !== this.state.turnId) return;
+        const now = this.now();
+        if (this.lastAimAt && now - this.lastAimAt < 50) return;
+        this.lastAimAt = now;
+        for (const target of this.members.keys()) if (target !== memberId)
+          this.send(target, 'AimPreview', { ...p }, true);
         return;
       }
       case 'ChooseHazardAction': {
@@ -235,6 +250,7 @@ export class MatchCoordinator {
 
   private startResync(now: number) {
     this.queuedResync = false; this.barrier = true; this.barrierPublished = false; ++this.syncId; this.resyncRound = this.syncId;
+    this.broadcast('AimClear', { turnId: this.state?.turnId });
     this.nextResyncAt = now + 1000; this.lastFrame = 0; this.pendingAt = now;
     for (const entry of this.members.values()) entry.applied = 0;
     this.send(this.match.authorityMemberId, 'RequestResync', { syncId: this.syncId });

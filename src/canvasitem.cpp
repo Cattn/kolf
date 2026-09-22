@@ -25,6 +25,7 @@
 
 #include <Box2D/Dynamics/b2Body.h>
 #include <Box2D/Dynamics/b2World.h>
+#include <QPainter>
 
 //this is how much a strut and the items on it are raised
 static const int ZValueStep = 100;
@@ -378,8 +379,18 @@ ArrowItem::ArrowItem(QGraphicsItem* parent)
 	, m_reversed(false)
 {
 	updatePath();
-	setPen(QPen(Qt::black));
+	setPen(QPen(Qt::white, 4)); // reserve room for the contrast outline
 	setBrush(Qt::NoBrush);
+}
+
+void ArrowItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
+{
+	painter->setRenderHint(QPainter::Antialiasing);
+	painter->setBrush(Qt::NoBrush);
+	painter->setPen(QPen(Qt::white, 4, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+	painter->drawPath(path());
+	painter->setPen(QPen(Qt::black, 1.5, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+	painter->drawPath(path());
 }
 
 qreal ArrowItem::angle() const

@@ -210,6 +210,7 @@ class ArrowItem : public QGraphicsPathItem
 		void setReversed(bool reversed);
 
 		Vector vector() const;
+		void paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget = nullptr) override;
 	private:
 		void updatePath();
 		qreal m_angle, m_length;
