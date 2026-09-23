@@ -17,7 +17,7 @@ function lobbyState(owners: string[]): LobbyState {
     resolvedColor: `#${String(engineIndex + 1).padStart(6, '0')}ff` }));
   return {
     lobbyId: 'lobby_1', joinCode: 'ABCDEFGH', ownerMemberId: owners[0], lobbyRevision: 4,
-    phase: 'Preparing', selectedCourseId: 'classic', members,
+    phase: 'Preparing', selectedCourseId: 'classic', members, rematchRequestedMemberIds: [],
     players: roster.map(player => ({ ...player, order: player.engineIndex })),
     match: { matchId: 'match_1', authorityMemberId: owners[0], compatibilityId,
       course: { courseId: 'classic', displayName: 'Classic', expectedHash: courseHash }, roster },

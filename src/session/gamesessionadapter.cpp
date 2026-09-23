@@ -67,11 +67,17 @@ bool GameSessionAdapter::loadHole(int number) {
         while (p.numHoles() < unsigned(number)) p.addHole();
     }
     g->openFile();
+    // Online holes are loaded directly, bypassing KolfGame::startNextHole's
+    // visibility refresh for the newly created slope and other info items.
+    g->setShowInfo(g->isInfoShowing());
     g->paused = false;
     g->curBall()->setVisible(true);
     g->inPlay = false;
     g->putter->resetAngles();
     g->putter->setOrigin(g->curBall()->x(), g->curBall()->y());
+    // openFile makes the local putter visible again. Only an owned turn may
+    // show it; the guest uses the separate live remote-aim indicator.
+    enableInput(false);
     return !registry().isEmpty();
 }
 QMap<QString, QGraphicsItem *> GameSessionAdapter::registry() const {
@@ -170,8 +176,10 @@ bool GameSessionAdapter::apply(const QJsonObject &s, QString &error) {
     m_choiceSlot = s[QStringLiteral("choiceSlot")].toInt(-1);
     m_finished = s[QStringLiteral("phase")] == QLatin1String("Finished");
     g->inPlay = s[QStringLiteral("phase")] == QLatin1String("Simulating");
-    // Keep local aim/power untouched on visual frames while the owned turn is active.
-    if (!g->putting && !g->stroking) g->putter->setOrigin(g->curBall()->x(), g->curBall()->y());
+    // setOrigin also makes the putter visible. Reposition it only while this
+    // client owns input; guests display the separate live remote-aim indicator.
+    if (!g->m_ignoreEvents && !g->putting && !g->stroking)
+        g->putter->setOrigin(g->curBall()->x(), g->curBall()->y());
     g->setUpdatesEnabled(true);
     Q_ASSERT(beforeSteps == g->physicsSteps() && beforeCollisions == g->collisionCalls());
     return true;

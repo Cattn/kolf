@@ -122,6 +122,7 @@ test('preparation, completion, results, and rematch use every member and player'
   assert.deepEqual(result.winnerPlayerIds, [first.roster[2].playerId]);
   h.lobby.returnToLobby(h.owner, 'return_1', first.matchId);
   h.lobby.returnToLobby(h.guest, 'return_2', first.matchId);
+  assert.deepEqual(h.lobby.state().rematchRequestedMemberIds, [], 'Return does not request a rematch');
   const second = h.lobby.start(h.owner, 'start_2', ready(h));
   assert.notEqual(second.matchId, first.matchId);
   assert.throws(() => h.lobby.assertCurrentMatch(first.matchId),

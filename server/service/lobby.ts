@@ -79,6 +79,7 @@ export interface LobbyState {
   courses?: CourseCatalogEntry[];
   members: Array<LobbyMember & { ready: boolean; connected: true }>;
   players: LobbyPlayer[];
+  rematchRequestedMemberIds: MemberId[];
   match?: MatchView;
   latestResult?: MatchResult;
 }
@@ -137,6 +138,7 @@ export class LobbySession {
   private readonly members = new Map<MemberId, LobbyMember>();
   private readonly players = new Map<PlayerId, LobbyPlayer>();
   private readonly readiness = new Map<MemberId, number>();
+  private readonly rematchRequests = new Set<MemberId>();
   private readonly requests: RequestCache;
   private readonly ids: IdFactory;
   private readonly now: () => number;
@@ -190,6 +192,7 @@ export class LobbySession {
       members: [...this.members.values()].map(member => ({ ...member, connected: true as const,
         ready: this.readiness.get(member.memberId) === this.revision })),
       players: this.orderedPlayers().map(player => ({ ...player })),
+      rematchRequestedMemberIds: [...this.rematchRequests],
       match: this.match ? cloneMatch(this.match) : undefined,
       latestResult: this.result ? cloneResult(this.result) : undefined,
     };
@@ -367,7 +370,7 @@ export class LobbySession {
         matchId: this.ids.match(), authorityMemberId: this.ownerMemberId, course: cloneCourse(course), roster,
         courseReady: new Map(), returned: new Set(),
       };
-      this.lifecycle = 'Preparing'; this.result = undefined;
+      this.lifecycle = 'Preparing'; this.result = undefined; this.rematchRequests.clear();
       return cloneMatch(this.match);
     });
   }
@@ -436,9 +439,10 @@ export class LobbySession {
     this.lifecycle = 'Results'; return cloneResult(this.result);
   }
 
-  returnToLobby(actor: MemberId, requestId: RequestId, matchId: MatchId) {
-    return this.mutate(actor, requestId, 'ReturnToLobby', { matchId }, () => {
+  returnToLobby(actor: MemberId, requestId: RequestId, matchId: MatchId, rematch = false) {
+    return this.mutate(actor, requestId, 'ReturnToLobby', { matchId, rematch }, () => {
       this.requireMatch(matchId); this.requirePhase('Results'); this.match!.returned.add(actor);
+      if (rematch) this.rematchRequests.add(actor);
       if (this.match!.returned.size === this.members.size) {
         this.match = undefined; this.lifecycle = 'Open'; this.changed();
       }
@@ -448,7 +452,7 @@ export class LobbySession {
 
   removeMember(memberId: MemberId) {
     this.requireMember(memberId);
-    this.members.delete(memberId); this.readiness.delete(memberId);
+    this.members.delete(memberId); this.readiness.delete(memberId); this.rematchRequests.delete(memberId);
     for (const player of this.ownedPlayers(memberId)) this.players.delete(player.playerId);
     this.normalizeOrder(); this.resolveColors();
     if (this.members.size === 0) return this.close();
@@ -460,7 +464,7 @@ export class LobbySession {
     return this.state();
   }
 
-  close() { this.lifecycle = 'Closed'; this.match = undefined; this.readiness.clear(); return this.state(); }
+  close() { this.lifecycle = 'Closed'; this.match = undefined; this.readiness.clear(); this.rematchRequests.clear(); return this.state(); }
 
   private mutate<T>(actor: MemberId, requestId: RequestId, type: string, payload: unknown, action: () => T,
     scope = `lobby:${this.lobbyId}:member:${actor}`): T {

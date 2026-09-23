@@ -77,13 +77,20 @@ test('two protocol clients can complete a lobby shell and start a fresh rematch'
   assert.deepEqual(result.standings.map((row: any) => [row.playerId, row.rank, row.relativeToPar]),
     [[firstState.players[0].playerId, 1, -1], [stateOf(joined).players[1].playerId, 2, 0]]);
   assert.deepEqual(result.winnerPlayerIds, [firstState.players[0].playerId]);
-  send(controller, alice, envelope('ReturnToLobby', {}, { requestId: 'return_a1', lobbyId, matchId: firstMatchId }));
-  const open = send(controller, bob, envelope('ReturnToLobby', {}, { requestId: 'return_b1', lobbyId, matchId: firstMatchId }));
+  const firstReturn = send(controller, alice, envelope('ReturnToLobby', { rematch: true },
+    { requestId: 'return_a1', lobbyId, matchId: firstMatchId }));
+  assert.deepEqual(stateOf(firstReturn).rematchRequestedMemberIds, [firstState.members[0].memberId]);
+  assert.deepEqual(new Set(firstReturn.map(delivery => delivery.connectionId)), new Set([alice, bob]));
+  const open = send(controller, bob, envelope('ReturnToLobby', { rematch: true },
+    { requestId: 'return_b1', lobbyId, matchId: firstMatchId }));
   assert.equal(stateOf(open).phase, 'Open');
+  assert.deepEqual(stateOf(open).rematchRequestedMemberIds,
+    [firstState.members[0].memberId, stateOf(joined).members[1].memberId]);
   revision = stateOf(open).lobbyRevision;
   send(controller, alice, envelope('SetReady', { lobbyRevision: revision, ready: true }, { requestId: 'ready_a2', lobbyId }));
   send(controller, bob, envelope('SetReady', { lobbyRevision: revision, ready: true }, { requestId: 'ready_b2', lobbyId }));
   const rematch = send(controller, alice, envelope('StartMatch', { lobbyRevision: revision }, { requestId: 'start_2', lobbyId }));
+  assert.deepEqual(stateOf(rematch).rematchRequestedMemberIds, []);
   const secondMatchId = stateOf(rematch).match.matchId as string;
   assert.notEqual(secondMatchId, firstMatchId);
   assert.deepEqual(new Set(rematch.map(delivery => delivery.connectionId)), new Set([alice, bob]), 'connections persist across matches');

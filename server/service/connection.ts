@@ -140,7 +140,8 @@ export class LobbyProtocolController {
             case 'PreparationFailed':
               lobby.abortPreparation(message.matchId!, message.payload.reason); this.matches.delete(message.matchId!);
               return this.broadcast(lobby.state(), 'PreparationAborted', { reason: message.payload.reason }, requestId);
-            case 'ReturnToLobby': lobby.returnToLobby(memberId, message.requestId!, message.matchId!); break;
+            case 'ReturnToLobby':
+              lobby.returnToLobby(memberId, message.requestId!, message.matchId!, message.payload.rematch === true); break;
             default: {
               const match = this.matches.get(message.matchId! as MatchId);
               if (!match || message.matchId !== lobby.currentMatchId)

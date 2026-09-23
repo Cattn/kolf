@@ -118,6 +118,10 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     connectButtons->addStretch(); connectButtons->addWidget(m_changeServerButton);
     connectButtons->addWidget(m_connectButton); connectButtons->addWidget(cancelButton);
     connectLayout->addStretch(); connectLayout->addLayout(connectButtons);
+    QWidget::setTabOrder(m_recentServers, m_endpoint);
+    QWidget::setTabOrder(m_endpoint, m_changeServerButton);
+    QWidget::setTabOrder(m_changeServerButton, m_connectButton);
+    QWidget::setTabOrder(m_connectButton, cancelButton);
     m_pages->addWidget(connectPage);
     m_connectTimeout = new QTimer(this);
     m_connectTimeout->setSingleShot(true);
@@ -226,7 +230,9 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         Q_EMIT leaveRequested();
     });
     connect(m_connectTimeout, &QTimer::timeout, this, [this] {
-        setConnectionState(ConnectionState::Failed, i18n("The server did not respond in time. Check its address and try again."));
+        const auto message = i18n("The server did not respond in time. Check its address and try again.");
+        setConnectionState(ConnectionState::Failed, message);
+        Q_EMIT statusChanged(message);
         m_coordinator.disconnectFromService();
     });
     connect(m_createButton, &QPushButton::clicked, this, [this] {
@@ -290,8 +296,8 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         if (!path.isEmpty()) m_coordinator.uploadCourse(path);
     });
     connect(rematchButton, &QPushButton::clicked, this, [this] {
-        m_rematchRequested = true; m_rematchReadySent = m_rematchStartSent = false;
-        m_coordinator.returnToLobby();
+        m_rematchRequested = true; m_rematchReadySent = false;
+        m_coordinator.returnToLobby(true);
     });
     connect(returnButton, &QPushButton::clicked, this, [this] {
         m_rematchRequested = false; m_coordinator.returnToLobby();
@@ -302,6 +308,7 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     });
     connect(&m_coordinator, &OnlineCoordinator::connected, this, [this] {
         setConnectionState(ConnectionState::Connecting, i18n("Verifying the server…"));
+        Q_EMIT statusChanged(i18n("Verifying the server…"));
     });
     connect(&m_coordinator, &OnlineCoordinator::serviceChanged, this, [this](const QJsonObject &hello) {
         m_connectTimeout->stop();
@@ -313,6 +320,7 @@ OnlineWidget::OnlineWidget(QWidget *parent)
             addCourse(m_lobbyCourse, course);
         }
         showEntry();
+        Q_EMIT statusChanged(i18n("Connected to %1.", m_endpoint->text().trimmed()));
     });
     connect(&m_coordinator, &OnlineCoordinator::connectionClosed, this, [this] {
         if (m_matchActive) {
@@ -323,17 +331,21 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         m_state = {};
         m_result->clear();
         m_joinCode->clear();
-        m_rematchRequested = m_rematchReadySent = m_rematchStartSent = false;
+        m_rematchRequested = m_rematchReadySent = false;
         m_entryRequestPending = false;
         m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
         if (m_disconnectRequested) {
             m_disconnectRequested = false;
             setConnectionState(ConnectionState::Disconnected);
             m_pages->setCurrentIndex(0);
+            Q_EMIT statusChanged(i18n("Disconnected. Ready to connect."));
             return;
         }
-        if (m_connectionState != ConnectionState::Failed)
-            setConnectionState(ConnectionState::Failed, i18n("The connection closed. Retry or choose another server."));
+        if (m_connectionState != ConnectionState::Failed) {
+            const auto message = i18n("The connection closed. Retry or choose another server.");
+            setConnectionState(ConnectionState::Failed, message);
+            Q_EMIT statusChanged(message);
+        }
         m_pages->setCurrentIndex(0);
     });
     connect(&m_coordinator, &OnlineCoordinator::lobbyChanged, this, &OnlineWidget::showLobby);
@@ -343,6 +355,7 @@ OnlineWidget::OnlineWidget(QWidget *parent)
             Q_EMIT matchEnded();
         }
         showEntry(); m_entryStatus->setText(reason);
+        Q_EMIT statusChanged(reason);
     });
     connect(&m_coordinator, &OnlineCoordinator::matchPrepared, this, [this](const QJsonObject &config) {
         auto sessionConfig = config;
@@ -372,6 +385,7 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         m_entryRequestPending = false;
         m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
         m_entryStatus->setText(reason); m_lobbyStatus->setText(reason);
+        Q_EMIT statusChanged(reason);
         if (!m_automation.isEmpty()) failAutomation(reason);
     });
 }
@@ -401,16 +415,18 @@ void OnlineWidget::changeServer()
     m_createCourse->clear();
     m_lobbyCourse->clear();
     m_entryRequestPending = false;
-    m_rematchRequested = m_rematchReadySent = m_rematchStartSent = false;
+    m_rematchRequested = m_rematchReadySent = false;
     m_createButton->setEnabled(true);
     m_joinButton->setEnabled(true);
     m_pages->setCurrentIndex(0);
     m_disconnectRequested = true;
     setConnectionState(ConnectionState::Disconnecting);
+    Q_EMIT statusChanged(i18n("Disconnecting…"));
     m_coordinator.disconnectFromService();
     if (m_disconnectRequested && m_coordinator.networkClient()->isDisconnected()) {
         m_disconnectRequested = false;
         setConnectionState(ConnectionState::Disconnected);
+        Q_EMIT statusChanged(i18n("Disconnected. Ready to connect."));
     }
     m_endpoint->setFocus();
 }
@@ -604,6 +620,7 @@ void OnlineWidget::showEntry()
 
 void OnlineWidget::showLobby(const QJsonObject &state)
 {
+    const auto previousCourseId = m_state.value(QStringLiteral("selectedCourseId")).toString();
     m_state = state;
     setConnectionState(state.value(QStringLiteral("phase")) == QLatin1String("Playing")
         ? ConnectionState::InMatch : ConnectionState::InLobby);
@@ -672,9 +689,7 @@ void OnlineWidget::showLobby(const QJsonObject &state)
     if (m_rematchRequested && open) {
         if (!localReady && !m_rematchReadySent) {
             m_rematchReadySent = true; m_coordinator.setReady(true);
-        } else if (owner && allReady && !m_rematchStartSent) {
-            m_rematchStartSent = true; m_coordinator.startMatch();
-        }
+        } else if (localReady) m_rematchRequested = false;
     } else if (!open && state.value(QStringLiteral("phase")) != QLatin1String("Results")) {
         m_rematchRequested = false;
     }
@@ -699,10 +714,23 @@ void OnlineWidget::showLobby(const QJsonObject &state)
     }
     m_lobbyCourse->setEnabled(open && owner);
     m_customCourse->setEnabled(open && owner);
-    if (open) m_lobbyStatus->setText(players.size() < 2
-        ? i18n("2–8 players are required. Add another player or invite another member.")
+    if (open) m_lobbyStatus->setText(players.size() < 2 || members.size() < 2
+        ? i18n("At least two players and two members are required. Add a player or invite another member.")
+        : allReady ? i18n("All members are ready. The owner can start.")
         : i18n("Ready every member on this revision, then the owner can start."));
     advanceAutomation(state);
+    if (open) {
+        if (!state.value(QStringLiteral("rematchRequestedMemberIds")).toArray().isEmpty())
+            announceRematch(state);
+        else if (index >= 0 && !previousCourseId.isEmpty() && courseId != previousCourseId)
+            Q_EMIT statusChanged(i18n("Course selected: %1", m_lobbyCourse->itemText(index)));
+        else if (members.size() < 2 || players.size() < 2)
+            Q_EMIT statusChanged(i18n("Lobby ready. Invite another member or add a player."));
+        else if (allReady)
+            Q_EMIT statusChanged(i18n("All members are ready. The owner can start."));
+        else
+            Q_EMIT statusChanged(i18n("Lobby ready. Waiting for members to be ready."));
+    }
 }
 
 void OnlineWidget::showResults(const QJsonObject &state)
@@ -793,6 +821,36 @@ void OnlineWidget::showResults(const QJsonObject &state)
                 worst.value(QStringLiteral("hole")).toInt(), worst.value(QStringLiteral("strokes")).toInt()));
     }
     m_result->setHtml(html + QStringLiteral("</ul>"));
+    if (state.value(QStringLiteral("rematchRequestedMemberIds")).toArray().isEmpty())
+        Q_EMIT statusChanged(completed ? i18n("Match complete. Choose Rematch or Return to Lobby.")
+            : i18n("Match interrupted. Review the partial Results."));
+    else
+        announceRematch(state);
+}
+
+void OnlineWidget::announceRematch(const QJsonObject &state)
+{
+    const auto requests = state.value(QStringLiteral("rematchRequestedMemberIds")).toArray();
+    if (requests.isEmpty()) return;
+    const auto members = state.value(QStringLiteral("members")).toArray();
+    if (state.value(QStringLiteral("phase")) == QLatin1String("Open") && requests.size() == members.size()) {
+        bool allReady = true;
+        for (const auto &value : members) allReady = allReady && value.toObject().value(QStringLiteral("ready")).toBool();
+        Q_EMIT statusChanged(allReady
+            ? i18n("Rematch accepted (%1/%2). The owner can start.", requests.size(), members.size())
+            : i18n("Rematch accepted (%1/%2). Waiting for members to be ready.", requests.size(), members.size()));
+        return;
+    }
+    const auto lastId = requests.last().toString();
+    QString name = i18n("A player");
+    for (const auto &value : members) {
+        const auto member = value.toObject();
+        if (member.value(QStringLiteral("memberId")).toString() == lastId) {
+            name = member.value(QStringLiteral("displayName")).toString();
+            break;
+        }
+    }
+    Q_EMIT statusChanged(i18n("%1 requested a rematch (%2/%3)", name, requests.size(), members.size()));
 }
 
 void OnlineWidget::leaveOnline()
@@ -806,7 +864,7 @@ void OnlineWidget::leaveOnline()
     m_coordinator.disconnectFromService();
     if (m_coordinator.networkClient()->isDisconnected()) m_disconnectRequested = false;
     m_state = {};
-    m_rematchRequested = m_rematchReadySent = m_rematchStartSent = false;
+    m_rematchRequested = m_rematchReadySent = false;
     setConnectionState(m_disconnectRequested ? ConnectionState::Disconnecting : ConnectionState::Disconnected);
     m_pages->setCurrentIndex(0);
 }

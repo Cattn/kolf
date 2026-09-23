@@ -40,6 +40,7 @@ private:
     void showEntry();
     void showLobby(const QJsonObject &state);
     void showResults(const QJsonObject &state);
+    void announceRematch(const QJsonObject &state);
     void savePreferences();
     void beginConnection();
     void setConnectionState(ConnectionState state, const QString &message = {});
@@ -86,7 +87,6 @@ private:
     bool m_matchActive = false;
     bool m_rematchRequested = false;
     bool m_rematchReadySent = false;
-    bool m_rematchStartSent = false;
     bool m_entryRequestPending = false;
     bool m_disconnectRequested = false;
     ConnectionState m_connectionState = ConnectionState::Disconnected;

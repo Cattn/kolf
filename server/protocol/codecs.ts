@@ -23,7 +23,7 @@ export type ClientMessage =
   | Envelope<'StartMatch', { lobbyRevision: number }>
   | Envelope<'CourseReady', { courseHash: string; compatibilityId: string }>
   | Envelope<'PreparationFailed', { reason: string }>
-  | Envelope<'ReturnToLobby', Record<string, never>>
+  | Envelope<'ReturnToLobby', { rematch?: boolean }>
   | Envelope<'SceneReady', { manifestHash: string }>
   | Envelope<'SubmitShot', { commandId: string; holeGeneration: number; turnId: number; playerId: string;
       puttingMode: 'normal' | 'advanced'; directionRadians: number; launchMagnitude: number }>
@@ -162,7 +162,9 @@ export function decodeClientMessage(raw: string): ClientMessage {
       return message as ClientMessage;
     case 'ReturnToLobby':
       requireMatch(message);
-      if (Object.keys(p).length) throw new ProtocolError('InvalidPayload', 'return payload must be empty');
+      if (Object.keys(p).some(key => key !== 'rematch')
+        || (p.rematch !== undefined && typeof p.rematch !== 'boolean'))
+        throw new ProtocolError('InvalidPayload', 'invalid return request');
       return message as ClientMessage;
     case 'SceneReady':
       requireGameplayScope(message);

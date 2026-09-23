@@ -9,6 +9,8 @@ repository root:
 
 The launcher prints the endpoint. In each ordinary Kolf window, choose
 **Game > Online…** and press **Connect** for the preselected endpoint.
+Check that the status bar changes from Connecting/Verifying to Connected once
+the server responds, and that failures replace the pending message.
 
 ## One bounded online smoke
 
@@ -18,8 +20,12 @@ The launcher prints the endpoint. In each ordinary Kolf window, choose
 3. Ready both members and start. Confirm only the owner of the active slot can
    shoot and both clients show matching scores.
 4. Exercise one normal shot, one advanced-putting shot, and one hazard choice.
-5. Finish the match, compare Results, return to the lobby, and start one
-   rematch with a fresh match identity.
+5. Finish the match and compare Results. Click **Rematch** in one window and
+   confirm both status bars name that member and show (1/2). Click **Rematch**
+   in the other window and confirm the lobby says Rematch accepted (2/2).
+   Once both members are ready, the owner presses **Start** for a fresh match
+   identity. The status bar should move on from upload, preparation, and result
+   messages when those phases end.
 6. Close the clients and confirm the launcher and service shut down.
 
 ## Server navigation
@@ -37,6 +43,17 @@ give the remaining members an interrupted result.
 For the representative variable-roster smoke, run with `-ClientCount 3`, add a
 second local player to the owner, and play one four-player match. Do not expand
 this into every roster or ownership permutation.
+
+## One Slope Practise visual pass
+
+Select **Slope Practise** in the lobby. Before starting, turn on **Hole > Show
+Info** (Ctrl+I). On the first hole and after a hole transition, confirm the
+slope arrows and grade are visible without another toggle and do not cover the
+ball, cup, or aim. Toggle the action off and back on with both the menu and
+shortcut. During each player's turn, the owner of that ball should see the
+local putter; the other client should see only the live remote-aim indicator.
+Watch one shot settle on the guest without a stale putter, snapback, or stalled
+turn. Compare chosen colors with the lobby, balls, scoreboard, and Results.
 
 ## One bounded offline regression
 

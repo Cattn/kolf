@@ -162,9 +162,9 @@ void OnlineCoordinator::startMatch()
     send(QStringLiteral("StartMatch"), {{QStringLiteral("lobbyRevision"), m_state.value(QStringLiteral("lobbyRevision")).toInt()}});
 }
 
-void OnlineCoordinator::returnToLobby()
+void OnlineCoordinator::returnToLobby(bool rematch)
 {
-    send(QStringLiteral("ReturnToLobby"), {}, true);
+    send(QStringLiteral("ReturnToLobby"), {{QStringLiteral("rematch"), rematch}}, true);
 }
 
 QString OnlineCoordinator::requestId()

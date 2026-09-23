@@ -239,7 +239,8 @@ void KolfWindow::showOnline()
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::matchRequested, this, &KolfWindow::startOnlineMatch);
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::matchEnded, this, &KolfWindow::finishOnlineMatch);
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::statusChanged, this, [this](const QString &status) {
-			statusBar()->showMessage(status);
+			if (!onlineMatchController)
+				statusBar()->showMessage(status);
 		});
 	}
 	onlineModeActive = true;
@@ -375,6 +376,7 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 	onlineResyncAction->setVisible(true);
 	onlineResyncAction->setEnabled(true);
 	applicationStack->setCurrentWidget(onlineGamePage);
+	statusBar()->showMessage(i18n("Preparing the online match…"));
 	resize(qMax(width(), 850), qMax(height(), 700));
 }
 

@@ -29,7 +29,7 @@ public Q_SLOTS:
     void setCourse(const QString &courseId);
     void uploadCourse(const QString &path);
     void startMatch();
-    void returnToLobby();
+    void returnToLobby(bool rematch = false);
 
 Q_SIGNALS:
     void connected();
