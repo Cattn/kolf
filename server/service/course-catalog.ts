@@ -73,7 +73,7 @@ export function readCourseManifest(root: string): CatalogFile[] {
       throw Error('invalid course manifest entry');
     return { courseId: parts[0], fileName: parts[1] };
   });
-  if (files.length !== 8 || new Set(files.map(file => file.courseId)).size !== files.length
+  if (!files.length || new Set(files.map(file => file.courseId)).size !== files.length
     || new Set(files.map(file => file.fileName)).size !== files.length) throw Error('invalid shipped course manifest');
   return files;
 }
