@@ -24,6 +24,8 @@ public Q_SLOTS:
     void requestResync();
     void chooseDrop();
     void chooseRehit();
+    void setHostControlsEnabled(bool enabled);
+    void resetOnlineHole();
     void setUseMouse(bool enabled);
     void setUseAdvancedPutting(bool enabled);
     void setSound(bool enabled);
@@ -36,6 +38,7 @@ Q_SIGNALS:
     void noticeChanged(const QString &notice);
     void scorecardChanged(const QJsonArray &scores, const QJsonArray &pars, int activePlayer, int currentHole);
     void hazardChoiceChanged(bool available);
+    void hostControlsChanged(bool enabled, bool canToggle, bool canReset);
 
 private:
     void receive(const QJsonObject &message);
@@ -78,6 +81,9 @@ private:
     int m_syncId = 0;
     int m_frameSeq = 0, m_receivedFrame = 0;
     bool m_ready = false, m_interrupted = false, m_awaitingResync = false;
+    bool m_hostControlsEnabled = false, m_hostActionPending = false;
+    QString m_hostTogglePending;
+    QString m_hostResetPending;
     bool m_testFaultScheduled = false;
     QJsonObject m_pendingMessage;
     QJsonObject m_lastAim;

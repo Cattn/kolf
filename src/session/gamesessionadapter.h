@@ -16,6 +16,7 @@ public:
     bool apply(const QJsonObject &state, QString &error);
     bool shoot(const ShotIntent &intent);
     bool choose(const QString &action);
+    bool resetCurrentHole();
     void enableSimulation(bool enabled);
     void enableInput(bool enabled);
     int activeSlot() const;

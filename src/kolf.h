@@ -29,6 +29,7 @@
 class QGridLayout;
 class QHBoxLayout;
 class QJsonObject;
+class QCheckBox;
 class QLabel;
 class QPushButton;
 class QStackedWidget;
@@ -157,6 +158,8 @@ private:
 	QVBoxLayout *onlineGameLayout = nullptr;
 	ScoreBoard *onlineScoreboard = nullptr;
 	QWidget *onlineHazardPanel = nullptr;
+	QCheckBox *onlineHostControls = nullptr;
+	QLabel *onlineNoticeLabel = nullptr;
 	QPushButton *onlineDropButton = nullptr;
 	QPushButton *onlineRehitButton = nullptr;
 	QAction *onlineResyncAction = nullptr;

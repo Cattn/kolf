@@ -85,6 +85,85 @@ test('three members coordinate four players with multi-slot ownership and frame 
   assert(frame.deliveries.every(delivery => delivery.visual));
 });
 
+test('only the owner can enable controls and a reset uses the state barrier once', () => {
+  const coordinator = new MatchCoordinator(lobbyState(['member_a', 'member_b', 'member_a']));
+  const initial = { ...state(3), scores: [[2], [1], [0]] };
+  const syncId = open(coordinator, ['member_a', 'member_b'], initial);
+  const toggle = { commandId: 'host_toggle_1', stateRevision: 1, syncId, enabled: true };
+  assert.equal(coordinator.receive('member_b', scoped('SetHostControls', toggle)).deliveries[0].message.type,
+    'HostControlRejected');
+  const enabled = coordinator.receive('member_a', scoped('SetHostControls', toggle));
+  assert.equal(enabled.deliveries.filter(d => d.message.type === 'HostControlsChanged').length, 2);
+  assert.equal(coordinator.receive('member_a', scoped('SetHostControls', toggle)).deliveries.length, 1);
+  const request = { commandId: 'host_reset_1', stateRevision: 1, syncId, holeGeneration: 1, action: 'resetHole' };
+  assert.equal(coordinator.receive('member_b', scoped('HostAction', request)).deliveries[0].message.type,
+    'HostControlRejected');
+  const admitted = coordinator.receive('member_a', scoped('HostAction', request));
+  assert.equal(admitted.deliveries.filter(d => d.message.type === 'AdmitHostAction').length, 1);
+  assert.equal(coordinator.receive('member_a', scoped('HostAction', request)).deliveries[0].message.type,
+    'HostActionPending');
+  assert.equal(coordinator.receive('member_a', scoped('HostAction', { ...request, commandId: 'host_reset_2' }))
+    .deliveries[0].message.type, 'HostControlRejected');
+  const resetState = { ...initial, stateRevision: 2, holeGeneration: 2, turnId: 2,
+    scores: [[0], [0], [0]] };
+  const committed = coordinator.receive('member_a', scoped('CommitTransition', { state: resetState }));
+  assert.equal(committed.deliveries.filter(d => d.message.type === 'HostActionNotice').length, 2);
+  const resetSync = committed.deliveries.find(d => d.message.type === 'TransitionCommitted')!
+    .message.payload.syncId as number;
+  coordinator.receive('member_a', scoped('StateApplied', {
+    stateRevision: 2, syncId: resetSync, manifestHash: compatibilityId,
+  }));
+  const ready = coordinator.receive('member_b', scoped('StateApplied', {
+    stateRevision: 2, syncId: resetSync, manifestHash: compatibilityId,
+  }));
+  assert.equal(ready.deliveries.filter(d => d.message.type === 'InputReady').length, 2);
+  assert.equal(coordinator.receive('member_a', scoped('HostAction', { ...request, commandId: 'host_reset_3' }))
+    .deliveries[0].message.type, 'HostControlRejected');
+  assert.equal(coordinator.receive('member_a', scoped('SetHostControls', {
+    commandId: 'host_toggle_2', stateRevision: 2, syncId: resetSync, enabled: false,
+  })).deliveries.filter(d => d.message.type === 'HostControlsChanged').length, 2);
+  assert.equal(coordinator.receive('member_a', scoped('HostAction', {
+    commandId: 'host_reset_4', stateRevision: 2, syncId: resetSync, holeGeneration: 2, action: 'resetHole',
+  })).deliveries[0].message.type, 'HostControlRejected');
+});
+
+test('reset retracts accepted shots from the current hole in interrupted Results', () => {
+  const coordinator = new MatchCoordinator(lobbyState(['member_a', 'member_b']));
+  let syncId = open(coordinator, ['member_a', 'member_b'], state(2));
+  coordinator.receive('member_a', scoped('SubmitShot', { commandId: 'shot_before_reset',
+    playerId: 'player_0', holeGeneration: 1, turnId: 1, puttingMode: 'normal',
+    directionRadians: 0, launchMagnitude: 1 }));
+  coordinator.receive('member_a', scoped('ShotAccepted', { commandId: 'shot_before_reset' }));
+  const moving = { ...state(2), stateRevision: 2, phase: 'Simulating' };
+  let progress = coordinator.receive('member_a', scoped('CommitTransition', { state: moving }));
+  syncId = progress.deliveries[0].message.payload.syncId as number;
+  for (const member of ['member_a', 'member_b']) coordinator.receive(member, scoped('StateApplied', {
+    stateRevision: 2, syncId, manifestHash: compatibilityId,
+  }));
+  const settled = { ...state(2), stateRevision: 3, turnId: 2, activeSlot: 1, scores: [[1], [0]] };
+  progress = coordinator.receive('member_a', scoped('CommitTransition', { state: settled }));
+  syncId = progress.deliveries[0].message.payload.syncId as number;
+  for (const member of ['member_a', 'member_b']) coordinator.receive(member, scoped('StateApplied', {
+    stateRevision: 3, syncId, manifestHash: compatibilityId,
+  }));
+  coordinator.receive('member_a', scoped('SetHostControls', {
+    commandId: 'enable_for_reset', stateRevision: 3, syncId, enabled: true,
+  }));
+  coordinator.receive('member_a', scoped('HostAction', {
+    commandId: 'reset_after_shot', stateRevision: 3, syncId, holeGeneration: 1, action: 'resetHole',
+  }));
+  const reset = { ...state(2), stateRevision: 4, turnId: 3, holeGeneration: 2 };
+  progress = coordinator.receive('member_a', scoped('CommitTransition', { state: reset }));
+  syncId = progress.deliveries.find(d => d.message.type === 'TransitionCommitted')!
+    .message.payload.syncId as number;
+  for (const member of ['member_a', 'member_b']) coordinator.receive(member, scoped('StateApplied', {
+    stateRevision: 4, syncId, manifestHash: compatibilityId,
+  }));
+  const interrupted = coordinator.receive('member_b', scoped('MatchInterrupted', { reason: 'fixture' }));
+  assert.deepEqual(interrupted.metrics?.acceptedShots, [0, 0]);
+  assert.deepEqual(interrupted.interruptedScores, [[0], [0]]);
+});
+
 test('remote aim is relayed only for the active owner and cleared when a shot begins', () => {
   let now = 1_000;
   const coordinator = new MatchCoordinator(lobbyState(['member_a', 'member_b', 'member_c']), () => now);

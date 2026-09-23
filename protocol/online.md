@@ -80,6 +80,22 @@ position and resting ball state, charges the accepted stroke once, and advances
 the turn. Guests receive the resulting committed state; their local presentation
 does not decide whether a shot was out of bounds.
 
+Host Controls currently begin with **Reset Hole**. They start off for every
+new match and rematch. Only the frozen lobby owner may send `SetHostControls`
+with a command ID, current revision/sync ID, and desired enabled state. The
+service broadcasts `HostControlsChanged`; guests can see the state but cannot
+toggle it. While enabled and input-ready, that owner may send `HostAction`
+with action `resetHole`, the current revision/sync ID, and hole generation.
+The server rejects guest, stale, duplicate-conflicting, disabled, or busy
+requests with `HostControlRejected` and a readable reason. A valid reset
+broadcasts `HostActionPending`, asks the authority to reload the current hole,
+then publishes one new `AwaitingShot` revision behind the usual all-member
+apply barrier. Its turn and generation both advance, all current-hole scores
+return to zero, the first player starts, and the current hole's accepted-shot
+and hazard-choice counts are removed from Results. A committed reset broadcasts
+`HostActionNotice`. Exact retries do not apply the reset twice. Undo, Skip,
+and Go actions remain disabled online until their transitions are implemented.
+
 `MatchResult` contains the frozen course name and roster, per-hole scores and
 par, ordered standings with ranks and ties, totals, relative-to-par where par
 is known, holes in one and best/worst completed holes, accepted-shot and

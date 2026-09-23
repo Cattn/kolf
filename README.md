@@ -13,6 +13,13 @@ game, or Results; **Leave Online** returns to the paused local game. Without a
 configured or saved server, Online prompts for an address. Use remote
 `ws://` addresses only on trusted networks.
 
+During an online match, the lobby owner can check **Enable Host Controls**.
+With it enabled and the match settled, **Hole > Reset** (Ctrl+R) confirms and
+restarts the current hole for every player. The current-hole scores are cleared
+on both clients. Guests see the toggle state and a reset notice, but cannot
+issue the action. Other Hole and Go controls remain unavailable online while
+their shared transitions are developed.
+
 ## How to play?
 ### Download a binary
 1. Locate a binary for you platform in the [Releases](https://github.com/Cattn/kolf/releases) tab<br>

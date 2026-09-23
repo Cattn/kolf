@@ -45,6 +45,23 @@ test('aim updates require finite bounded values and match scope', () => {
     payload: { ...aim.payload, directionRadians: null } })), ProtocolError);
 });
 
+test('host controls require typed match-scoped requests', () => {
+  const scope = { requestId: 'request_host', lobbyId: 'lobby_1', matchId: 'match_1' };
+  const toggle = envelope('SetHostControls', { commandId: 'toggle_1', stateRevision: 1,
+    syncId: 1, enabled: true }, scope);
+  assert.equal(decodeClientMessage(JSON.stringify(toggle)).type, 'SetHostControls');
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...toggle, matchId: undefined })), ProtocolError);
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...toggle,
+    payload: { ...toggle.payload, enabled: 'yes' } })), ProtocolError);
+  const action = envelope('HostAction', { commandId: 'action_1', stateRevision: 1,
+    syncId: 1, holeGeneration: 1, action: 'resetHole' }, scope);
+  assert.equal(decodeClientMessage(JSON.stringify(action)).type, 'HostAction');
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...action,
+    payload: { ...action.payload, action: 'saveGame' } })), ProtocolError);
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...action,
+    payload: { ...action.payload, holeGeneration: -1 } })), ProtocolError);
+});
+
 test('compatibility identity ignores ordering and text line endings only', () => {
   const first = compatibilityIdentity([
     { path: 'game/b.cpp', content: 'two\r\nlines\r\n' },

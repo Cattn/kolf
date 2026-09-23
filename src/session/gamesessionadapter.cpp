@@ -80,6 +80,17 @@ bool GameSessionAdapter::loadHole(int number) {
     enableInput(false);
     return !registry().isEmpty();
 }
+bool GameSessionAdapter::resetCurrentHole() {
+    if (g->m_role != Role::Authority || g->inPlay || g->m_onlineShot || m_choiceSlot >= 0) return false;
+    const int current = hole();
+    if (!loadHole(current)) return false;
+    for (auto &player : *g->players) player.resetScore(current);
+    m_scored = false; m_resolutionIndex = 0; m_finished = false;
+    m_choiceId.clear(); m_choiceSlot = -1; m_failure.clear();
+    g->curPlayer = g->players->begin();
+    g->curBall()->setVisible(true);
+    return true;
+}
 QMap<QString, QGraphicsItem *> GameSessionAdapter::registry() const {
     QMap<QString, QGraphicsItem *> map;
     for (auto *item : g->m_topLevelQItems) {

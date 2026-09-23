@@ -44,6 +44,24 @@ For the representative variable-roster smoke, run with `-ClientCount 3`, add a
 second local player to the owner, and play one four-player match. Do not expand
 this into every roster or ownership permutation.
 
+## Host reset slice
+
+In a two-client match, verify that **Enable Host Controls** starts unchecked,
+the guest cannot change it, and **Hole > Reset** (Ctrl+R) is unavailable to both.
+The owner enables controls, then both players take a shot on the same hole.
+Confirm that the guest still cannot reset. On the owner, invoke Reset through
+the menu and shortcut in separate rounds; cancel once and confirm no state
+changes. Accept once and compare both clients' hole, first player's turn,
+ball/object placement, zero current-hole scores, and the reset notice. Verify
+that a rematch starts with controls off. Repeat with three members and four
+players to check owner identity is independent of the active player's slot.
+Also check a rolling-ball attempt is unavailable and that offline Reset still
+works after leaving Online.
+
+**Current result:** not run — Windows native build is blocked before Craft
+initialization completes (invalid PowerShell cursor handle; Craft failed to
+detect Python). Course and source commit will be recorded when this pass runs.
+
 ## One Slope Practise visual pass
 
 Select **Slope Practise** in the lobby. Before starting, turn on **Hole > Show

@@ -225,6 +225,37 @@ void SessionController::receive(const QJsonObject &message) {
     if (type == QLatin1String("LoadCourse")) { load(); return; }
     if (type == QLatin1String("MatchInterrupted")) { interrupt(m[QStringLiteral("reason")].toString()); return; }
     if (!m_adapter) { interrupt(QStringLiteral("State arrived before course load")); return; }
+    if (type == QLatin1String("HostControlsChanged")) {
+        m_hostControlsEnabled = m[QStringLiteral("enabled")].toBool();
+        if (m[QStringLiteral("commandId")].toString() == m_hostTogglePending) m_hostTogglePending.clear();
+        Q_EMIT noticeChanged(m_hostControlsEnabled ? tr("Host controls enabled.") : tr("Host controls disabled."));
+        refresh(); return;
+    }
+    if (type == QLatin1String("HostControlRejected")) {
+        const auto commandId = m[QStringLiteral("commandId")].toString();
+        if (commandId == m_hostTogglePending) m_hostTogglePending.clear();
+        if (commandId == m_hostResetPending) m_hostResetPending.clear();
+        Q_EMIT noticeChanged(tr("Host control rejected: %1").arg(m[QStringLiteral("reason")].toString()));
+        refresh(); return;
+    }
+    if (type == QLatin1String("HostActionPending")) {
+        m_hostActionPending = true; m_ready = false; clearRemoteAim(); m_lastAim = {};
+        refresh(); return;
+    }
+    if (type == QLatin1String("HostActionNotice")) {
+        Q_EMIT noticeChanged(tr("Host reset Hole %1. Current-hole scores were cleared.").arg(m[QStringLiteral("hole")].toInt()));
+        return;
+    }
+    if (type == QLatin1String("AdmitHostAction") && m_role == Role::Authority) {
+        if (!m_hostActionPending || !m_hostControlsEnabled || m[QStringLiteral("action")] != QLatin1String("resetHole")
+            || m[QStringLiteral("stateRevision")].toInt() != m_revision || m[QStringLiteral("syncId")].toInt() != m_syncId
+            || m[QStringLiteral("holeGeneration")].toInt() != m_generation || m_phase != QLatin1String("AwaitingShot")) {
+            interrupt(QStringLiteral("Invalid admitted host action")); return;
+        }
+        if (!m_adapter->resetCurrentHole()) { interrupt(QStringLiteral("Host reset could not be applied")); return; }
+        ++m_generation;
+        commit(QStringLiteral("AwaitingShot")); return;
+    }
     if (type == QLatin1String("AimClear")) { clearRemoteAim(); return; }
     if (type == QLatin1String("AimPreview")) { showRemoteAim(m); return; }
     if (type == QLatin1String("StartMatch") && m_role == Role::Authority) { commit(QStringLiteral("AwaitingShot")); return; }
@@ -255,6 +286,11 @@ void SessionController::receive(const QJsonObject &message) {
     }
     if (type == QLatin1String("ShotPending") || type == QLatin1String("ShotResolved")) {
         clearRemoteAim(); return;
+    }
+    if (type == QLatin1String("CommandRejected") && m[QStringLiteral("reason")] == QLatin1String("not awaiting shot")) {
+        m_pending.clear(); m_ready = false;
+        Q_EMIT noticeChanged(tr("The shot arrived after the match state changed. Waiting for synchronization."));
+        refresh(); return;
     }
     if (type == QLatin1String("ShotRejected") || type == QLatin1String("CommandRejected")) {
         m_pending.clear(); interrupt(QStringLiteral("Command rejected: %1").arg(m[QStringLiteral("reason")].toString())); return;
@@ -302,6 +338,7 @@ void SessionController::receive(const QJsonObject &message) {
         m_revision = revision; m_generation = generation; m_turn = s[QStringLiteral("turnId")].toInt();
         m_syncId = syncId;
         m_phase = s[QStringLiteral("phase")].toString(); m_choiceId = s[QStringLiteral("choiceId")].toString(); m_choiceSlot = s[QStringLiteral("choiceSlot")].toInt(-1);
+        if (!frame) { m_hostActionPending = false; m_hostResetPending.clear(); }
         if (frame) m_receivedFrame = m[QStringLiteral("frameSeq")].toInt();
         else {
             m_receivedFrame = 0; m_ready = false; m_awaitingResync = false;
@@ -405,6 +442,11 @@ void SessionController::refresh() {
     if (!canAim || m_game->inputIgnored()) m_adapter->enableInput(canAim);
     const bool canChoose = m_ready && !m_interrupted && m_phase == QLatin1String("AwaitingHazardChoice") && ownsSlot(m_choiceSlot);
     Q_EMIT hazardChoiceChanged(canChoose);
+    const bool canHostToggle = m_role == Role::Authority && m_ready && !m_interrupted
+        && m_phase == QLatin1String("AwaitingShot") && m_pending.isEmpty() && !m_hostActionPending
+        && m_hostTogglePending.isEmpty();
+    Q_EMIT hostControlsChanged(m_hostControlsEnabled, canHostToggle,
+        canHostToggle && m_hostControlsEnabled && m_hostResetPending.isEmpty());
     while (m_pars.size() < m_adapter->hole()) m_pars.append(0);
     m_pars[m_adapter->hole() - 1] = m_adapter->par();
     QJsonArray scores;
@@ -440,6 +482,30 @@ void SessionController::chooseHazardAction(const QString &action)
 
 void SessionController::chooseDrop() { chooseHazardAction(QStringLiteral("drop")); }
 void SessionController::chooseRehit() { chooseHazardAction(QStringLiteral("rehit")); }
+
+void SessionController::setHostControlsEnabled(bool enabled)
+{
+    if (m_role != Role::Authority || !m_adapter || !m_ready || m_interrupted
+        || m_phase != QLatin1String("AwaitingShot") || !m_pending.isEmpty()
+        || m_hostActionPending || !m_hostTogglePending.isEmpty() || enabled == m_hostControlsEnabled) return;
+    m_hostTogglePending = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    send(QStringLiteral("SetHostControls"), {{QStringLiteral("commandId"), m_hostTogglePending},
+        {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
+        {QStringLiteral("enabled"), enabled}});
+    refresh();
+}
+
+void SessionController::resetOnlineHole()
+{
+    if (m_role != Role::Authority || !m_adapter || !m_ready || m_interrupted || !m_hostControlsEnabled
+        || m_phase != QLatin1String("AwaitingShot") || !m_pending.isEmpty()
+        || m_hostActionPending || !m_hostResetPending.isEmpty()) return;
+    m_hostResetPending = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    send(QStringLiteral("HostAction"), {{QStringLiteral("commandId"), m_hostResetPending},
+        {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
+        {QStringLiteral("holeGeneration"), m_generation}, {QStringLiteral("action"), QStringLiteral("resetHole")}});
+    refresh();
+}
 
 void SessionController::setUseMouse(bool enabled)
 {

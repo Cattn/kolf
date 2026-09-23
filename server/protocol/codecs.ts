@@ -34,6 +34,8 @@ export type ClientMessage =
   | Envelope<'AimUpdate', { playerId: string; stateRevision: number; syncId: number; holeGeneration: number;
       turnId: number; directionRadians: number; strength: number }>
   | Envelope<'ChooseHazardAction', { choiceId: string; stateRevision: number; syncId: number; action: 'drop' | 'rehit' }>
+  | Envelope<'SetHostControls', { commandId: string; stateRevision: number; syncId: number; enabled: boolean }>
+  | Envelope<'HostAction', { commandId: string; stateRevision: number; syncId: number; holeGeneration: number; action: 'resetHole' }>
   | Envelope<'RequestResync', Record<string, never>>
   | Envelope<'FullState', { state: JsonObject; syncId: number }>
   | Envelope<'MatchInterrupted', { reason?: string }>;
@@ -206,6 +208,18 @@ export function decodeClientMessage(raw: string): ClientMessage {
       requireGameplayScope(message);
       if (!validId(p.choiceId) || !integer(p.stateRevision, 1) || !integer(p.syncId, 1)
         || (p.action !== 'drop' && p.action !== 'rehit')) throw new ProtocolError('InvalidPayload', 'invalid hazard action');
+      return message as ClientMessage;
+    case 'SetHostControls':
+      requireGameplayScope(message);
+      if (!validId(p.commandId) || !integer(p.stateRevision, 1) || !integer(p.syncId, 1)
+        || typeof p.enabled !== 'boolean' || Object.keys(p).length !== 4)
+        throw new ProtocolError('InvalidPayload', 'invalid host control toggle');
+      return message as ClientMessage;
+    case 'HostAction':
+      requireGameplayScope(message);
+      if (!validId(p.commandId) || !integer(p.stateRevision, 1) || !integer(p.syncId, 1)
+        || !integer(p.holeGeneration, 1) || p.action !== 'resetHole' || Object.keys(p).length !== 5)
+        throw new ProtocolError('InvalidPayload', 'invalid host action');
       return message as ClientMessage;
     case 'RequestResync':
       requireGameplayScope(message); requireEmptyPayload(message); return message as ClientMessage;

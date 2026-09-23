@@ -42,12 +42,14 @@
 #include <KToggleAction>
 
 #include <QFileDialog>
+#include <QCheckBox>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMimeDatabase>
 #include <QPushButton>
 #include <QSet>
+#include <QSignalBlocker>
 #include <QStandardPaths>
 #include <QStackedWidget>
 #include <QStatusBar>
@@ -244,6 +246,8 @@ void KolfWindow::showOnline()
 		});
 	}
 	onlineModeActive = true;
+	if (game)
+		disconnect(resetHoleAction, &QAction::triggered, game, &KolfGame::resetHole);
 	offlineActionStates.clear();
 	const QList<QAction *> offlineActions{
 		editingAction, newHoleAction, resetHoleAction, undoShotAction, clearHoleAction,
@@ -274,6 +278,8 @@ void KolfWindow::leaveOnline()
 	applicationStack->setCurrentWidget(dummy);
 	for (auto it = offlineActionStates.constBegin(); it != offlineActionStates.constEnd(); ++it)
 		it.key()->setEnabled(it.value());
+	if (game)
+		connect(resetHoleAction, &QAction::triggered, game, &KolfGame::resetHole, Qt::UniqueConnection);
 	offlineActionStates.clear();
 	onlineAction->setEnabled(true);
 	if (offlineGamePausedForOnline && game) {
@@ -294,6 +300,11 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 		onlineGameLayout->setContentsMargins(0, 0, 0, 0);
 		onlineScoreboard = new ScoreBoard(onlineGamePage);
 		onlineGameLayout->addWidget(onlineScoreboard);
+		onlineNoticeLabel = new QLabel(onlineGamePage);
+		onlineNoticeLabel->setWordWrap(true);
+		onlineNoticeLabel->setAccessibleName(i18n("Online match notice"));
+		onlineGameLayout->addWidget(onlineNoticeLabel);
+		onlineNoticeLabel->hide();
 
 		onlineHazardPanel = new QWidget(onlineGamePage);
 		auto *hazardLayout = new QHBoxLayout(onlineHazardPanel);
@@ -307,6 +318,9 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 		onlineGameLayout->addWidget(onlineHazardPanel);
 		onlineHazardPanel->hide();
 		auto *onlineNavigation = new QHBoxLayout;
+		onlineHostControls = new QCheckBox(i18nc("@option:check", "Enable Host Controls"), onlineGamePage);
+		onlineHostControls->setEnabled(false);
+		onlineNavigation->addWidget(onlineHostControls);
 		auto *changeServerButton = new QPushButton(i18nc("@action:button", "Change Server"), onlineGamePage);
 		auto *leaveOnlineButton = new QPushButton(i18nc("@action:button", "Leave Online"), onlineGamePage);
 		onlineNavigation->addStretch();
@@ -346,6 +360,29 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 	onlineScoreboard->setOnlineColors(config.value(QStringLiteral("roster")).toArray());
 
 	onlineMatchController = new Kolf::Session::SessionController(config, onlineWidget->networkClient(), onlineGamePage, this);
+	{
+		const QSignalBlocker blocker(onlineHostControls);
+		onlineHostControls->setChecked(false);
+	}
+	onlineHostControls->setEnabled(false);
+	resetHoleAction->setEnabled(false);
+	connect(onlineHostControls, &QCheckBox::toggled, onlineMatchController,
+		&Kolf::Session::SessionController::setHostControlsEnabled);
+	connect(onlineMatchController, &Kolf::Session::SessionController::hostControlsChanged, this,
+		[this](bool enabled, bool canToggle, bool canReset) {
+			const QSignalBlocker blocker(onlineHostControls);
+			onlineHostControls->setChecked(enabled);
+			onlineHostControls->setEnabled(canToggle);
+			resetHoleAction->setEnabled(canReset);
+		});
+	connect(resetHoleAction, &QAction::triggered, onlineMatchController, [this] {
+		if (KMessageBox::warningTwoActions(this,
+			i18n("Reset this hole? Every player's strokes and score on this hole will be cleared."),
+			i18nc("@title:window", "Reset Online Hole?"),
+			KGuiItem(i18nc("@action:button", "Reset Hole")), KStandardGuiItem::cancel())
+			== KMessageBox::PrimaryAction)
+			onlineMatchController->resetOnlineHole();
+	});
 	connect(onlineMatchController, &Kolf::Session::SessionController::gameReady, this, [this](KolfGame *onlineGame) {
 		onlineGameLayout->insertWidget(0, onlineGame, 1);
 		onlineGame->show();
@@ -356,6 +393,11 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 	});
 	connect(onlineMatchController, &Kolf::Session::SessionController::noticeChanged, this, [this](const QString &notice) {
 		statusBar()->showMessage(notice, 10000);
+		onlineNoticeLabel->setText(notice);
+		onlineNoticeLabel->show();
+		QTimer::singleShot(10000, onlineGamePage, [this, notice] {
+			if (onlineNoticeLabel && onlineNoticeLabel->text() == notice) onlineNoticeLabel->hide();
+		});
 	});
 	connect(onlineMatchController, &Kolf::Session::SessionController::scorecardChanged,
 		onlineScoreboard, &ScoreBoard::setOnlineSnapshot);
@@ -383,6 +425,13 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 void KolfWindow::finishOnlineMatch()
 {
 	onlineResyncAction->setVisible(false);
+	if (onlineHostControls) {
+		const QSignalBlocker blocker(onlineHostControls);
+		onlineHostControls->setChecked(false);
+		onlineHostControls->setEnabled(false);
+	}
+	if (onlineModeActive) resetHoleAction->setEnabled(false);
+	if (onlineNoticeLabel) onlineNoticeLabel->hide();
 	updateOnlineHazardActions(false);
 	delete onlineMatchController;
 	onlineMatchController = nullptr;

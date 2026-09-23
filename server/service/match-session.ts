@@ -52,6 +52,11 @@ export class MatchCoordinator {
   private startedAt?: number;
   private readonly acceptedShots: number[];
   private readonly hazardChoices: number[];
+  private holeShotBaseline: number[];
+  private holeHazardBaseline: number[];
+  private hostControlsEnabled = false;
+  private hostAction?: { commandId: string; action: 'resetHole'; memberId: MemberId };
+  private hostCommands = new Map<string, { key: string; memberId: MemberId; status: Envelope }>();
 
   get matchId() { return this.match.matchId; }
   get lobbyIdentity() { return this.lobbyId; }
@@ -62,6 +67,8 @@ export class MatchCoordinator {
     this.match = state.match; this.lobbyId = state.lobbyId; this.now = now;
     this.acceptedShots = this.match.roster.map(() => 0);
     this.hazardChoices = this.match.roster.map(() => 0);
+    this.holeShotBaseline = [...this.acceptedShots];
+    this.holeHazardBaseline = [...this.hazardChoices];
     const memberIds = new Set(state.members.map(member => member.memberId));
     for (const player of this.match.roster) {
       if (!memberIds.has(player.ownerMemberId) || this.playersById.has(player.playerId)
@@ -102,6 +109,55 @@ export class MatchCoordinator {
     const p = message.payload as State;
     const reject = (reason: string) => this.send(memberId, 'CommandRejected', { commandId: p.commandId, reason });
     switch (message.type) {
+      case 'SetHostControls': case 'HostAction': {
+        const toggle = message.type === 'SetHostControls';
+        const action = p.action;
+        const key = JSON.stringify(toggle ? [message.type, p.stateRevision, p.syncId, p.enabled]
+          : [message.type, p.stateRevision, p.syncId, p.holeGeneration, action]);
+        const known = this.hostCommands.get(p.commandId);
+        if (known) {
+          if (known.memberId !== memberId || known.key !== key)
+            this.send(memberId, 'HostControlRejected', { commandId: p.commandId, reason: 'command ID reused' });
+          else if (toggle) this.send(memberId, 'HostControlsChanged',
+            { enabled: this.hostControlsEnabled, commandId: p.commandId });
+          else this.outbox.push({ memberId, message: known.status });
+          return;
+        }
+        const deny = (reason: string) => this.send(memberId, 'HostControlRejected', { commandId: p.commandId, reason });
+        if (memberId !== this.match.authorityMemberId) return deny('only the lobby owner can use host controls');
+        if (typeof p.commandId !== 'string' || !/^[A-Za-z0-9_-]{1,96}$/.test(p.commandId)
+          || !integer(p.stateRevision, 1) || !integer(p.syncId, 1)
+          || p.stateRevision !== this.state?.stateRevision || p.syncId !== this.syncId)
+          return deny('stale or invalid host control request');
+        if (this.hostCommands.size >= 10_000) return deny('host control retention limit reached');
+        if (toggle) {
+          if (typeof p.enabled !== 'boolean' || this.hostAction || (p.enabled &&
+            (this.barrier || this.pending || this.state?.phase !== 'AwaitingShot')))
+            return deny('match is busy');
+          this.hostControlsEnabled = p.enabled;
+          const status = envelope('HostControlsChanged', { enabled: p.enabled, commandId: p.commandId },
+            { lobbyId: this.lobbyId, matchId: this.match.matchId });
+          this.hostCommands.set(p.commandId, { key, memberId, status });
+          this.broadcastEnvelope(status);
+          return;
+        }
+        if (action !== 'resetHole' || !integer(p.holeGeneration, 1)
+          || p.holeGeneration !== this.state?.holeGeneration) return deny('invalid host action or hole generation');
+        if (!this.hostControlsEnabled) return deny('host controls are off');
+        if (!this.state || this.barrier || this.pending || this.hostAction || this.state.phase !== 'AwaitingShot')
+          return deny('match is busy');
+        this.hostAction = { commandId: p.commandId, action, memberId };
+        this.barrier = true; this.barrierPublished = false; this.pendingAt = this.now();
+        for (const entry of this.members.values()) entry.applied = 0;
+        this.broadcast('AimClear', { turnId: this.state.turnId });
+        const status = envelope('HostActionPending', { commandId: p.commandId, action },
+          { lobbyId: this.lobbyId, matchId: this.match.matchId });
+        this.hostCommands.set(p.commandId, { key, memberId, status });
+        this.broadcastEnvelope(status);
+        this.send(this.match.authorityMemberId, 'AdmitHostAction', { commandId: p.commandId, action,
+          stateRevision: p.stateRevision, syncId: p.syncId, holeGeneration: p.holeGeneration });
+        return;
+      }
       case 'SceneReady': {
         const entry = this.members.get(memberId)!;
         if (entry.manifestHash) {
@@ -172,16 +228,36 @@ export class MatchCoordinator {
             AwaitingShot: ['Simulating'], Simulating: ['AwaitingHazardChoice', 'AwaitingShot', 'Finished'],
             AwaitingHazardChoice: ['AwaitingHazardChoice', 'Simulating', 'AwaitingShot', 'Finished'], Finished: [],
           };
-          if (!this.pending || !allowed[this.state.phase]?.includes(next.phase)) throw Error('illegal phase transition');
+          const hostReset = !!this.hostAction && this.hostAction.action === 'resetHole';
+          if (hostReset ? (this.state.phase !== 'AwaitingShot' || next.phase !== 'AwaitingShot'
+            || next.hole !== this.state.hole || next.activeSlot !== 0
+            || next.manifestHash !== this.state.manifestHash || next.courseHash !== this.state.courseHash
+            || next.par !== this.state.par || next.scores.some((row: number[], index: number) =>
+              row[next.hole - 1] !== 0 || JSON.stringify(row.slice(0, -1))
+                !== JSON.stringify(this.state!.scores[index].slice(0, -1))))
+            : (!this.pending || !allowed[this.state.phase]?.includes(next.phase))) throw Error('illegal phase transition');
           if (next.turnId !== this.state.turnId + (next.phase === 'AwaitingShot' ? 1 : 0)) throw Error('invalid turn progression');
           const holeDelta = next.hole - this.state.hole;
-          if (holeDelta < 0 || holeDelta > 1 || next.holeGeneration !== this.state.holeGeneration + holeDelta)
+          if (holeDelta < 0 || holeDelta > 1 || next.holeGeneration !== this.state.holeGeneration + (hostReset ? 1 : holeDelta))
             throw Error('invalid generation progression');
         }
         const wasPending = this.pending;
         if (!this.state) this.startedAt = this.now();
         if (this.state?.phase === 'AwaitingHazardChoice' && this.choicePending)
           this.hazardChoices[this.state.choiceSlot]++;
+        if (this.hostAction) {
+          this.acceptedShots.splice(0, this.acceptedShots.length, ...this.holeShotBaseline);
+          this.hazardChoices.splice(0, this.hazardChoices.length, ...this.holeHazardBaseline);
+          const { commandId, action } = this.hostAction;
+          this.hostAction = undefined;
+          const notice = envelope('HostActionNotice', { commandId, action, hole: next.hole },
+            { lobbyId: this.lobbyId, matchId: this.match.matchId });
+          this.hostCommands.get(commandId)!.status = notice;
+          this.broadcastEnvelope(notice);
+        } else if (this.state && next.hole !== this.state.hole) {
+          this.holeShotBaseline = [...this.acceptedShots];
+          this.holeHazardBaseline = [...this.hazardChoices];
+        }
         this.state = next; this.lastCommit = key; this.lastFrame = 0; this.lastAimAt = 0; this.queuedResync = false;
         this.barrier = true; this.barrierPublished = true; ++this.syncId; this.pendingAt = this.now(); this.choicePending = undefined;
         for (const entry of this.members.values()) entry.applied = 0;
