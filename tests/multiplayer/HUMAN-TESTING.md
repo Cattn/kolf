@@ -104,7 +104,7 @@ run directory `server/local-session/online-host-skip-1790192417571`. The
 owner's partial score remained, the guest stayed unscored, and both clients
 applied the same next-hole state and finished. Visible confirmation, final-hole
 skip, Results presentation, rolling-ball, and three-member/four-player checks:
-**not run** on Windows, source pending the next commit.
+**not run** on Windows, Skip source `3d60dd2`.
 
 ## One Slope Practise visual pass
 
