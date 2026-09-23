@@ -6,14 +6,14 @@ name=Tokyo Nine
 [1-ball@42,348]
 dummykey=true
 
-[1-cup@351,49|1]
+[1-cup@351,51|1]
 dummykey=true
 
 [1-hole@-50,-50|0]
 borderWalls=true
 hasFinalLoad=false
-maxstrokes=12
-par=3
+maxstrokes=18
+par=6
 
 [1-sign@92,20|2]
 Comment=01  SHIBUYA CROSSING
@@ -25,102 +25,113 @@ topWallVisible=false
 width=172
 
 [1-wall@0,0|3]
-endPoint=94,314
-startPoint=18,314
+endPoint=260,300
+startPoint=0,300
 
 [1-wall@0,0|4]
-endPoint=94,388
-startPoint=94,314
+endPoint=400,225
+startPoint=125,225
 
 [1-wall@0,0|5]
-endPoint=302,86
-startPoint=302,14
+endPoint=255,150
+startPoint=0,150
 
 [1-wall@0,0|6]
-endPoint=384,86
-startPoint=302,86
+endPoint=400,80
+startPoint=120,80
 
 [1-wall@0,0|7]
-endPoint=112,231
-startPoint=112,147
+endPoint=160,249
+startPoint=142,269
 
 [1-wall@0,0|8]
-endPoint=288,231
-startPoint=288,147
+endPoint=169,177
+startPoint=151,197
 
 [1-wall@0,0|9]
-endPoint=233,114
-startPoint=146,114
+endPoint=188,249
+startPoint=170,269
 
 [1-wall@0,0|10]
-endPoint=233,273
-startPoint=146,273
+endPoint=197,177
+startPoint=179,197
 
 [1-wall@0,0|11]
-endPoint=173,185
-startPoint=148,160
+endPoint=216,249
+startPoint=198,269
 
 [1-wall@0,0|12]
-endPoint=173,236
-startPoint=148,211
+endPoint=225,177
+startPoint=207,197
 
 [1-wall@0,0|13]
-endPoint=198,185
-startPoint=173,160
+endPoint=244,249
+startPoint=226,269
 
 [1-wall@0,0|14]
-endPoint=198,236
-startPoint=173,211
+endPoint=253,177
+startPoint=235,197
 
-[1-wall@0,0|15]
-endPoint=223,185
-startPoint=198,160
+[1-sand@304,336|15]
+changeEnabled=false
+changeEvery=50
+height=49
+width=83
 
-[1-wall@0,0|16]
-endPoint=223,236
-startPoint=198,211
+[1-sand@65,262|16]
+changeEnabled=false
+changeEvery=50
+height=48
+width=75
 
-[1-wall@0,0|17]
-endPoint=248,185
-startPoint=223,160
+[1-puddle@310,178|17]
+changeEnabled=false
+changeEvery=50
+height=43
+width=55
 
-[1-wall@0,0|18]
-endPoint=248,236
-startPoint=223,211
+[1-puddle@70,107|18]
+changeEnabled=false
+changeEvery=50
+height=40
+width=62
 
-[1-wall@0,0|19]
-endPoint=273,185
-startPoint=248,160
-
-[1-wall@0,0|20]
-endPoint=273,236
-startPoint=248,211
-
-[1-slope@198,197|21]
-grade=2
+[1-slope@195,259|19]
+grade=3
 gradient=Diagonal
-height=72
+height=46
 reversed=false
 stuckOnGround=false
-width=76
+width=65
 
-[1-bumper@126,261|22]
+[1-slope@202,113|20]
+grade=3
+gradient=Opposite Diagonal
+height=48
+reversed=false
+stuckOnGround=false
+width=70
+
+[1-bumper@280,275|21]
 dummykey=true
 
-[1-bumper@270,130|23]
+[1-bumper@108,192|22]
 dummykey=true
 
-[2-ball@200,355]
+[1-bumper@283,116|23]
 dummykey=true
 
-[2-cup@200,55|1]
+[2-ball@200,356]
+dummykey=true
+
+[2-cup@200,50|1]
 dummykey=true
 
 [2-hole@-50,-50|0]
 borderWalls=true
 hasFinalLoad=false
-maxstrokes=12
-par=3
+maxstrokes=17
+par=5
 
 [2-sign@92,20|2]
 Comment=02  SENSO-JI GATE
@@ -132,82 +143,87 @@ topWallVisible=false
 width=172
 
 [2-wall@0,0|3]
-endPoint=96,321
-startPoint=96,287
+endPoint=135,300
+startPoint=0,300
 
 [2-wall@0,0|4]
-endPoint=142,321
-startPoint=96,321
+endPoint=400,300
+startPoint=265,300
 
-[2-wall@0,0|5]
-endPoint=304,321
-startPoint=304,287
+[2-windmill@157,278|5]
+botWallVisible=false
+bottom=false
+height=47
+leftWallVisible=true
+rightWallVisible=true
+speed=3
+topWallVisible=false
+width=86
 
 [2-wall@0,0|6]
-endPoint=258,321
-startPoint=304,321
+endPoint=400,225
+startPoint=95,225
 
 [2-wall@0,0|7]
-endPoint=128,280
-startPoint=128,145
+endPoint=290,150
+startPoint=0,150
 
 [2-wall@0,0|8]
-endPoint=272,280
-startPoint=272,145
+endPoint=122,296
+startPoint=122,254
 
 [2-wall@0,0|9]
-endPoint=154,140
-startPoint=85,140
+endPoint=278,296
+startPoint=278,254
 
 [2-wall@0,0|10]
-endPoint=315,140
-startPoint=246,140
+endPoint=162,119
+startPoint=107,119
 
 [2-wall@0,0|11]
-endPoint=165,123
-startPoint=105,123
+endPoint=293,119
+startPoint=238,119
 
-[2-wall@0,0|12]
-endPoint=295,123
-startPoint=235,123
-
-[2-sand@89,214|13]
+[2-sand@334,258|12]
 changeEnabled=false
 changeEvery=50
-height=111
-width=58
+height=62
+width=85
 
-[2-sand@311,214|14]
+[2-sand@56,188|13]
 changeEnabled=false
 changeEvery=50
-height=111
-width=58
+height=62
+width=68
 
-[2-slope@200,177|15]
-grade=2
-gradient=Elliptic
-height=65
-reversed=true
+[2-slope@237,182|14]
+grade=3
+gradient=Horizontal
+height=52
+reversed=false
 stuckOnGround=false
-width=65
+width=63
 
-[2-bumper@158,280|16]
+[2-bumper@58,259|15]
 dummykey=true
 
-[2-bumper@242,280|17]
+[2-bumper@338,169|16]
 dummykey=true
 
-[3-ball@200,355]
+[2-bumper@151,95|17]
 dummykey=true
 
-[3-cup@200,51|1]
+[3-ball@199,348]
+dummykey=true
+
+[3-cup@340,50|1]
 dummykey=true
 
 [3-hole@-50,-50|0]
 borderWalls=true
 hasFinalLoad=false
-maxstrokes=12
-par=4
+maxstrokes=17
+par=5
 
 [3-sign@92,20|2]
 Comment=03  KANDA RIVER
@@ -218,79 +234,92 @@ rightWallVisible=false
 topWallVisible=false
 width=172
 
-[3-puddle@81,205|3]
+[3-puddle@37,236|3]
 changeEnabled=false
 changeEvery=50
-height=60
-width=154
+height=66
+width=155
 
-[3-puddle@319,205|4]
+[3-puddle@115,236|4]
 changeEnabled=false
 changeEvery=50
-height=60
-width=154
+height=66
+width=155
 
-[3-puddle@200,205|5]
+[3-puddle@285,236|5]
 changeEnabled=false
 changeEvery=50
-height=68
-width=85
+height=66
+width=155
 
-[3-bridge@200,205|6]
+[3-puddle@365,236|6]
+changeEnabled=false
+changeEvery=50
+height=66
+width=155
+
+[3-puddle@201,236|7]
+changeEnabled=false
+changeEvery=50
+height=69
+width=82
+
+[3-bridge@170,196|8]
 botWallVisible=false
 height=79
 leftWallVisible=true
 rightWallVisible=true
 topWallVisible=false
-width=82
-
-[3-wall@0,0|7]
-endPoint=156,157
-startPoint=13,157
-
-[3-wall@0,0|8]
-endPoint=387,157
-startPoint=244,157
+width=60
 
 [3-wall@0,0|9]
-endPoint=156,252
-startPoint=13,252
+endPoint=400,170
+startPoint=75,170
 
 [3-wall@0,0|10]
-endPoint=387,252
-startPoint=244,252
+endPoint=260,100
+startPoint=0,100
 
-[3-slope@200,290|11]
-grade=2
+[3-sand@91,306|11]
+changeEnabled=false
+changeEvery=50
+height=57
+width=78
+
+[3-sand@300,304|12]
+changeEnabled=false
+changeEvery=50
+height=57
+width=78
+
+[3-slope@191,316|13]
+grade=3
 gradient=Vertical
-height=45
+height=57
 reversed=false
 stuckOnGround=false
-width=92
+width=65
 
-[3-sand@61,274|12]
-changeEnabled=false
-changeEvery=50
-height=52
-width=62
-
-[3-sand@339,274|13]
-changeEnabled=false
-changeEvery=50
-height=52
-width=62
-
-[4-ball@46,346]
+[3-bumper@87,185|14]
 dummykey=true
 
-[4-cup@351,54|1]
+[3-bumper@293,136|15]
+dummykey=true
+
+[3-bumper@285,72|16]
+dummykey=true
+
+[4-ball@48,349]
+dummykey=true
+
+[4-cup@350,51|1]
 dummykey=true
 
 [4-hole@-50,-50|0]
 borderWalls=true
 hasFinalLoad=false
-maxstrokes=12
-par=4
+maxstrokes=18
+par=5
 
 [4-sign@92,20|2]
 Comment=04  AKIHABARA ARCADE
@@ -302,90 +331,97 @@ topWallVisible=false
 width=172
 
 [4-wall@0,0|3]
-endPoint=94,287
-startPoint=25,287
+endPoint=245,295
+startPoint=0,295
 
 [4-wall@0,0|4]
-endPoint=94,327
-startPoint=94,287
+endPoint=400,205
+startPoint=140,205
 
 [4-wall@0,0|5]
-endPoint=304,113
-startPoint=304,72
+endPoint=250,115
+startPoint=0,115
 
-[4-wall@0,0|6]
-endPoint=377,113
-startPoint=304,113
-
-[4-bumper@105,257|7]
+[4-bumper@268,278|6]
 dummykey=true
 
-[4-bumper@147,279|8]
+[4-bumper@311,272|7]
 dummykey=true
 
-[4-bumper@185,249|9]
+[4-bumper@347,300|8]
 dummykey=true
 
-[4-bumper@225,270|10]
+[4-bumper@102,248|9]
 dummykey=true
 
-[4-bumper@260,231|11]
+[4-bumper@68,219|10]
 dummykey=true
 
-[4-bumper@296,252|12]
+[4-bumper@159,244|11]
 dummykey=true
 
-[4-bumper@127,175|13]
+[4-bumper@270,169|12]
 dummykey=true
 
-[4-bumper@174,194|14]
+[4-bumper@320,165|13]
 dummykey=true
 
-[4-bumper@224,161|15]
+[4-bumper@345,128|14]
 dummykey=true
 
-[4-bumper@273,184|16]
+[4-bumper@292,92|15]
+dummykey=true
+
+[4-bumper@137,78|16]
 dummykey=true
 
 [4-wall@0,0|17]
-endPoint=182,120
-startPoint=110,120
+endPoint=224,245
+startPoint=182,260
 
 [4-wall@0,0|18]
-endPoint=288,302
-startPoint=220,302
+endPoint=222,178
+startPoint=183,165
 
-[4-slope@193,206|19]
-grade=3
+[4-sand@54,159|19]
+changeEnabled=false
+changeEvery=50
+height=58
+width=78
+
+[4-sand@342,234|20]
+changeEnabled=false
+changeEvery=50
+height=58
+width=77
+
+[4-slope@193,200|21]
+grade=4
 gradient=Elliptic
-height=60
+height=73
 reversed=false
 stuckOnGround=false
-width=60
+width=83
 
-[4-sand@58,167|20]
-changeEnabled=false
-changeEvery=50
-height=70
-width=60
+[4-slope@304,64|22]
+grade=2
+gradient=Diagonal
+height=48
+reversed=false
+stuckOnGround=false
+width=72
 
-[4-sand@344,192|21]
-changeEnabled=false
-changeEvery=50
-height=70
-width=58
-
-[5-ball@42,347]
+[5-ball@47,350]
 dummykey=true
 
-[5-cup@352,51|1]
+[5-cup@349,50|1]
 dummykey=true
 
 [5-hole@-50,-50|0]
 borderWalls=true
 hasFinalLoad=false
-maxstrokes=12
-par=4
+maxstrokes=18
+par=5
 
 [5-sign@92,20|2]
 Comment=05  TSUKIJI MARKET
@@ -396,84 +432,114 @@ rightWallVisible=false
 topWallVisible=false
 width=172
 
-[5-sand@83,260|3]
-changeEnabled=false
-changeEvery=50
-height=62
-width=65
+[5-wall@0,0|3]
+endPoint=225,300
+startPoint=0,300
 
-[5-sand@178,289|4]
-changeEnabled=false
-changeEvery=50
-height=62
-width=65
+[5-wall@0,0|4]
+endPoint=400,225
+startPoint=175,225
 
-[5-sand@284,259|5]
-changeEnabled=false
-changeEvery=50
-height=62
-width=65
+[5-wall@0,0|5]
+endPoint=225,150
+startPoint=0,150
 
-[5-sand@119,155|6]
-changeEnabled=false
-changeEvery=50
-height=62
-width=65
+[5-wall@0,0|6]
+endPoint=165,333
+startPoint=90,333
 
-[5-sand@241,142|7]
-changeEnabled=false
-changeEvery=50
-height=62
-width=65
+[5-wall@0,0|7]
+endPoint=90,365
+startPoint=90,333
 
 [5-wall@0,0|8]
-endPoint=111,220
-startPoint=63,220
+endPoint=309,259
+startPoint=235,259
 
 [5-wall@0,0|9]
-endPoint=203,245
-startPoint=152,245
+endPoint=309,284
+startPoint=309,259
 
 [5-wall@0,0|10]
-endPoint=307,215
-startPoint=256,215
+endPoint=151,181
+startPoint=75,181
 
 [5-wall@0,0|11]
-endPoint=143,117
-startPoint=93,117
+endPoint=75,205
+startPoint=75,181
 
 [5-wall@0,0|12]
-endPoint=268,102
-startPoint=216,102
+endPoint=311,77
+startPoint=241,77
 
-[5-bumper@124,294|13]
+[5-wall@0,0|13]
+endPoint=311,107
+startPoint=311,77
+
+[5-sand@128,347|14]
+changeEnabled=false
+changeEvery=50
+height=48
+width=67
+
+[5-sand@277,275|15]
+changeEnabled=false
+changeEvery=50
+height=48
+width=67
+
+[5-sand@119,193|16]
+changeEnabled=false
+changeEvery=50
+height=48
+width=67
+
+[5-sand@273,91|17]
+changeEnabled=false
+changeEvery=50
+height=48
+width=67
+
+[5-puddle@268,329|18]
+changeEnabled=false
+changeEvery=50
+height=35
+width=56
+
+[5-puddle@116,254|19]
+changeEnabled=false
+changeEvery=50
+height=35
+width=48
+
+[5-bumper@335,286|20]
 dummykey=true
 
-[5-bumper@229,283|14]
+[5-bumper@92,242|21]
 dummykey=true
 
-[5-bumper@330,204|15]
+[5-bumper@256,171|22]
 dummykey=true
 
-[5-slope@195,190|16]
-grade=2
+[5-slope@195,187|23]
+grade=3
 gradient=Diagonal
-height=66
+height=56
 reversed=false
 stuckOnGround=false
-width=79
+width=64
 
-[6-ball@52,204]
+[6-ball@43,200]
 dummykey=true
 
-[6-cup@348,204|1]
+[6-cup@355,200|1]
 dummykey=true
 
 [6-hole@-50,-50|0]
 borderWalls=true
 hasFinalLoad=false
-maxstrokes=12
-par=4
+maxstrokes=18
+par=5
 
 [6-sign@92,20|2]
 Comment=06  YAMANOTE LOOP
@@ -485,83 +551,102 @@ topWallVisible=false
 width=172
 
 [6-wall@0,0|3]
-endPoint=305,85
-startPoint=94,85
+endPoint=250,145
+startPoint=150,145
 
 [6-wall@0,0|4]
-endPoint=305,315
-startPoint=94,315
+endPoint=290,200
+startPoint=250,145
 
 [6-wall@0,0|5]
-endPoint=62,130
-startPoint=94,85
+endPoint=250,255
+startPoint=290,200
 
 [6-wall@0,0|6]
-endPoint=62,270
-startPoint=94,315
+endPoint=150,255
+startPoint=250,255
 
 [6-wall@0,0|7]
-endPoint=338,130
-startPoint=305,85
+endPoint=110,200
+startPoint=150,255
 
 [6-wall@0,0|8]
-endPoint=338,270
-startPoint=305,315
+endPoint=150,145
+startPoint=110,200
 
-[6-sand@197,199|9]
+[6-wall@0,0|9]
+endPoint=312,45
+startPoint=88,45
+
+[6-wall@0,0|10]
+endPoint=312,355
+startPoint=88,355
+
+[6-puddle@200,99|11]
 changeEnabled=false
 changeEvery=50
-height=91
-width=98
+height=61
+width=132
 
-[6-slope@197,199|10]
+[6-sand@200,294|12]
+changeEnabled=false
+changeEvery=50
+height=66
+width=146
+
+[6-floater@146,75|13]
+botWallVisible=false
+endPoint=218,75
+height=39
+leftWallVisible=true
+rightWallVisible=true
+speed=2
+startPoint=146,75
+topWallVisible=false
+width=53
+
+[6-slope@82,165|14]
 grade=3
 gradient=Elliptic
-height=76
+height=54
 reversed=false
 stuckOnGround=false
-width=76
+width=60
 
-[6-bumper@130,123|11]
+[6-slope@308,231|15]
+grade=3
+gradient=Elliptic
+height=54
+reversed=false
+stuckOnGround=false
+width=60
+
+[6-bumper@101,111|16]
 dummykey=true
 
-[6-bumper@205,121|12]
+[6-bumper@299,110|17]
 dummykey=true
 
-[6-bumper@270,128|13]
+[6-bumper@103,289|18]
 dummykey=true
 
-[6-bumper@127,278|14]
+[6-bumper@298,290|19]
 dummykey=true
 
-[6-bumper@203,279|15]
+[7-ball@57,350]
 dummykey=true
 
-[6-bumper@276,270|16]
-dummykey=true
-
-[6-wall@0,0|17]
-endPoint=154,158
-startPoint=111,158
-
-[6-wall@0,0|18]
-endPoint=288,240
-startPoint=246,240
-
-[7-ball@200,354]
-dummykey=true
-
-[7-cup@200,51|1]
+[7-cup@66,64|1]
 dummykey=true
 
 [7-hole@-50,-50|0]
 borderWalls=true
 hasFinalLoad=false
-maxstrokes=12
-par=4
+maxstrokes=20
+par=6
 
 [7-sign@92,20|2]
-Comment=07  SHINKANSEN PLATFORM
+Comment=07  SHINJUKU TRANSFER
 botWallVisible=false
 height=27
 leftWallVisible=false
@@ -570,77 +655,94 @@ topWallVisible=false
 width=172
 
 [7-wall@0,0|3]
-endPoint=84,316
-startPoint=84,90
+endPoint=400,265
+startPoint=0,265
 
 [7-wall@0,0|4]
-endPoint=316,316
-startPoint=316,90
+endPoint=400,320
+startPoint=110,320
 
 [7-wall@0,0|5]
-endPoint=161,190
-startPoint=112,190
+endPoint=265,139
+startPoint=0,139
 
-[7-wall@0,0|6]
-endPoint=288,190
-startPoint=239,190
+[7-blackhole@82,292|6]
+exit=296,226
+exitDeg=180
+maxspeed=3.5
+minspeed=2
 
-[7-wall@0,0|7]
-endPoint=161,228
-startPoint=112,228
+[7-blackhole@175,192|7]
+exit=65,346
+exitDeg=0
+maxspeed=3.5
+minspeed=2
 
-[7-wall@0,0|8]
-endPoint=288,228
-startPoint=239,228
+[7-puddle@284,181|8]
+changeEnabled=false
+changeEvery=50
+height=51
+width=78
 
-[7-floater@202,209|9]
+[7-puddle@347,181|9]
+changeEnabled=false
+changeEvery=50
+height=51
+width=83
+
+[7-floater@282,157|10]
 botWallVisible=false
-endPoint=202,241
-height=42
+endPoint=331,157
+height=52
 leftWallVisible=true
 rightWallVisible=true
 speed=2
-startPoint=202,176
+startPoint=282,157
 topWallVisible=false
-width=57
+width=61
 
-[7-sand@105,347|10]
+[7-wall@0,0|11]
+endPoint=238,251
+startPoint=238,230
+
+[7-wall@0,0|12]
+endPoint=381,245
+startPoint=381,211
+
+[7-sand@185,349|13]
 changeEnabled=false
 changeEvery=50
-height=43
-width=88
+height=52
+width=91
 
-[7-sand@295,347|11]
-changeEnabled=false
-changeEvery=50
-height=43
-width=88
-
-[7-slope@200,286|12]
+[7-slope@164,229|14]
 grade=2
-gradient=Vertical
-height=55
+gradient=Horizontal
+height=45
 reversed=false
 stuckOnGround=false
-width=60
+width=67
 
-[7-bumper@128,122|13]
+[7-bumper@115,291|15]
 dummykey=true
 
-[7-bumper@272,122|14]
+[7-bumper@275,113|16]
 dummykey=true
 
-[8-ball@200,354]
+[7-bumper@330,84|17]
 dummykey=true
 
-[8-cup@200,50|1]
+[8-ball@201,353]
+dummykey=true
+
+[8-cup@200,52|1]
 dummykey=true
 
 [8-hole@-50,-50|0]
 borderWalls=true
 hasFinalLoad=false
-maxstrokes=14
-par=4
+maxstrokes=19
+par=5
 
 [8-sign@92,20|2]
 Comment=08  TOKYO TOWER
@@ -652,82 +754,96 @@ topWallVisible=false
 width=172
 
 [8-wall@0,0|3]
-endPoint=136,334
-startPoint=58,334
+endPoint=154,91
+startPoint=83,331
 
 [8-wall@0,0|4]
-endPoint=342,334
-startPoint=264,334
+endPoint=246,91
+startPoint=317,331
 
 [8-wall@0,0|5]
-endPoint=154,106
-startPoint=96,324
+endPoint=185,62
+startPoint=154,91
 
 [8-wall@0,0|6]
-endPoint=246,106
-startPoint=304,324
+endPoint=215,62
+startPoint=246,91
 
 [8-wall@0,0|7]
-endPoint=185,72
-startPoint=154,106
+endPoint=233,280
+startPoint=103,280
 
 [8-wall@0,0|8]
-endPoint=215,72
-startPoint=246,106
+endPoint=284,215
+startPoint=177,215
 
 [8-wall@0,0|9]
-endPoint=172,252
-startPoint=120,252
+endPoint=215,156
+startPoint=137,156
 
 [8-wall@0,0|10]
-endPoint=280,252
-startPoint=228,252
+endPoint=251,106
+startPoint=187,106
 
-[8-wall@0,0|11]
-endPoint=177,165
-startPoint=151,165
-
-[8-wall@0,0|12]
-endPoint=249,165
-startPoint=223,165
-
-[8-blackhole@200,302|13]
-exit=200,111
-exitDeg=90
-maxspeed=5
-minspeed=2
-
-[8-sand@92,327|14]
+[8-sand@166,297|11]
 changeEnabled=false
 changeEvery=50
-height=57
-width=63
+height=46
+width=67
 
-[8-sand@308,327|15]
+[8-sand@248,238|12]
 changeEnabled=false
 changeEvery=50
-height=57
-width=63
+height=45
+width=64
 
-[8-slope@200,141|16]
-grade=1
-gradient=Elliptic
-height=54
-reversed=true
+[8-slope@202,254|13]
+grade=3
+gradient=Opposite Diagonal
+height=45
+reversed=false
+stuckOnGround=false
+width=58
+
+[8-slope@173,177|14]
+grade=3
+gradient=Diagonal
+height=43
+reversed=false
 stuckOnGround=false
 width=54
+
+[8-bumper@258,297|15]
+dummykey=true
+
+[8-bumper@152,232|16]
+dummykey=true
+
+[8-bumper@239,173|17]
+dummykey=true
+
+[8-bumper@171,120|18]
+dummykey=true
+
+[8-wall@0,0|19]
+endPoint=83,331
+startPoint=0,331
+
+[8-wall@0,0|20]
+endPoint=400,331
+startPoint=317,331
 
 [9-ball@200,352]
 dummykey=true
 
-[9-cup@200,48|1]
+[9-cup@200,49|1]
 dummykey=true
 
 [9-hole@-50,-50|0]
 borderWalls=true
 hasFinalLoad=false
-maxstrokes=15
-par=5
+maxstrokes=20
+par=6
 
 [9-sign@92,20|2]
 Comment=09  SUMIDA FIREWORKS
@@ -738,92 +854,91 @@ rightWallVisible=false
 topWallVisible=false
 width=172
 
-[9-puddle@52,270|3]
-changeEnabled=false
-changeEvery=50
-height=147
-width=75
+[9-wall@0,0|3]
+endPoint=135,300
+startPoint=0,300
 
-[9-puddle@348,270|4]
-changeEnabled=false
-changeEvery=50
-height=147
-width=75
+[9-wall@0,0|4]
+endPoint=400,300
+startPoint=265,300
 
-[9-puddle@53,105|5]
-changeEnabled=false
-changeEvery=50
-height=112
-width=70
-
-[9-puddle@347,105|6]
-changeEnabled=false
-changeEvery=50
-height=112
-width=70
-
-[9-windmill@200,202|7]
+[9-windmill@157,279|5]
 botWallVisible=false
 bottom=false
-height=62
+height=48
 leftWallVisible=true
 rightWallVisible=true
-speed=3
+speed=4
 topWallVisible=false
-width=111
+width=86
 
-[9-wall@0,0|8]
-endPoint=148,247
-startPoint=100,292
+[9-wall@0,0|6]
+endPoint=400,205
+startPoint=145,205
 
-[9-wall@0,0|9]
-endPoint=252,247
-startPoint=300,292
+[9-wall@0,0|7]
+endPoint=265,130
+startPoint=0,130
 
-[9-wall@0,0|10]
-endPoint=151,151
-startPoint=95,110
+[9-windmill@292,104|8]
+botWallVisible=false
+bottom=false
+height=48
+leftWallVisible=true
+rightWallVisible=true
+speed=4
+topWallVisible=false
+width=72
 
-[9-wall@0,0|11]
-endPoint=249,151
-startPoint=305,110
+[9-puddle@53,244|9]
+changeEnabled=false
+changeEvery=50
+height=57
+width=83
 
-[9-wall@0,0|12]
-endPoint=165,270
-startPoint=165,302
+[9-puddle@347,242|10]
+changeEnabled=false
+changeEvery=50
+height=57
+width=83
 
-[9-wall@0,0|13]
-endPoint=235,270
-startPoint=235,302
+[9-puddle@88,95|11]
+changeEnabled=false
+changeEvery=50
+height=63
+width=69
 
-[9-bumper@124,199|14]
-dummykey=true
+[9-puddle@328,89|12]
+changeEnabled=false
+changeEvery=50
+height=58
+width=64
 
-[9-bumper@276,199|15]
-dummykey=true
+[9-sand@200,245|13]
+changeEnabled=false
+changeEvery=50
+height=51
+width=100
 
-[9-bumper@143,95|16]
-dummykey=true
-
-[9-bumper@257,95|17]
-dummykey=true
-
-[9-slope@200,116|18]
-grade=2
+[9-slope@201,89|14]
+grade=3
 gradient=Elliptic
-height=59
+height=61
 reversed=true
 stuckOnGround=false
-width=78
+width=76
 
-[9-sand@107,347|19]
-changeEnabled=false
-changeEvery=50
-height=50
-width=75
+[9-bumper@94,267|15]
+dummykey=true
 
-[9-sand@293,347|20]
-changeEnabled=false
-changeEvery=50
-height=50
-width=75
+[9-bumper@278,248|16]
+dummykey=true
+
+[9-bumper@110,181|17]
+dummykey=true
+
+[9-bumper@320,167|18]
+dummykey=true
+
+[9-bumper@188,61|19]
+dummykey=true

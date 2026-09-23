@@ -282,8 +282,9 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         const bool local = item && item->data(Qt::UserRole + 3).toString() == m_coordinator.memberId();
         m_editPlayer->setEnabled(local); m_removePlayer->setEnabled(local && item->data(Qt::UserRole + 4).toInt() > 1);
     });
-    connect(m_lobbyCourse, &QComboBox::activated, this, [this](int) {
-        if (!m_state.isEmpty()) m_coordinator.setCourse(m_lobbyCourse->currentData().toString());
+    connect(m_lobbyCourse, &QComboBox::activated, this, [this](int index) {
+        if (!m_state.isEmpty() && index >= 0)
+            m_coordinator.setCourse(m_lobbyCourse->itemData(index).toString());
     });
     connect(m_customCourse, &QPushButton::clicked, this, [this] {
         const auto path = QFileDialog::getOpenFileName(this, i18nc("@title:window", "Choose a Kolf course"),
@@ -646,13 +647,18 @@ void OnlineWidget::showLobby(const QJsonObject &state)
     m_editPlayer->setEnabled(false); m_removePlayer->setEnabled(false);
     const auto courseId = state.value(QStringLiteral("selectedCourseId")).toString();
     const auto courses = state.value(QStringLiteral("courses")).toArray();
-    if (!courses.isEmpty()) {
+    bool catalogChanged = m_lobbyCourse->count() != courses.size();
+    for (int i = 0; !catalogChanged && i < courses.size(); ++i) {
+        if (m_lobbyCourse->itemData(i).toString() != courses.at(i).toObject().value(QStringLiteral("courseId")).toString())
+            catalogChanged = true;
+    }
+    if (catalogChanged) {
         const QSignalBlocker blocker(m_lobbyCourse);
         m_lobbyCourse->clear();
         for (const auto &value : courses) addCourse(m_lobbyCourse, value.toObject());
     }
     const auto index = m_lobbyCourse->findData(courseId);
-    if (index >= 0) {
+    if (index >= 0 && index != m_lobbyCourse->currentIndex()) {
         const QSignalBlocker blocker(m_lobbyCourse);
         m_lobbyCourse->setCurrentIndex(index);
     }

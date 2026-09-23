@@ -25,6 +25,21 @@ const send = (controller: LobbyProtocolController, connectionId: string, message
   controller.receive(connectionId, JSON.stringify(message));
 const stateOf = (deliveries: ReturnType<typeof send>) => deliveries[0].message.payload.state as any;
 
+test('owner can change the course after creating a lobby', () => {
+  const controller = new LobbyProtocolController([
+    catalog[0], { courseId: 'easy', displayName: 'Easy', expectedHash: courseHash, par: [2] },
+  ], ids());
+  const owner = controller.connect();
+  const created = send(controller, owner, envelope('CreateLobby', {
+    displayName: 'Alice', colorMode: 'custom', customColor: '#ff0000ff', courseId: 'classic',
+  }, { requestId: 'create_1' }));
+  const lobbyId = stateOf(created).lobbyId as string;
+  const changed = send(controller, owner, envelope('SetCourse', { courseId: 'easy' },
+    { requestId: 'course_1', lobbyId }));
+  assert.equal(changed[0].message.type, 'LobbyState');
+  assert.equal(stateOf(changed).selectedCourseId, 'easy');
+});
+
 test('two protocol clients can complete a lobby shell and start a fresh rematch', () => {
   const controller = new LobbyProtocolController(catalog, ids());
   const alice = controller.connect(), bob = controller.connect();

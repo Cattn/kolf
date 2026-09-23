@@ -20,6 +20,7 @@
 #include "newgame.h"
 #include "game.h"
 
+#include <QDir>
 #include <QFileDialog>
 #include <QLabel>
 #include <QListWidget>
@@ -110,6 +111,7 @@ NewGameDialog::NewGameDialog(bool enableCourses)
 		for (const QString& dir : dirs) {
 			const QStringList fileNames = QDir(dir).entryList(QStringList() << QStringLiteral("*"), QDir::Files);
 			for (const QString& file : fileNames) {
+				if (file == QLatin1String("manifest.txt")) continue;
 				files.append(dir + QLatin1Char('/') + file);
 			}
 		}
