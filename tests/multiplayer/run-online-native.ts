@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 // Bounded Windows online integration runner. Native clients are launched only through Craft.
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:net';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -9,17 +10,21 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
-assert(['two-rematch', 'four-player', 'four-player-hazard'].includes(scenario),
-  'Scenario must be two-rematch, four-player, or four-player-hazard');
+assert(['two-rematch', 'four-player', 'four-player-hazard', 'custom-course'].includes(scenario),
+  'Scenario must be two-rematch, four-player, four-player-hazard, or custom-course');
 const variableRoster = scenario.startsWith('four-player');
 const hazardScenario = scenario === 'four-player-hazard';
 const clientCount = variableRoster ? 3 : 2;
-const matchCount = scenario === 'two-rematch' ? 2 : 1;
+const matchCount = scenario === 'two-rematch' || scenario === 'custom-course' ? 2 : 1;
 const turnCount = hazardScenario ? 40 : variableRoster ? 8 : 4;
 const directory = resolve(root, 'server/local-session', `online-${scenario}-${Date.now()}`);
 const joinCodeFile = resolve(directory, 'join-code.txt');
 const course = resolve(root, `tests/multiplayer/fixtures/${hazardScenario ? 'water' : 'static'}.kolf`);
 mkdirSync(directory, { recursive: true });
+const customCourse = resolve(directory, 'uploaded-static.kolf');
+if (scenario === 'custom-course') writeFileSync(customCourse, Buffer.concat([readFileSync(course), Buffer.from('\n')]));
+const customHash = scenario === 'custom-course'
+  ? createHash('sha256').update(readFileSync(customCourse)).digest('hex') : '';
 
 const port = await new Promise<number>((resolvePort, reject) => {
   const reservation = createServer();
@@ -92,6 +97,8 @@ try {
       displayName: client === 0 ? 'Owner' : `Member ${client + 1}`,
       color: ['#3daee9ff', '#f67400ff', '#27ae60ff'][client],
       courseId: 'test', joinCodeFile, expectedMembers: clientCount,
+      customCourse: scenario === 'custom-course' ? customCourse : undefined,
+      forceCourseDownload: scenario === 'custom-course' && client > 0,
       expectedPlayers: variableRoster ? 4 : 2, matches: matchCount, logDirectory,
       additionalPlayers: variableRoster && client === 0
         ? [{ displayName: 'Owner second ball', color: '#9b59b6ff' }] : [],
@@ -135,6 +142,7 @@ try {
     assert.equal(directories.length, matchCount, `client ${client} recorded every match`);
     for (const sessionDirectory of directories) {
       const log = events(sessionDirectory);
+      if (customHash) assert.equal(log.find(event => event.event === 'connect')?.courseHash, customHash);
       assert(!log.some(event => event.event === 'interrupted'), `client ${client} was not interrupted`);
       const final = log.filter(event => event.event === 'applied').at(-1);
       assert.equal(final?.state?.phase, 'Finished');

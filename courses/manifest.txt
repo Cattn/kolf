@@ -1,0 +1,8 @@
+classic|Classic.kolf
+easy|Easy.kolf
+hard|Hard.kolf
+medium|Medium.kolf
+reallyeasy|ReallyEasy
+practice|Practice
+impossible|Impossible
+usapro|USApro

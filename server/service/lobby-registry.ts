@@ -61,6 +61,8 @@ export class LobbyRegistry {
   get activeLobbyCount() { return this.lobbiesById.size; }
   get membershipCount() { return this.membershipByConnection.size; }
 
+  expireUploads() { for (const lobby of this.lobbiesById.values()) lobby.transfers.expire(); }
+
   create(connectionId: ConnectionId, requestId: RequestId, member: MemberProfile, player: PlayerProfile, courseId: string) {
     return this.requests.run(`connection:${connectionId}`, requestId, 'CreateLobby', { member, player, courseId }, () => {
       if (this.membershipByConnection.has(connectionId)) throw new LobbyError('AlreadyJoined', 'connection already belongs to a lobby');

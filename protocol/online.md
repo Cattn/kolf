@@ -18,6 +18,25 @@ The service sends `ServiceHello` immediately after connection. Its payload is
 the authoritative shipped-course catalog and the room/member/player/message
 limits for that service. Clients use each catalog entry's stable `courseId` and
 `resourceName`; they do not keep a separate course list.
+The shared `courses/manifest.txt` controls both installation and the server
+catalog. Each descriptor includes a source, name, author, hole count, total
+par, SHA-256, and byte size. Only shipped descriptors have a resource name;
+no client path appears in lobby or frozen match state.
+
+In an open lobby, the owner can send `CourseUploadBegin` with an upload ID,
+raw-byte SHA-256 and byte size, followed by ordered `CourseUploadChunk` messages
+with base64 data and `CourseUploadFinish`. The service acknowledges the next
+chunk index, validates the Kolf text and hash, then publishes the descriptor
+in `LobbyState` and selects it. Failed uploads leave the previous selection.
+The limit is 4 MiB, with 48 KiB chunks, one active upload, a 30-second idle
+timeout, and three completed custom courses per lobby.
+
+During match preparation, members request `GetCourseChunk` by the frozen
+match ID, hash, and index. `CourseChunkData` supplies bounded bytes. Each
+member verifies the raw hash and course groups, caches under a hash-only
+filename, and sends `CourseReady` with that exact hash. The match proceeds
+after every connected member confirms it. A failed transfer sends
+`PreparationFailed` and returns everyone to the open lobby.
 
 `connectionId`, `memberId`, `lobbyId`, `playerId`, `matchId`, and `requestId`
 are independent opaque identities. One connection owns one lobby member. Each

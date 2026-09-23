@@ -5,6 +5,7 @@
 
 #include <QJsonObject>
 #include <QObject>
+#include <QTimer>
 
 namespace Kolf::Online {
 class OnlineCoordinator : public QObject {
@@ -26,6 +27,7 @@ public Q_SLOTS:
     void updatePlayer(const QString &playerId, const QString &displayName, const QString &colorMode, const QString &customColor);
     void removePlayer(const QString &playerId);
     void setCourse(const QString &courseId);
+    void uploadCourse(const QString &path);
     void startMatch();
     void returnToLobby();
 
@@ -44,6 +46,11 @@ private:
     void receive(const QJsonObject &message);
     void acceptState(const QJsonObject &state);
     void prepareCourse();
+    void failPreparation(const QString &reason);
+    void sendCourseReady(const QString &path, const QString &hash);
+    void sendNextUploadChunk();
+    void requestNextDownloadChunk();
+    QString cacheCourse(const QByteArray &bytes, const QString &sha256);
     void send(const QString &type, const QJsonObject &payload, bool matchScoped = false);
 
     Net::NetworkClient m_network;
@@ -55,5 +62,15 @@ private:
     QString m_preparedMatchId;
     QString m_endpoint;
     QString m_coursePath;
+    QByteArray m_uploadBytes;
+    QByteArray m_downloadBytes;
+    QString m_uploadId;
+    QString m_uploadHash;
+    QString m_downloadHash;
+    int m_uploadNextIndex = 0;
+    int m_downloadNextIndex = 0;
+    int m_downloadSize = 0;
+    QTimer m_uploadTimer;
+    QTimer m_downloadTimer;
 };
 }

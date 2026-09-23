@@ -6,6 +6,7 @@
 #include "rules_build_id.h"
 #include "onlineprotocol.h"
 #include "online/color.h"
+#include "online/coursefile.h"
 #include <QApplication>
 #include <QDir>
 #include <QJsonArray>
@@ -66,7 +67,9 @@ SessionController::SessionController(const QJsonObject &config, Net::NetworkClie
     QDir().mkpath(dir); m_log.setFileName(QDir(dir).filePath(QStringLiteral("session.jsonl"))); m_log.open(QIODevice::WriteOnly | QIODevice::Truncate);
     QFile course(config[QStringLiteral("course")].toString());
     if (!course.open(QIODevice::ReadOnly) || course.size() > 4 * 1024 * 1024) { interrupt(QStringLiteral("Cannot read bounded course file")); return; }
-    m_hash = onlineCourseHash(course.readAll());
+    const auto courseBytes = course.readAll();
+    m_hash = config.value(QStringLiteral("courseSource")) == QLatin1String("uploaded")
+        ? Online::rawCourseHash(courseBytes) : onlineCourseHash(courseBytes);
     // Every current built-in is supported. Reject unknown groups before scene construction.
     m_factory.registerType<Kolf::Slope>(QStringLiteral("slope"), QStringLiteral("Slope"));
     m_factory.registerType<Kolf::Puddle>(QStringLiteral("puddle"), QStringLiteral("Puddle"));

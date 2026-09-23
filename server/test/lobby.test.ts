@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import type { IdFactory } from '../protocol/ids.ts';
 import { LobbyError } from '../service/errors.ts';
 import { LobbyRegistry } from '../service/lobby-registry.ts';
@@ -42,6 +45,24 @@ function ready(h: ReturnType<typeof setup>) {
   h.lobby.setReady(h.guest, `guest_ready_${revision}`, revision, true);
   return revision;
 }
+
+test('owner publishes a verified custom course while rejected uploads preserve selection', () => {
+  const h = setup();
+  const bytes = readFileSync(fileURLToPath(new URL('../../tests/multiplayer/fixtures/static.kolf', import.meta.url)));
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  assert.throws(() => h.lobby.beginCourseUpload(h.guest, 'guest', sha256, bytes.length),
+    (error: unknown) => error instanceof LobbyError && error.code === 'NotOwner');
+  h.lobby.beginCourseUpload(h.owner, 'bad', 'a'.repeat(64), bytes.length);
+  h.lobby.appendCourseChunk(h.owner, 'bad', 0, bytes.toString('base64'));
+  assert.throws(() => h.lobby.finishCourseUpload(h.owner, 'bad'));
+  assert.equal(h.lobby.state().selectedCourseId, 'classic');
+  h.lobby.beginCourseUpload(h.owner, 'good', sha256, bytes.length);
+  h.lobby.appendCourseChunk(h.owner, 'good', 0, bytes.toString('base64'));
+  const state = h.lobby.finishCourseUpload(h.owner, 'good');
+  assert.equal(state.selectedCourseId, `upload_${sha256.slice(0, 24)}`);
+  assert.equal(state.courses?.find(course => course.courseId === state.selectedCourseId)?.sha256, sha256);
+  assert(state.members.every(member => !member.ready));
+});
 
 test('members and owned players are separate stable identities', () => {
   const h = setup();

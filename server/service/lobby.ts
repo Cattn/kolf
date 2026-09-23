@@ -3,6 +3,7 @@ import type { ConnectionId, IdFactory, JoinCode, LobbyId, MatchId, MemberId, Pla
 import { validators } from '../protocol/codecs.ts';
 import { LobbyError } from './errors.ts';
 import { RequestCache } from './request-cache.ts';
+import { CourseTransfer } from './course-transfer.ts';
 
 export type LobbyPhase = 'Open' | 'Preparing' | 'Playing' | 'Results' | 'Closed';
 
@@ -12,6 +13,12 @@ export interface CourseCatalogEntry {
   expectedHash: string;
   resourceName?: string;
   par?: number[];
+  source?: 'shipped' | 'uploaded';
+  author?: string;
+  holes?: number;
+  totalPar?: number;
+  sha256?: string;
+  byteSize?: number;
 }
 
 export interface MemberProfile { displayName: string }
@@ -59,6 +66,7 @@ export interface LobbyState {
   lobbyRevision: number;
   phase: LobbyPhase;
   selectedCourseId: string;
+  courses?: CourseCatalogEntry[];
   members: Array<LobbyMember & { ready: boolean; connected: true }>;
   players: LobbyPlayer[];
   match?: MatchView;
@@ -120,6 +128,7 @@ export class LobbySession {
   private readonly requests: RequestCache;
   private readonly ids: IdFactory;
   private readonly now: () => number;
+  readonly transfers: CourseTransfer;
   private readonly maximumMembers: number;
   private readonly maximumPlayers: number;
   private match?: MatchShell;
@@ -136,6 +145,7 @@ export class LobbySession {
     this.maximumMembers = options.maximumMembers;
     this.maximumPlayers = options.maximumPlayers;
     this.now = options.now ?? (() => Date.now());
+    this.transfers = new CourseTransfer(this.now);
     this.requests = new RequestCache(this.now, options.maximumRequests);
     for (const course of options.catalog) {
       if (!validators.hash(course.expectedHash) || !validators.displayName(course.displayName)
@@ -164,6 +174,7 @@ export class LobbySession {
     return {
       lobbyId: this.lobbyId, joinCode: this.joinCode, ownerMemberId: this.ownerMemberId,
       lobbyRevision: this.revision, phase: this.lifecycle, selectedCourseId: this.selectedCourseId,
+      courses: [...this.catalog.values()].map(cloneCourse),
       members: [...this.members.values()].map(member => ({ ...member, connected: true as const,
         ready: this.readiness.get(member.memberId) === this.revision })),
       players: this.orderedPlayers().map(player => ({ ...player })),
@@ -267,6 +278,53 @@ export class LobbySession {
       if (courseId !== this.selectedCourseId) { this.selectedCourseId = courseId; this.changed(); }
       return this.state();
     });
+  }
+
+  publishUploadedCourse(actor: MemberId, course: CourseCatalogEntry) {
+    this.requireOwner(actor); this.requirePhase('Open');
+    const existing = this.catalog.get(course.courseId);
+    if (existing) {
+      if (existing.expectedHash !== course.expectedHash || existing.source !== 'uploaded')
+        throw new LobbyError('InvalidCourse', 'uploaded course ID conflicts with the catalog');
+      if (this.selectedCourseId !== course.courseId) { this.selectedCourseId = course.courseId; this.changed(); }
+      return this.state();
+    }
+    if (course.source !== 'uploaded' || !validators.hash(course.expectedHash)
+      || !validators.identifier(course.courseId)
+      || !course.displayName || [...course.displayName].length > 64)
+      throw new LobbyError('InvalidCourse', 'uploaded course descriptor is invalid');
+    this.catalog.set(course.courseId, cloneCourse(course));
+    this.selectedCourseId = course.courseId;
+    this.changed();
+    return this.state();
+  }
+
+  selectedMatchCourse(matchId: MatchId) {
+    this.requireMatch(matchId); this.requirePhase('Preparing');
+    return cloneCourse(this.match!.course);
+  }
+
+  beginCourseUpload(actor: MemberId, uploadId: string, sha256: string, byteSize: number) {
+    this.requireOwner(actor); this.requirePhase('Open');
+    return this.transfers.begin(uploadId, sha256, byteSize);
+  }
+
+  appendCourseChunk(actor: MemberId, uploadId: string, index: number, data: string) {
+    this.requireOwner(actor); this.requirePhase('Open');
+    return this.transfers.chunk(uploadId, index, data);
+  }
+
+  finishCourseUpload(actor: MemberId, uploadId: string) {
+    this.requireOwner(actor); this.requirePhase('Open');
+    return this.publishUploadedCourse(actor, this.transfers.finish(uploadId));
+  }
+
+  downloadCourseChunk(actor: MemberId, matchId: MatchId, sha256: string, index: number) {
+    this.requireMember(actor);
+    const course = this.selectedMatchCourse(matchId);
+    if (course.source !== 'uploaded' || course.expectedHash !== sha256)
+      throw new LobbyError('CourseUnavailable', 'requested course is not selected for this match');
+    return this.transfers.get(sha256, index);
   }
 
   setReady(actor: MemberId, requestId: RequestId, lobbyRevision: number, ready: boolean) {

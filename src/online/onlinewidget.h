@@ -66,6 +66,7 @@ private:
     QLabel *m_colorWarning;
     QListWidget *m_players;
     QComboBox *m_lobbyCourse;
+    QPushButton *m_customCourse;
     QPushButton *m_ready;
     QPushButton *m_start;
     QPushButton *m_addPlayer;
@@ -80,6 +81,7 @@ private:
     bool m_automationCreateOrJoinSent = false;
     bool m_automationMutationPending = false;
     bool m_automationStartRequested = false;
+    bool m_automationCustomCourseSent = false;
     bool m_matchActive = false;
     bool m_entryRequestPending = false;
     ConnectionState m_connectionState = ConnectionState::Disconnected;

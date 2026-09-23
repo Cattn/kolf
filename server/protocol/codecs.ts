@@ -3,6 +3,7 @@ import { decodeEnvelope, isObject, ProtocolError } from './envelope.ts';
 import type { Envelope, JsonObject } from './envelope.ts';
 import { validId, validJoinCode } from './ids.ts';
 import { finite, integer, validRosterState } from './game-state.ts';
+import { COURSE_CHUNK_BYTES, MAX_COURSE_BYTES } from '../service/course-catalog.ts';
 
 export type ClientMessage =
   | Envelope<'CreateLobby', { displayName: string; colorMode: 'auto' | 'custom'; customColor?: string; courseId: string }>
@@ -14,6 +15,10 @@ export type ClientMessage =
   | Envelope<'RemovePlayer', { playerId: string }>
   | Envelope<'ReorderPlayers', { playerIds: string[] }>
   | Envelope<'SetCourse', { courseId: string }>
+  | Envelope<'CourseUploadBegin', { uploadId: string; sha256: string; byteSize: number }>
+  | Envelope<'CourseUploadChunk', { uploadId: string; index: number; data: string }>
+  | Envelope<'CourseUploadFinish', { uploadId: string }>
+  | Envelope<'GetCourseChunk', { sha256: string; index: number }>
   | Envelope<'SetReady', { lobbyRevision: number; ready: boolean }>
   | Envelope<'StartMatch', { lobbyRevision: number }>
   | Envelope<'CourseReady', { courseHash: string; compatibilityId: string }>
@@ -118,6 +123,26 @@ export function decodeClientMessage(raw: string): ClientMessage {
       return message as ClientMessage;
     case 'SetCourse':
       requireLobby(message); rejectExtraScope(message, true, false); assertCourse(p.courseId);
+      return message as ClientMessage;
+    case 'CourseUploadBegin':
+      requireLobby(message); rejectExtraScope(message, true, false);
+      if (!validId(p.uploadId) || !hash(p.sha256) || !integer(p.byteSize, 1, MAX_COURSE_BYTES))
+        throw new ProtocolError('InvalidPayload', 'invalid course upload header');
+      return message as ClientMessage;
+    case 'CourseUploadChunk':
+      requireLobby(message); rejectExtraScope(message, true, false);
+      if (!validId(p.uploadId) || !integer(p.index, 0, Math.ceil(MAX_COURSE_BYTES / COURSE_CHUNK_BYTES) - 1)
+        || typeof p.data !== 'string' || p.data.length < 1 || p.data.length > Math.ceil(COURSE_CHUNK_BYTES / 3) * 4)
+        throw new ProtocolError('InvalidPayload', 'invalid course upload chunk');
+      return message as ClientMessage;
+    case 'CourseUploadFinish':
+      requireLobby(message); rejectExtraScope(message, true, false);
+      if (!validId(p.uploadId)) throw new ProtocolError('InvalidPayload', 'invalid course upload ID');
+      return message as ClientMessage;
+    case 'GetCourseChunk':
+      requireMatch(message);
+      if (!hash(p.sha256) || !integer(p.index, 0, Math.ceil(MAX_COURSE_BYTES / COURSE_CHUNK_BYTES) - 1))
+        throw new ProtocolError('InvalidPayload', 'invalid course download request');
       return message as ClientMessage;
     case 'SetReady':
       requireLobby(message); rejectExtraScope(message, true, false);

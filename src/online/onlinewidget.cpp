@@ -13,6 +13,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QFileDialog>
 #include <QFormLayout>
 #include <QFont>
 #include <QHBoxLayout>
@@ -37,6 +38,22 @@
 #include <QPixmap>
 
 using namespace Kolf::Online;
+
+static QString courseLabel(const QJsonObject &course)
+{
+    return i18n("%1 — %2 holes, par %3", course.value(QStringLiteral("displayName")).toString(),
+        course.value(QStringLiteral("holes")).toInt(), course.value(QStringLiteral("totalPar")).toInt());
+}
+
+static void addCourse(QComboBox *combo, const QJsonObject &course)
+{
+    combo->addItem(courseLabel(course), course.value(QStringLiteral("courseId")));
+    combo->setItemData(combo->count() - 1,
+        i18n("%1\nBy %2\n%3 holes, par %4", course.value(QStringLiteral("displayName")).toString(),
+            course.value(QStringLiteral("author")).toString().isEmpty() ? i18n("Unknown author")
+                : course.value(QStringLiteral("author")).toString(),
+            course.value(QStringLiteral("holes")).toInt(), course.value(QStringLiteral("totalPar")).toInt()), Qt::ToolTipRole);
+}
 
 static bool editProfile(QWidget *parent, const QString &title, QString &name, QString &mode, QString &customColor)
 {
@@ -157,7 +174,11 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     setupColumn->addWidget(new QLabel(i18n("Match setup"), lobbyPage));
     auto *courseRow = new QFormLayout;
     m_lobbyCourse = new QComboBox(lobbyPage);
-    courseRow->addRow(i18nc("@label", "Course:"), m_lobbyCourse); setupColumn->addLayout(courseRow);
+    m_customCourse = new QPushButton(i18nc("@action:button", "Custom Course…"), lobbyPage);
+    auto *courseChoices = new QVBoxLayout;
+    courseChoices->addWidget(m_lobbyCourse);
+    courseChoices->addWidget(m_customCourse);
+    courseRow->addRow(i18nc("@label", "Course:"), courseChoices); setupColumn->addLayout(courseRow);
     m_lobbyStatus = new QLabel(lobbyPage); m_lobbyStatus->setWordWrap(true); setupColumn->addWidget(m_lobbyStatus);
     m_colorWarning = new QLabel(lobbyPage); m_colorWarning->setWordWrap(true); setupColumn->addWidget(m_colorWarning);
     setupColumn->addStretch();
@@ -259,6 +280,11 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     connect(m_lobbyCourse, &QComboBox::activated, this, [this](int) {
         if (!m_state.isEmpty()) m_coordinator.setCourse(m_lobbyCourse->currentData().toString());
     });
+    connect(m_customCourse, &QPushButton::clicked, this, [this] {
+        const auto path = QFileDialog::getOpenFileName(this, i18nc("@title:window", "Choose a Kolf course"),
+            QString(), i18n("Kolf courses (*.kolf);;All files (*)"));
+        if (!path.isEmpty()) m_coordinator.uploadCourse(path);
+    });
     connect(returnButton, &QPushButton::clicked, &m_coordinator, &OnlineCoordinator::returnToLobby);
     connect(&m_coordinator, &OnlineCoordinator::connected, this, [this] {
         setConnectionState(ConnectionState::Connecting, i18n("Verifying the server…"));
@@ -269,8 +295,8 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         m_createCourse->clear(); m_lobbyCourse->clear();
         for (const auto &value : hello.value(QStringLiteral("courses")).toArray()) {
             const auto course = value.toObject();
-            m_createCourse->addItem(course.value(QStringLiteral("displayName")).toString(), course.value(QStringLiteral("courseId")));
-            m_lobbyCourse->addItem(course.value(QStringLiteral("displayName")).toString(), course.value(QStringLiteral("courseId")));
+            addCourse(m_createCourse, course);
+            addCourse(m_lobbyCourse, course);
         }
         showEntry();
     });
@@ -428,6 +454,18 @@ void OnlineWidget::advanceAutomation(const QJsonObject &state)
     }
     if (members.size() != m_automation.value(QStringLiteral("expectedMembers")).toInt()) return;
 
+    const auto customCourse = m_automation.value(QStringLiteral("customCourse")).toString();
+    if (!customCourse.isEmpty()) {
+        const auto selectedId = state.value(QStringLiteral("selectedCourseId")).toString();
+        if (!selectedId.startsWith(QStringLiteral("upload_"))) {
+            if (role == QLatin1String("owner") && !m_automationCustomCourseSent) {
+                m_automationCustomCourseSent = true;
+                m_coordinator.uploadCourse(customCourse);
+            }
+            return;
+        }
+    }
+
     int localPlayers = 0;
     bool localReady = false;
     bool allReady = true;
@@ -584,12 +622,19 @@ void OnlineWidget::showLobby(const QJsonObject &state)
     m_addPlayer->setEnabled(open && players.size() < 8);
     m_editPlayer->setEnabled(false); m_removePlayer->setEnabled(false);
     const auto courseId = state.value(QStringLiteral("selectedCourseId")).toString();
+    const auto courses = state.value(QStringLiteral("courses")).toArray();
+    if (!courses.isEmpty()) {
+        const QSignalBlocker blocker(m_lobbyCourse);
+        m_lobbyCourse->clear();
+        for (const auto &value : courses) addCourse(m_lobbyCourse, value.toObject());
+    }
     const auto index = m_lobbyCourse->findData(courseId);
     if (index >= 0) {
         const QSignalBlocker blocker(m_lobbyCourse);
         m_lobbyCourse->setCurrentIndex(index);
     }
     m_lobbyCourse->setEnabled(open && owner);
+    m_customCourse->setEnabled(open && owner);
     if (open) m_lobbyStatus->setText(players.size() < 2
         ? i18n("2–8 players are required. Add another player or invite another member.")
         : i18n("Ready every member on this revision, then the owner can start."));

@@ -90,6 +90,30 @@ export class LobbyProtocolController {
             case 'RemovePlayer': lobby.removePlayer(memberId, message.requestId!, message.payload.playerId); break;
             case 'ReorderPlayers': lobby.reorderPlayers(memberId, message.requestId!, message.payload.playerIds); break;
             case 'SetCourse': lobby.setCourse(memberId, message.requestId!, message.payload.courseId); break;
+            case 'CourseUploadBegin': {
+              const ready = lobby.beginCourseUpload(memberId, message.payload.uploadId,
+                message.payload.sha256, message.payload.byteSize);
+              return [{ connectionId, message: envelope('CourseUploadReady',
+                { uploadId: message.payload.uploadId, ...ready }, { requestId, lobbyId: lobby.lobbyId }) }];
+            }
+            case 'CourseUploadChunk': {
+              const accepted = lobby.appendCourseChunk(memberId, message.payload.uploadId,
+                message.payload.index, message.payload.data);
+              return [{ connectionId, message: envelope('CourseChunkAccepted',
+                { uploadId: message.payload.uploadId, ...accepted }, { requestId, lobbyId: lobby.lobbyId }) }];
+            }
+            case 'CourseUploadFinish': {
+              const state = lobby.finishCourseUpload(memberId, message.payload.uploadId);
+              const descriptor = state.courses?.find(course => course.courseId === state.selectedCourseId);
+              return [{ connectionId, message: envelope('CourseUploaded', { descriptor },
+                { requestId, lobbyId: lobby.lobbyId }) }, ...this.broadcast(state, 'LobbyState')];
+            }
+            case 'GetCourseChunk': {
+              const chunk = lobby.downloadCourseChunk(memberId, message.matchId!,
+                message.payload.sha256, message.payload.index);
+              return [{ connectionId, message: envelope('CourseChunkData', chunk,
+                { requestId, lobbyId: lobby.lobbyId, matchId: message.matchId }) }];
+            }
             case 'SetReady': lobby.setReady(memberId, message.requestId!, message.payload.lobbyRevision, message.payload.ready); break;
             case 'StartMatch': lobby.start(memberId, message.requestId!, message.payload.lobbyRevision); break;
             case 'CourseReady': {
@@ -136,6 +160,7 @@ export class LobbyProtocolController {
 
   tick(): Delivery[] {
     const deliveries: Delivery[] = [];
+    this.service.expireUploads();
     for (const match of [...this.matches.values()]) {
       let lobby;
       try { lobby = this.service.activeLobby(match.lobbyIdentity); }
