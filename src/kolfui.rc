@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gui name="kolf"
-     version="13"
+     version="14"
      xmlns="http://www.kde.org/standards/kxmlgui/1.0"
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xsi:schemaLocation="http://www.kde.org/standards/kxmlgui/1.0
@@ -24,6 +24,7 @@
 			<Action name="clearhole" />
 			<Separator />
 			<Action name="resethole" />
+			<Action name="skiponlinehole" />
 			<Action name="restarthole" />
 			<Separator />
 			<Action name="showinfo" />

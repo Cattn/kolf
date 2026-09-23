@@ -16,11 +16,13 @@ export interface PlayerStatistics {
 
 /** Calculate only from committed scores and counted commands. Zero is an unfinished hole. */
 export function resultStatistics(playerIds: string[], scores: number[][], par: number[],
-  acceptedShots: number[] = [], hazardChoices: number[] = [], completedHoleCounts?: number[]): PlayerStatistics[] {
+  acceptedShots: number[] = [], hazardChoices: number[] = [], completedHoleCounts?: number[],
+  skippedHoles: number[] = []): PlayerStatistics[] {
   const rows = playerIds.map((playerId, index) => {
     const scoreRow = scores[index] ?? [];
     const completed = scoreRow.flatMap((strokes, holeIndex) => {
-      if (completedHoleCounts && holeIndex >= completedHoleCounts[index]) return [];
+      if ((completedHoleCounts && holeIndex >= completedHoleCounts[index])
+        || skippedHoles.includes(holeIndex + 1)) return [];
       if (strokes <= 0) return [];
       const holePar = par[holeIndex] > 0 ? par[holeIndex] : null;
       return [{ hole: holeIndex + 1, strokes, par: holePar,

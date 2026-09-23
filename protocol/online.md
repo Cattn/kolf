@@ -80,12 +80,13 @@ position and resting ball state, charges the accepted stroke once, and advances
 the turn. Guests receive the resulting committed state; their local presentation
 does not decide whether a shot was out of bounds.
 
-Host Controls currently cover **Reset Hole** and **Undo Shot**. They start off for every
+Host Controls currently cover **Reset Hole**, **Undo Shot**, and **Skip Hole**. They start off for every
 new match and rematch. Only the frozen lobby owner may send `SetHostControls`
 with a command ID, current revision/sync ID, and desired enabled state. The
 service broadcasts `HostControlsChanged`; guests can see the state but cannot
 toggle it. While enabled and input-ready, that owner may send `HostAction`
-with action `resetHole` or `undoShot`, the current revision/sync ID, and hole generation.
+with action `resetHole`, `undoShot`, or `skipHole`, the current revision/sync ID,
+and hole generation.
 The server rejects guest, stale, duplicate-conflicting, disabled, or busy
 requests with `HostControlRejected` and a readable reason. A valid reset
 broadcasts `HostActionPending`, asks the authority to reload the current hole,
@@ -99,8 +100,13 @@ after that shot settles on the same hole, verifies the pre-shot score and turn,
 and retracts the shot and its hazard choices from Results. Undo advances the
 turn ID but keeps the hole generation; reset clears the checkpoint. Either
 action waits for all members to apply its committed revision before input
-resumes. Exact retries do not apply an action twice. Skip and Go remain
-disabled online until their transitions are implemented.
+resumes. Skip keeps partial current-hole scores, leaves zero-stroke players
+unscored, and moves everyone to the next hole, or finishes on the last hole.
+The skipped hole number is carried in Results and excluded from completed-hole
+highlights, while its partial strokes remain in totals. The server preserves
+accepted-shot and hazard-choice counts for a skipped hole. Exact retries do
+not apply an action twice. Go remains disabled online until its transitions
+are implemented.
 
 `MatchResult` contains the frozen course name and roster, per-hole scores and
 par, ordered standings with ranks and ties, totals, relative-to-par where par

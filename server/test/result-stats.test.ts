@@ -30,3 +30,10 @@ test('an interrupted current hole contributes strokes but not a completed-hole h
   assert.equal(rows[0].holesInOne, 0);
   assert.equal(rows[0].relativeToPar, -1);
 });
+
+test('skipped partial hole keeps strokes but cannot become a completed-hole highlight', () => {
+  const rows = resultStatistics(['a', 'b'], [[1, 2], [0, 3]], [3, 3], [2, 1], [0, 0], [2, 2], [1]);
+  assert.deepEqual(rows.map(row => [row.playerId, row.total, row.completedHoles, row.holesInOne]),
+    [['a', 3, 1, 0], ['b', 3, 1, 0]]);
+  assert(rows.every(row => row.bestHole?.hole === 2 && row.worstHole?.hole === 2));
+});

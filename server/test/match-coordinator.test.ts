@@ -217,6 +217,45 @@ test('owner undoes the most recent settled guest shot through the state barrier'
   assert.deepEqual(interrupted.interruptedScores, [[0], [0]]);
 });
 
+test('owner skip keeps partial scores, leaves an unplayed player unscored, and can finish the last hole', () => {
+  const coordinator = new MatchCoordinator(lobbyState(['member_a', 'member_b']));
+  let syncId = open(coordinator, ['member_a', 'member_b'],
+    { ...state(2, 1), scores: [[2], [0]] });
+  coordinator.receive('member_a', scoped('SetHostControls', {
+    commandId: 'enable_skip', stateRevision: 1, syncId, enabled: true,
+  }));
+  const request = { commandId: 'skip_first', stateRevision: 1, syncId, holeGeneration: 1, action: 'skipHole' };
+  assert.equal(coordinator.receive('member_b', scoped('HostAction', request)).deliveries[0].message.type,
+    'HostControlRejected');
+  assert.equal(coordinator.receive('member_a', scoped('HostAction', request))
+    .deliveries.filter(d => d.message.type === 'AdmitHostAction').length, 1);
+  const next = { ...state(2), stateRevision: 2, turnId: 2, hole: 2, holeGeneration: 2,
+    scores: [[2, 0], [0, 0]] };
+  let progress = coordinator.receive('member_a', scoped('CommitTransition', { state: next }));
+  assert.equal(progress.deliveries.find(d => d.message.type === 'HostActionNotice')?.message.payload.hole, 1);
+  syncId = progress.deliveries.find(d => d.message.type === 'TransitionCommitted')!
+    .message.payload.syncId as number;
+  for (const member of ['member_a', 'member_b']) progress = coordinator.receive(member, scoped('StateApplied', {
+    stateRevision: 2, syncId, manifestHash: compatibilityId,
+  }));
+  assert.equal(progress.deliveries.filter(d => d.message.type === 'InputReady').length, 2);
+  const finalRequest = { commandId: 'skip_last', stateRevision: 2, syncId, holeGeneration: 2, action: 'skipHole' };
+  assert.equal(coordinator.receive('member_a', scoped('HostAction', finalRequest))
+    .deliveries.filter(d => d.message.type === 'AdmitHostAction').length, 1);
+  progress = coordinator.receive('member_a', scoped('CommitTransition', {
+    state: { ...next, stateRevision: 3, phase: 'Finished' },
+  }));
+  syncId = progress.deliveries.find(d => d.message.type === 'TransitionCommitted')!
+    .message.payload.syncId as number;
+  coordinator.receive('member_a', scoped('StateApplied', { stateRevision: 3, syncId, manifestHash: compatibilityId }));
+  progress = coordinator.receive('member_b', scoped('StateApplied', {
+    stateRevision: 3, syncId, manifestHash: compatibilityId,
+  }));
+  assert.deepEqual(progress.completedScores, [[2, 0], [0, 0]]);
+  assert.deepEqual(progress.metrics?.skippedHoles, [1, 2]);
+  assert.deepEqual(progress.metrics?.acceptedShots, [0, 0]);
+});
+
 test('remote aim is relayed only for the active owner and cleared when a shot begins', () => {
   let now = 1_000;
   const coordinator = new MatchCoordinator(lobbyState(['member_a', 'member_b', 'member_c']), () => now);

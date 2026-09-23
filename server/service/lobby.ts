@@ -58,6 +58,7 @@ export interface MatchResult {
   totals: number[];
   winnerPlayerIds: PlayerId[];
   standings: PlayerStatistics[];
+  skippedHoles: number[];
   durationMs: number;
   status: 'Completed' | 'Interrupted';
   reason?: string;
@@ -67,6 +68,7 @@ export interface MatchMetrics {
   acceptedShots: number[];
   hazardChoices: number[];
   completedHoleCounts: number[];
+  skippedHoles: number[];
   durationMs: number;
 }
 export interface LobbyState {
@@ -124,6 +126,7 @@ const cloneResult = (result: MatchResult): MatchResult => ({
   ...result,
   roster: cloneRoster(result.roster),
   scores: result.scores.map(row => [...row]),
+  skippedHoles: [...result.skippedHoles],
   par: [...result.par], totals: [...result.totals], winnerPlayerIds: [...result.winnerPlayerIds],
   standings: result.standings.map(row => ({ ...row,
     bestHole: row.bestHole && { ...row.bestHole }, worstHole: row.worstHole && { ...row.worstHole } })),
@@ -410,13 +413,14 @@ export class LobbySession {
     const totals = scores.map(row => row.reduce((sum, score) => sum + score, 0));
     const low = Math.min(...totals);
     const standings = resultStatistics(match.roster.map(player => player.playerId), scores, match.course.par ?? [],
-      metrics?.acceptedShots, metrics?.hazardChoices, metrics?.completedHoleCounts);
+      metrics?.acceptedShots, metrics?.hazardChoices, metrics?.completedHoleCounts, metrics?.skippedHoles);
     this.result = {
       matchId, courseId: match.course.courseId, courseName: match.course.displayName,
       courseHash: match.course.expectedHash,
       roster: cloneRoster(match.roster), scores: scores.map(row => [...row]), par: [...(match.course.par ?? [])], totals,
       winnerPlayerIds: match.roster.filter((_, index) => totals[index] === low).map(player => player.playerId),
-      standings, durationMs: metrics?.durationMs ?? 0, status: 'Completed', completedAt: this.now(),
+      standings, skippedHoles: [...(metrics?.skippedHoles ?? [])], durationMs: metrics?.durationMs ?? 0,
+      status: 'Completed', completedAt: this.now(),
     };
     this.lifecycle = 'Results'; return cloneResult(this.result);
   }
@@ -433,7 +437,8 @@ export class LobbySession {
       totals: scores.map(row => row.reduce((sum, score) => sum + score, 0)), winnerPlayerIds: [],
       standings: resultStatistics(this.match!.roster.map(player => player.playerId), scores, this.match!.course.par ?? [],
         metrics?.acceptedShots, metrics?.hazardChoices,
-        metrics?.completedHoleCounts ?? scores.map(() => 0)), durationMs: metrics?.durationMs ?? 0,
+        metrics?.completedHoleCounts ?? scores.map(() => 0), metrics?.skippedHoles),
+      skippedHoles: [...(metrics?.skippedHoles ?? [])], durationMs: metrics?.durationMs ?? 0,
       status: 'Interrupted', reason: reason.slice(0, 160), completedAt: this.now(),
     };
     this.lifecycle = 'Results'; return cloneResult(this.result);

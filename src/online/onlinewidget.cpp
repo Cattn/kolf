@@ -367,6 +367,8 @@ OnlineWidget::OnlineWidget(QWidget *parent)
                 sessionConfig[QStringLiteral("scriptedHostResetTurn")] = m_automation.value(QStringLiteral("scriptedHostResetTurn"));
             if (m_automation.contains(QStringLiteral("scriptedHostUndoTurn")))
                 sessionConfig[QStringLiteral("scriptedHostUndoTurn")] = m_automation.value(QStringLiteral("scriptedHostUndoTurn"));
+            if (m_automation.contains(QStringLiteral("scriptedHostSkipTurn")))
+                sessionConfig[QStringLiteral("scriptedHostSkipTurn")] = m_automation.value(QStringLiteral("scriptedHostSkipTurn"));
             sessionConfig[QStringLiteral("capture")] = true;
             sessionConfig[QStringLiteral("verifySnapshots")] = true;
             sessionConfig[QStringLiteral("logFrames")] = true;
@@ -749,11 +751,14 @@ void OnlineWidget::showResults(const QJsonObject &state)
     const auto standings = result.value(QStringLiteral("standings")).toArray();
     const auto scores = result.value(QStringLiteral("scores")).toArray();
     const auto pars = result.value(QStringLiteral("par")).toArray();
+    const auto skipped = result.value(QStringLiteral("skippedHoles")).toArray();
     const bool completed = result.value(QStringLiteral("status")) == QLatin1String("Completed");
     const auto course = result.value(QStringLiteral("courseName")).toString(
         result.value(QStringLiteral("courseId")).toString()).toHtmlEscaped();
     QString html = QStringLiteral("<h2>%1</h2><p>%2</p>").arg(course,
-        completed ? i18n("Match complete") : i18n("Match interrupted — partial scores"));
+        completed ? (skipped.isEmpty() ? i18n("Match complete")
+            : i18n("Match complete — skipped holes contain partial scores"))
+            : i18n("Match interrupted — partial scores"));
     if (completed) {
         QStringList winners;
         for (const auto &id : result.value(QStringLiteral("winnerPlayerIds")).toArray()) {
@@ -764,7 +769,10 @@ void OnlineWidget::showResults(const QJsonObject &state)
             }
         }
         html += QStringLiteral("<h3>%1</h3>").arg(winners.size() == 1
-            ? i18n("Winner: %1", winners.first()) : i18n("Tie: %1", winners.join(i18n(", "))));
+            ? (skipped.isEmpty() ? i18n("Winner: %1", winners.first())
+                : i18n("Lowest recorded strokes: %1", winners.first()))
+            : (skipped.isEmpty() ? i18n("Tie: %1", winners.join(i18n(", ")))
+                : i18n("Lowest recorded strokes (tie): %1", winners.join(i18n(", ")))));
     } else {
         html += QStringLiteral("<p>%1</p>").arg(result.value(QStringLiteral("reason")).toString().toHtmlEscaped());
     }
@@ -800,7 +808,8 @@ void OnlineWidget::showResults(const QJsonObject &state)
     qsizetype holeCount = pars.size();
     for (const auto &row : scores) holeCount = qMax(holeCount, row.toArray().size());
     for (qsizetype hole = 0; hole < holeCount; ++hole) {
-        html += QStringLiteral("<tr><td>%1</td><td>%2</td>").arg(QString::number(hole + 1),
+        html += QStringLiteral("<tr><td>%1</td><td>%2</td>").arg(skipped.contains(int(hole + 1))
+                ? i18n("%1 (skipped)", hole + 1) : QString::number(hole + 1),
             hole < pars.size() && pars[hole].toInt() > 0 ? QString::number(pars[hole].toInt()) : i18n("—"));
         for (const auto &row : scores) {
             const auto holeScores = row.toArray();

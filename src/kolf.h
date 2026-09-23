@@ -116,6 +116,7 @@ private:
 	QAction *newHoleAction;
 	QAction *resetHoleAction;
 	QAction *undoShotAction;
+	QAction *skipHoleAction;
 	//QAction *replayShotAction;
 	QAction *clearHoleAction;
 	QAction *tutorialAction;

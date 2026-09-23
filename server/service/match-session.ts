@@ -55,8 +55,9 @@ export class MatchCoordinator {
   private holeShotBaseline: number[];
   private holeHazardBaseline: number[];
   private hostControlsEnabled = false;
-  private hostAction?: { commandId: string; action: 'resetHole' | 'undoShot'; memberId: MemberId };
+  private hostAction?: { commandId: string; action: 'resetHole' | 'undoShot' | 'skipHole'; memberId: MemberId };
   private undoCandidate?: { state: State; acceptedShots: number[]; hazardChoices: number[]; settled: boolean };
+  private readonly skippedHoles: number[] = [];
   private hostCommands = new Map<string, { key: string; memberId: MemberId; status: Envelope }>();
 
   get matchId() { return this.match.matchId; }
@@ -142,7 +143,7 @@ export class MatchCoordinator {
           this.broadcastEnvelope(status);
           return;
         }
-        if ((action !== 'resetHole' && action !== 'undoShot') || !integer(p.holeGeneration, 1)
+        if (!['resetHole', 'undoShot', 'skipHole'].includes(String(action)) || !integer(p.holeGeneration, 1)
           || p.holeGeneration !== this.state?.holeGeneration) return deny('invalid host action or hole generation');
         if (!this.hostControlsEnabled) return deny('host controls are off');
         if (!this.state || this.barrier || this.pending || this.hostAction || this.state.phase !== 'AwaitingShot')
@@ -239,8 +240,24 @@ export class MatchCoordinator {
           };
           const hostReset = !!this.hostAction && this.hostAction.action === 'resetHole';
           const hostUndo = !!this.hostAction && this.hostAction.action === 'undoShot';
+          const hostSkip = !!this.hostAction && this.hostAction.action === 'skipHole';
           const checkpoint = this.undoCandidate?.state;
-          if (hostUndo ? (!this.undoCandidate?.settled || !checkpoint
+          const oldHole = this.state.hole;
+          const skipFinal = hostSkip && next.phase === 'Finished';
+          const skipStarter = this.state.scores.reduce((best: { slot: number; score: number }, row: number[], slot: number) => {
+            const score = row[oldHole - 1];
+            return score > 0 && score < best.score ? { slot, score } : best;
+          }, { slot: 0, score: Number.MAX_SAFE_INTEGER }).slot;
+          if (hostSkip ? (this.state.phase !== 'AwaitingShot'
+            || (next.phase !== 'AwaitingShot' && next.phase !== 'Finished')
+            || next.hole !== oldHole + (skipFinal ? 0 : 1)
+            || next.activeSlot !== (skipFinal ? this.state.activeSlot : skipStarter)
+            || (skipFinal && (next.manifestHash !== this.state.manifestHash || next.par !== this.state.par))
+            || next.courseHash !== this.state.courseHash
+            || JSON.stringify(next.scores.map((row: number[]) => row.slice(0, oldHole)))
+              !== JSON.stringify(this.state.scores)
+            || (!skipFinal && next.scores.some((row: number[]) => row[oldHole] !== 0)))
+            : hostUndo ? (!this.undoCandidate?.settled || !checkpoint
             || this.state.phase !== 'AwaitingShot' || next.phase !== 'AwaitingShot'
             || next.hole !== checkpoint.hole || next.activeSlot !== checkpoint.activeSlot
             || next.manifestHash !== checkpoint.manifestHash || next.courseHash !== checkpoint.courseHash
@@ -263,15 +280,25 @@ export class MatchCoordinator {
         if (this.state?.phase === 'AwaitingHazardChoice' && this.choicePending)
           this.hazardChoices[this.state.choiceSlot]++;
         if (this.hostAction) {
-          const counts = this.hostAction.action === 'undoShot' ? this.undoCandidate : undefined;
-          this.acceptedShots.splice(0, this.acceptedShots.length,
-            ...(counts?.acceptedShots ?? this.holeShotBaseline));
-          this.hazardChoices.splice(0, this.hazardChoices.length,
-            ...(counts?.hazardChoices ?? this.holeHazardBaseline));
+          const action = this.hostAction.action;
+          if (action !== 'skipHole') {
+            const counts = action === 'undoShot' ? this.undoCandidate : undefined;
+            this.acceptedShots.splice(0, this.acceptedShots.length,
+              ...(counts?.acceptedShots ?? this.holeShotBaseline));
+            this.hazardChoices.splice(0, this.hazardChoices.length,
+              ...(counts?.hazardChoices ?? this.holeHazardBaseline));
+          } else {
+            this.skippedHoles.push(this.state!.hole);
+            if (next.hole !== this.state!.hole) {
+              this.holeShotBaseline = [...this.acceptedShots];
+              this.holeHazardBaseline = [...this.hazardChoices];
+            }
+          }
           this.undoCandidate = undefined;
-          const { commandId, action } = this.hostAction;
+          const { commandId } = this.hostAction;
           this.hostAction = undefined;
-          const notice = envelope('HostActionNotice', { commandId, action, hole: next.hole },
+          const notice = envelope('HostActionNotice', { commandId, action,
+            hole: action === 'skipHole' ? this.state!.hole : next.hole },
             { lobbyId: this.lobbyId, matchId: this.match.matchId });
           this.hostCommands.get(commandId)!.status = notice;
           this.broadcastEnvelope(notice);
@@ -414,6 +441,7 @@ export class MatchCoordinator {
 
   private metrics(): MatchMetrics {
     return { acceptedShots: [...this.acceptedShots], hazardChoices: [...this.hazardChoices],
+      skippedHoles: [...this.skippedHoles],
       completedHoleCounts: this.match.roster.map((_, index) => this.state
         ? Math.max(0, this.state.hole - 1) + (this.state.balls[index]?.state === 2 ? 1 : 0) : 0),
       durationMs: this.startedAt === undefined ? 0 : Math.max(0, this.now() - this.startedAt) };

@@ -86,6 +86,26 @@ balls, objects, score, and active turn and then finished. Visible menu,
 shortcut, rolling-ball, three-member/four-player, final Results comparison,
 and offline checks: **not run** on Windows, Undo source `459e67d`.
 
+## Host skip slice
+
+With Host Controls enabled, score on the current hole while another player has
+not yet taken a stroke. The owner invokes **Hole > Skip Hole**. Cancel once and
+confirm no change; then accept. Confirm the scored player's strokes remain,
+the unplayed player remains unscored, and both clients show the same next hole,
+turn, and notice. The guest must not be able to skip. On the final hole, accept
+a skip and check that Results labels it skipped, keeps partial strokes in the
+scorecard, and omits it from completed-hole highlights. Confirm Skip is
+unavailable during a rolling ball and with Host Controls off. Repeat the
+owner-identity check with three members and four players.
+
+**Current result:** automated two-client Skip **passed** on Windows with
+`tests/multiplayer/fixtures/static.kolf` after Craft compile/install/qmerge;
+run directory `server/local-session/online-host-skip-1790192417571`. The
+owner's partial score remained, the guest stayed unscored, and both clients
+applied the same next-hole state and finished. Visible confirmation, final-hole
+skip, Results presentation, rolling-ball, and three-member/four-player checks:
+**not run** on Windows, source pending the next commit.
+
 ## One Slope Practise visual pass
 
 Select **Slope Practise** in the lobby. Before starting, turn on **Hole > Show

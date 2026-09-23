@@ -18,8 +18,10 @@ With it enabled and the match settled, **Hole > Reset** (Ctrl+R) confirms and
 restarts the current hole for every player. **Hole > Undo Shot** restores the
 last settled shot on this hole, including a guest's shot, to its pre-shot ball,
 object, turn, and score state. Guests see host action notices but cannot issue
-the actions. Skip and Go controls remain unavailable online while their shared
-transitions are developed.
+the actions. **Hole > Skip Hole** asks for confirmation, keeps each player's
+current strokes, marks that hole unfinished in Results, and advances everyone
+together; an unplayed player remains unscored. Go controls remain unavailable
+online while their shared transitions are developed.
 
 ## How to play?
 ### Download a binary

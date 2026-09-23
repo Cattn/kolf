@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
 assert(['two-rematch', 'four-player', 'four-player-hazard', 'custom-course',
-  'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo'].includes(scenario),
+  'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-skip'].includes(scenario),
   'Unknown native scenario');
 const variableRoster = scenario.startsWith('four-player');
 const hazardScenario = scenario === 'four-player-hazard';
@@ -117,11 +117,13 @@ try {
         ? [{ displayName: 'Owner second ball', color: '#9b59b6ff' }] : [],
       scriptedHostResetTurn: scenario === 'host-reset' && client === 0 ? 3 : undefined,
       scriptedHostUndoTurn: scenario === 'host-undo' && client === 0 ? 3 : undefined,
+      scriptedHostSkipTurn: scenario === 'host-skip' && client === 0 ? 2 : undefined,
       scriptedHazardAction: hazardScenario ? 'rehit' : undefined,
       scriptedShots: Array.from({ length: turnCount }, (_, turn) => ({
         directionRadians: slopeOutOfBounds ? Math.PI : 0,
         launchMagnitude: slopeOutOfBounds ? 6.5
-          : (scenario === 'host-reset' || scenario === 'host-undo') && turn < 2 ? 0.4 : 1.8,
+          : ((scenario === 'host-reset' || scenario === 'host-undo') && turn < 2
+            || scenario === 'host-skip' && turn === 0) ? 0.4 : 1.8,
         advanced: turn % 2 === 1,
       })),
     };
@@ -208,6 +210,17 @@ try {
     assert.deepEqual(applied[1].find(event => event.state.turnId === 4)?.state,
       applied[0].find(event => event.state.turnId === 4)?.state,
       'guest reconciled exactly to the authority undo state');
+  }
+  if (scenario === 'host-skip') {
+    const skipped = Array.from({ length: clientCount }, (_, client) =>
+      events(sessionDirectories(client)[0]).filter(event => event.event === 'applied'
+        && event.state?.hole === 2 && event.state?.holeGeneration === 2
+        && event.state?.phase === 'AwaitingShot' && event.state?.turnId === 3));
+    assert(skipped.every(states => states.length === 1), 'each client applied one skip transition');
+    const authority = skipped[0][0].state;
+    assert.deepEqual(authority.scores, [[1, 0], [0, 0]], 'skip kept the owner score and left guest unscored');
+    assert.equal(authority.activeSlot, 0, 'only player with a partial score starts the next hole');
+    assert.deepEqual(skipped[1][0].state, authority, 'guest reconciled exactly to skip state');
   }
   if (slopeScenario) for (let client = 0; client < clientCount; ++client) {
     const committed = events(sessionDirectories(client)[0]).filter(event =>

@@ -152,6 +152,10 @@ void KolfWindow::setupActions()
 	undoShotAction = KStandardAction::undo(this, &KolfWindow::emptySlot, this);
 	actionCollection()->addAction(QStringLiteral("undoshot"), undoShotAction);
 	undoShotAction->setText(i18nc("@action", "&Undo Shot"));
+	skipHoleAction = actionCollection()->addAction(QStringLiteral("skiponlinehole"));
+	skipHoleAction->setText(i18nc("@action", "&Skip Hole"));
+	skipHoleAction->setVisible(false);
+	skipHoleAction->setEnabled(false);
 	//replayShotAction = new QAction(i18nc("@action", "&Replay Shot"), 0, this, SLOT(emptySlot()), actionCollection(), "replay");
 
 	// Go
@@ -371,15 +375,18 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 	onlineHostControls->setEnabled(false);
 	resetHoleAction->setEnabled(false);
 	undoShotAction->setEnabled(false);
+	skipHoleAction->setVisible(true);
+	skipHoleAction->setEnabled(false);
 	connect(onlineHostControls, &QCheckBox::toggled, onlineMatchController,
 		&Kolf::Session::SessionController::setHostControlsEnabled);
 	connect(onlineMatchController, &Kolf::Session::SessionController::hostControlsChanged, this,
-		[this](bool enabled, bool canToggle, bool canReset, bool canUndo) {
+		[this](bool enabled, bool canToggle, bool canReset, bool canUndo, bool canSkip) {
 			const QSignalBlocker blocker(onlineHostControls);
 			onlineHostControls->setChecked(enabled);
 			onlineHostControls->setEnabled(canToggle);
 			resetHoleAction->setEnabled(canReset);
 			undoShotAction->setEnabled(canUndo);
+			skipHoleAction->setEnabled(canSkip);
 		});
 	connect(undoShotAction, &QAction::triggered, onlineMatchController,
 		&Kolf::Session::SessionController::undoOnlineShot);
@@ -390,6 +397,14 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 			KGuiItem(i18nc("@action:button", "Reset Hole")), KStandardGuiItem::cancel())
 			== KMessageBox::PrimaryAction)
 			onlineMatchController->resetOnlineHole();
+	});
+	connect(skipHoleAction, &QAction::triggered, onlineMatchController, [this] {
+		if (KMessageBox::warningTwoActions(this,
+			i18n("Skip this hole? Current strokes will stay on the scorecard, but the hole will count as unfinished. Players who have not taken a stroke remain unscored."),
+			i18nc("@title:window", "Skip Online Hole?"),
+			KGuiItem(i18nc("@action:button", "Skip Hole")), KStandardGuiItem::cancel())
+			== KMessageBox::PrimaryAction)
+			onlineMatchController->skipOnlineHole();
 	});
 	connect(onlineMatchController, &Kolf::Session::SessionController::gameReady, this, [this](KolfGame *onlineGame) {
 		onlineGameLayout->insertWidget(0, onlineGame, 1);
@@ -439,6 +454,8 @@ void KolfWindow::finishOnlineMatch()
 		onlineHostControls->setEnabled(false);
 	}
 	if (onlineModeActive) { resetHoleAction->setEnabled(false); undoShotAction->setEnabled(false); }
+	skipHoleAction->setEnabled(false);
+	skipHoleAction->setVisible(false);
 	if (onlineNoticeLabel) onlineNoticeLabel->hide();
 	updateOnlineHazardActions(false);
 	delete onlineMatchController;

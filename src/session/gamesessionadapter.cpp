@@ -10,6 +10,7 @@
 #include <QSet>
 #include <QTimer>
 #include <QUuid>
+#include <limits>
 
 using namespace Kolf::Session;
 using namespace Kolf::Replication;
@@ -91,6 +92,33 @@ bool GameSessionAdapter::resetCurrentHole() {
     m_choiceId.clear(); m_choiceSlot = -1; m_failure.clear();
     g->curPlayer = g->players->begin();
     g->curBall()->setVisible(true);
+    return true;
+}
+bool GameSessionAdapter::skipCurrentHole() {
+    if (g->m_role != Role::Authority || g->inPlay || g->m_onlineShot || m_choiceSlot >= 0
+        || m_finished) return false;
+    const int current = hole();
+    if (current >= g->highestHole) {
+        m_undoState = {};
+        m_undoBalls.clear(); m_undoFloaters.clear(); m_undoWindmills.clear();
+        m_finished = true;
+        enableSimulation(false);
+        enableInput(false);
+        return true;
+    }
+    int starter = 0;
+    int lowest = std::numeric_limits<int>::max();
+    for (int slot = 0; slot < g->players->size(); ++slot) {
+        const int score = (*g->players)[slot].score(current);
+        if (score > 0 && score < lowest) { lowest = score; starter = slot; }
+    }
+    if (!loadHole(current + 1)) return false;
+    g->curBall()->setVisible(false);
+    g->curPlayer = g->players->begin() + starter;
+    g->curBall()->setVisible(true);
+    g->putter->setAngle(g->curBall());
+    m_scored = false; m_resolutionIndex = 0;
+    m_choiceId.clear(); m_choiceSlot = -1; m_failure.clear();
     return true;
 }
 void GameSessionAdapter::rememberUndoCheckpoint(const QJsonObject &state) {

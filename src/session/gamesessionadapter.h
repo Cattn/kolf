@@ -17,6 +17,7 @@ public:
     bool shoot(const ShotIntent &intent);
     bool choose(const QString &action);
     bool resetCurrentHole();
+    bool skipCurrentHole();
     void rememberUndoCheckpoint(const QJsonObject &state);
     bool canUndoShot() const;
     bool undoShot();

@@ -52,6 +52,7 @@ npm run test:native:four-player
 npm run test:native:hazard
 node ../tests/multiplayer/run-online-native.ts host-reset
 node ../tests/multiplayer/run-online-native.ts host-undo
+node ../tests/multiplayer/run-online-native.ts host-skip
 node ../tests/multiplayer/run-online-native.ts slope-out-of-bounds
 node ../tests/multiplayer/run-online-native.ts slope-in-bounds
 ```
@@ -67,6 +68,9 @@ scores, exact guest reconciliation, and completion after the reset.
 The host-undo scenario has the guest take a shot, then the owner undoes it.
 It checks pre-shot balls, objects, scores, and active turn on both clients,
 exact reconciliation, and completion after the guest retries.
+The host-skip scenario has the owner score once, skips with the guest still
+unscored, then checks retained scores, next-hole turn order, exact guest
+reconciliation, and completion.
 
 The native envelope fixture can be run by setting
 `KOLF_ONLINE_PROTOCOL_TESTS` to the absolute path of
