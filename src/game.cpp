@@ -1077,11 +1077,15 @@ void KolfGame::timeout()
 	if (!maySimulate()) return;
 	if (isOnline()) {
 		if (!m_onlineShot || m_settlementQueued) return;
+		bool outOfBounds = false;
 		for (const auto &player : std::as_const(*players)) {
 			if (!QRectF(QPointF(), courseBoard->logicalSize()).contains(player.ball()->pos())) {
-				loadStateList();
+				outOfBounds = true;
 				break;
 			}
+		}
+		if (outOfBounds) loadStateList();
+		else for (const auto &player : std::as_const(*players)) {
 			if (player.ball()->forceStillGoing() || (player.ball()->curState() == Rolling && player.ball()->isVisible())) return;
 		}
 		m_settlementQueued = true;
@@ -1105,11 +1109,7 @@ void KolfGame::timeout()
 		{
 			(*it).ball()->setState(Stopped);
 
-			// don't do it if he's past maxStrokes
-			if ((*it).score(curHole) < holeInfo.maxStrokes() - 1 || !holeInfo.hasMaxStrokes())
-			{
-				loadStateList();
-			}
+			loadStateList();
 			shotDone();
 
 			return;
@@ -1408,6 +1408,14 @@ void KolfGame::loadStateList()
 	{
 		BallStateInfo info = (*it);
 		Player &player = (*(players->begin() + (info.id - 1) ));
+		// A saved shot state is a resting state. Restoring only the position and
+		// BallState leaves Box2D momentum (and hazard/teleport continuations) from
+		// the abandoned shot, so an out-of-bounds ball can roll offscreen again or
+		// prevent the online authority from ever settling the turn.
+		player.ball()->setVelocity(Vector());
+		player.ball()->setForceStillGoing(false);
+		player.ball()->setPlaceOnGround(false);
+		player.ball()->setAddStroke(0);
 		player.ball()->setPos(info.spot.x(), info.spot.y());
 		player.ball()->setBeginningOfHole(info.beginningOfHole);
 		if ((*curPlayer).id() == info.id)

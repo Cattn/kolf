@@ -194,10 +194,12 @@ export class LobbyProtocolController {
     if (progress.becamePlaying) deliveries.push(...this.broadcast(lobby.completePreparation(match.matchId), 'MatchStarted'));
     deliveries.push(...gameplay);
     if (progress.completedScores) {
-      const result = lobby.completeMatch(match.matchId, progress.completedScores); this.matches.delete(match.matchId);
+      const result = lobby.completeMatch(match.matchId, progress.completedScores, progress.metrics); this.matches.delete(match.matchId);
       deliveries.push(...this.broadcast(lobby.state(), 'MatchResult', { result }));
     } else if (progress.interruptedReason) {
-      const result = lobby.interruptMatch(match.matchId, progress.interruptedReason); this.matches.delete(match.matchId);
+      const result = lobby.interruptMatch(match.matchId, progress.interruptedReason,
+        progress.interruptedScores ?? lobby.state().match!.roster.map(() => []), progress.metrics);
+      this.matches.delete(match.matchId);
       deliveries.push(...this.broadcast(lobby.state(), 'MatchResult', { result }));
     }
     return deliveries;

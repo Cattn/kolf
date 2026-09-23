@@ -10,17 +10,29 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
-assert(['two-rematch', 'four-player', 'four-player-hazard', 'custom-course'].includes(scenario),
-  'Scenario must be two-rematch, four-player, four-player-hazard, or custom-course');
+assert(['two-rematch', 'four-player', 'four-player-hazard', 'custom-course',
+  'slope-out-of-bounds', 'slope-in-bounds'].includes(scenario),
+  'Unknown native scenario');
 const variableRoster = scenario.startsWith('four-player');
 const hazardScenario = scenario === 'four-player-hazard';
+const slopeScenario = scenario.startsWith('slope-');
+const slopeOutOfBounds = scenario === 'slope-out-of-bounds';
 const clientCount = variableRoster ? 3 : 2;
 const matchCount = scenario === 'two-rematch' || scenario === 'custom-course' ? 2 : 1;
-const turnCount = hazardScenario ? 40 : variableRoster ? 8 : 4;
+const turnCount = slopeScenario ? 2 : hazardScenario ? 40 : variableRoster ? 8 : 4;
 const directory = resolve(root, 'server/local-session', `online-${scenario}-${Date.now()}`);
 const joinCodeFile = resolve(directory, 'join-code.txt');
-const course = resolve(root, `tests/multiplayer/fixtures/${hazardScenario ? 'water' : 'static'}.kolf`);
+const course = slopeScenario ? resolve(directory, 'slope-practice-hole-1.kolf')
+  : resolve(root, `tests/multiplayer/fixtures/${hazardScenario ? 'water' : 'static'}.kolf`);
 mkdirSync(directory, { recursive: true });
+if (slopeScenario) {
+  const shipped = readFileSync(resolve(root, 'courses/Practice'), 'utf8');
+  const nextHole = shipped.search(/\r?\n\[2-ball@/);
+  assert(nextHole > 0 && shipped.includes('borderWalls=false'), 'Slope Practice hole 1 is available without border walls');
+  // Keep the shipped geometry, but cap each player's strokes at one so the
+  // native regression ends immediately after owner and guest have both hit out.
+  writeFileSync(course, shipped.slice(0, nextHole).replace('maxstrokes=4', 'maxstrokes=1') + '\n');
+}
 const customCourse = resolve(directory, 'uploaded-static.kolf');
 if (scenario === 'custom-course') writeFileSync(customCourse, Buffer.concat([readFileSync(course), Buffer.from('\n')]));
 const customHash = scenario === 'custom-course'
@@ -104,7 +116,8 @@ try {
         ? [{ displayName: 'Owner second ball', color: '#9b59b6ff' }] : [],
       scriptedHazardAction: hazardScenario ? 'rehit' : undefined,
       scriptedShots: Array.from({ length: turnCount }, (_, turn) => ({
-        directionRadians: 0, launchMagnitude: 1.8, advanced: turn % 2 === 1,
+        directionRadians: slopeOutOfBounds ? Math.PI : 0,
+        launchMagnitude: slopeOutOfBounds ? 6.5 : 1.8, advanced: turn % 2 === 1,
       })),
     };
     mkdirSync(logDirectory, { recursive: true });
@@ -157,6 +170,31 @@ try {
   if (hazardScenario) assert(sessionDirectories(0).flatMap(events)
     .some(event => event.event === 'applied' && event.state?.phase === 'AwaitingHazardChoice'),
   'variable roster reached a hazard choice');
+  if (slopeScenario) for (let client = 0; client < clientCount; ++client) {
+    const committed = events(sessionDirectories(client)[0]).filter(event =>
+      event.event === 'applied' && event.state?.phase === 'AwaitingShot');
+    assert.equal(committed.length, 2, `client ${client} saw the guest turn become playable`);
+    assert.equal(committed[1].state.turnId, 2, 'owner shot advanced the turn once');
+    const final = events(sessionDirectories(client)[0]).filter(event => event.event === 'applied').at(-1)?.state;
+    assert.deepEqual(final?.scores, [[1], [1]], 'one accepted stroke charged to each player');
+    for (let turn = 1; turn <= 2; ++turn) {
+      const shotFrames = events(sessionDirectories(client)[0]).filter(event =>
+        (event.event === 'frame' || event.event === 'receivedFrame') && event.state?.phase === 'Simulating'
+          && event.state?.turnId === turn);
+      if (slopeOutOfBounds) assert(shotFrames.some(event => event.state.balls[turn - 1].x < 0),
+        `player ${turn} reached the out-of-bounds area`);
+      const restored = turn === 1 ? committed[1].state : final;
+      if (slopeOutOfBounds) {
+        assert.equal(restored.balls[turn - 1].x, 68, 'out-of-bounds ball returned to its pre-shot x');
+        assert.equal(restored.balls[turn - 1].y, 257, 'out-of-bounds ball returned to its pre-shot y');
+      } else {
+        assert(shotFrames.some(event => event.state.balls[turn - 1].x > 68),
+          `player ${turn} moved in bounds after admission`);
+        assert(restored.balls[turn - 1].x > 68 && restored.balls[turn - 1].x < 400,
+          `player ${turn} settled ahead of its starting position without snapback`);
+      }
+    }
+  }
   const pids = nativePids();
   assert.equal(pids.length, clientCount, 'Every ordinary Kolf client recorded its process ID');
   for (let i = 0; i < 100 && pids.some(isAlive); ++i) await pause(100);

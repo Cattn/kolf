@@ -83,6 +83,9 @@ private:
     bool m_automationStartRequested = false;
     bool m_automationCustomCourseSent = false;
     bool m_matchActive = false;
+    bool m_rematchRequested = false;
+    bool m_rematchReadySent = false;
+    bool m_rematchStartSent = false;
     bool m_entryRequestPending = false;
     ConnectionState m_connectionState = ConnectionState::Disconnected;
 };

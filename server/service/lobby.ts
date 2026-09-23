@@ -4,6 +4,7 @@ import { validators } from '../protocol/codecs.ts';
 import { LobbyError } from './errors.ts';
 import { RequestCache } from './request-cache.ts';
 import { CourseTransfer } from './course-transfer.ts';
+import { resultStatistics, type PlayerStatistics } from './result-stats.ts';
 
 export type LobbyPhase = 'Open' | 'Preparing' | 'Playing' | 'Results' | 'Closed';
 
@@ -49,15 +50,24 @@ export interface MatchView {
 export interface MatchResult {
   matchId: MatchId;
   courseId: string;
+  courseName: string;
   courseHash: string;
   roster: FrozenPlayer[];
   scores: number[][];
   par: number[];
   totals: number[];
   winnerPlayerIds: PlayerId[];
+  standings: PlayerStatistics[];
+  durationMs: number;
   status: 'Completed' | 'Interrupted';
   reason?: string;
   completedAt: number;
+}
+export interface MatchMetrics {
+  acceptedShots: number[];
+  hazardChoices: number[];
+  completedHoleCounts: number[];
+  durationMs: number;
 }
 export interface LobbyState {
   lobbyId: LobbyId;
@@ -114,6 +124,8 @@ const cloneResult = (result: MatchResult): MatchResult => ({
   roster: cloneRoster(result.roster),
   scores: result.scores.map(row => [...row]),
   par: [...result.par], totals: [...result.totals], winnerPlayerIds: [...result.winnerPlayerIds],
+  standings: result.standings.map(row => ({ ...row,
+    bestHole: row.bestHole && { ...row.bestHole }, worstHole: row.worstHole && { ...row.worstHole } })),
 });
 
 /** One isolated v3 lobby. Transport and authoritative simulation live elsewhere. */
@@ -389,28 +401,36 @@ export class LobbySession {
 
   assertCurrentMatch(matchId: MatchId) { this.requireMatch(matchId); }
 
-  completeMatch(matchId: MatchId, scores: number[][]): MatchResult {
+  completeMatch(matchId: MatchId, scores: number[][], metrics?: MatchMetrics): MatchResult {
     this.requireMatch(matchId); this.requirePhase('Playing');
     const match = this.match!; this.validateScores(scores, match.roster.length);
     const totals = scores.map(row => row.reduce((sum, score) => sum + score, 0));
     const low = Math.min(...totals);
+    const standings = resultStatistics(match.roster.map(player => player.playerId), scores, match.course.par ?? [],
+      metrics?.acceptedShots, metrics?.hazardChoices, metrics?.completedHoleCounts);
     this.result = {
-      matchId, courseId: match.course.courseId, courseHash: match.course.expectedHash,
+      matchId, courseId: match.course.courseId, courseName: match.course.displayName,
+      courseHash: match.course.expectedHash,
       roster: cloneRoster(match.roster), scores: scores.map(row => [...row]), par: [...(match.course.par ?? [])], totals,
       winnerPlayerIds: match.roster.filter((_, index) => totals[index] === low).map(player => player.playerId),
-      status: 'Completed', completedAt: this.now(),
+      standings, durationMs: metrics?.durationMs ?? 0, status: 'Completed', completedAt: this.now(),
     };
     this.lifecycle = 'Results'; return cloneResult(this.result);
   }
 
-  interruptMatch(matchId: MatchId, reason: string, scores: number[][] = this.match?.roster.map(() => []) ?? []): MatchResult {
+  interruptMatch(matchId: MatchId, reason: string, scores: number[][] = this.match?.roster.map(() => []) ?? [],
+    metrics?: MatchMetrics): MatchResult {
     this.requireMatch(matchId);
     if (this.lifecycle !== 'Preparing' && this.lifecycle !== 'Playing') throw new LobbyError('WrongPhase', 'match is not active');
     this.validateScores(scores, this.match!.roster.length);
     this.result = {
-      matchId, courseId: this.match!.course.courseId, courseHash: this.match!.course.expectedHash,
+      matchId, courseId: this.match!.course.courseId, courseName: this.match!.course.displayName,
+      courseHash: this.match!.course.expectedHash,
       roster: cloneRoster(this.match!.roster), scores: scores.map(row => [...row]), par: [...(this.match!.course.par ?? [])],
       totals: scores.map(row => row.reduce((sum, score) => sum + score, 0)), winnerPlayerIds: [],
+      standings: resultStatistics(this.match!.roster.map(player => player.playerId), scores, this.match!.course.par ?? [],
+        metrics?.acceptedShots, metrics?.hazardChoices,
+        metrics?.completedHoleCounts ?? scores.map(() => 0)), durationMs: metrics?.durationMs ?? 0,
       status: 'Interrupted', reason: reason.slice(0, 160), completedAt: this.now(),
     };
     this.lifecycle = 'Results'; return cloneResult(this.result);

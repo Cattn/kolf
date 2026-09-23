@@ -75,6 +75,20 @@ and turn identity, limits relays to one every 50 ms, and sends ephemeral
 shot is admitted or synchronization restarts. These visual messages do not
 change the match state, physics, or command sequence.
 
+On a shot that leaves the course board, the authority restores the pre-shot
+position and resting ball state, charges the accepted stroke once, and advances
+the turn. Guests receive the resulting committed state; their local presentation
+does not decide whether a shot was out of bounds.
+
+`MatchResult` contains the frozen course name and roster, per-hole scores and
+par, ordered standings with ranks and ties, totals, relative-to-par where par
+is known, holes in one and best/worst completed holes, accepted-shot and
+hazard-choice counts, and elapsed match time. These counts come from accepted
+commands and committed authority state. Interrupted results retain the last
+committed partial scorecard and a reason, with no winner. A zero score in the
+current hole is unfinished; a positive partial score is included in strokes
+but is not called a completed hole until the authority marks that ball holed.
+
 Clients using any non-current version receive `UnsupportedProtocol` with
 `supportedProtocolVersion: 3`. There is no compatibility shim. Shared
 generic-envelope cases are in

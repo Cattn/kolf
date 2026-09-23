@@ -194,8 +194,13 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     auto *resultsPage = new QWidget(this);
     auto *resultsLayout = new QVBoxLayout(resultsPage);
     m_result = new QTextEdit(resultsPage); m_result->setReadOnly(true); resultsLayout->addWidget(m_result);
+    auto *resultButtons = new QHBoxLayout;
+    auto *rematchButton = new QPushButton(i18nc("@action:button", "Rematch"), resultsPage);
     auto *returnButton = new QPushButton(i18nc("@action:button", "Return to Lobby"), resultsPage);
-    resultsLayout->addWidget(returnButton);
+    auto *resultsLeave = new QPushButton(i18nc("@action:button", "Leave Online"), resultsPage);
+    resultButtons->addWidget(rematchButton); resultButtons->addWidget(returnButton);
+    resultButtons->addStretch(); resultButtons->addWidget(resultsLeave);
+    resultsLayout->addLayout(resultButtons);
     m_pages->addWidget(resultsPage);
 
     connect(m_connectButton, &QPushButton::clicked, this, &OnlineWidget::beginConnection);
@@ -285,7 +290,16 @@ OnlineWidget::OnlineWidget(QWidget *parent)
             QString(), i18n("Kolf courses (*.kolf);;All files (*)"));
         if (!path.isEmpty()) m_coordinator.uploadCourse(path);
     });
-    connect(returnButton, &QPushButton::clicked, &m_coordinator, &OnlineCoordinator::returnToLobby);
+    connect(rematchButton, &QPushButton::clicked, this, [this] {
+        m_rematchRequested = true; m_rematchReadySent = m_rematchStartSent = false;
+        m_coordinator.returnToLobby();
+    });
+    connect(returnButton, &QPushButton::clicked, this, [this] {
+        m_rematchRequested = false; m_coordinator.returnToLobby();
+    });
+    connect(resultsLeave, &QPushButton::clicked, this, [this] {
+        m_rematchRequested = false; m_coordinator.disconnectFromService(); Q_EMIT leaveRequested();
+    });
     connect(&m_coordinator, &OnlineCoordinator::connected, this, [this] {
         setConnectionState(ConnectionState::Connecting, i18n("Verifying the server…"));
     });
@@ -619,6 +633,15 @@ void OnlineWidget::showLobby(const QJsonObject &state)
     m_ready->setText(localReady ? i18nc("@action:button", "Unready") : i18nc("@action:button", "Ready"));
     m_ready->setEnabled(open);
     m_start->setEnabled(open && owner && members.size() >= 2 && players.size() >= 2 && players.size() <= 8 && allReady);
+    if (m_rematchRequested && open) {
+        if (!localReady && !m_rematchReadySent) {
+            m_rematchReadySent = true; m_coordinator.setReady(true);
+        } else if (owner && allReady && !m_rematchStartSent) {
+            m_rematchStartSent = true; m_coordinator.startMatch();
+        }
+    } else if (!open && state.value(QStringLiteral("phase")) != QLatin1String("Results")) {
+        m_rematchRequested = false;
+    }
     m_addPlayer->setEnabled(open && players.size() < 8);
     m_editPlayer->setEnabled(false); m_removePlayer->setEnabled(false);
     const auto courseId = state.value(QStringLiteral("selectedCourseId")).toString();
@@ -649,24 +672,86 @@ void OnlineWidget::showResults(const QJsonObject &state)
         Q_EMIT matchEnded();
     }
     const auto result = state.value(QStringLiteral("latestResult")).toObject();
-    m_result->clear();
-    QTextCursor cursor = m_result->textCursor();
-    cursor.insertText(i18n("Status: %1\nCourse: %2\n", result.value(QStringLiteral("status")).toString(),
-                           result.value(QStringLiteral("courseId")).toString()));
     const auto roster = result.value(QStringLiteral("roster")).toArray();
-    const auto totals = result.value(QStringLiteral("totals")).toArray();
-    for (qsizetype i = 0; i < roster.size(); ++i) {
-        const auto player = roster[i].toObject();
-        const auto rgba = player.value(QStringLiteral("resolvedColor")).toString();
-        QTextCharFormat swatch;
-        swatch.setForeground(colorFromRgba(rgba));
-        swatch.setToolTip(rgba);
-        cursor.insertText(QStringLiteral("■ "), swatch);
-        cursor.insertText(i18n("%1: %2 (%3)\n", player.value(QStringLiteral("displayName")).toString(),
-            i < totals.size() ? totals.at(i).toInt() : 0, rgba), QTextCharFormat());
+    const auto standings = result.value(QStringLiteral("standings")).toArray();
+    const auto scores = result.value(QStringLiteral("scores")).toArray();
+    const auto pars = result.value(QStringLiteral("par")).toArray();
+    const bool completed = result.value(QStringLiteral("status")) == QLatin1String("Completed");
+    const auto course = result.value(QStringLiteral("courseName")).toString(
+        result.value(QStringLiteral("courseId")).toString()).toHtmlEscaped();
+    QString html = QStringLiteral("<h2>%1</h2><p>%2</p>").arg(course,
+        completed ? i18n("Match complete") : i18n("Match interrupted — partial scores"));
+    if (completed) {
+        QStringList winners;
+        for (const auto &id : result.value(QStringLiteral("winnerPlayerIds")).toArray()) {
+            for (const auto &value : roster) {
+                const auto player = value.toObject();
+                if (player.value(QStringLiteral("playerId")) == id)
+                    winners.append(player.value(QStringLiteral("displayName")).toString().toHtmlEscaped());
+            }
+        }
+        html += QStringLiteral("<h3>%1</h3>").arg(winners.size() == 1
+            ? i18n("Winner: %1", winners.first()) : i18n("Tie: %1", winners.join(i18n(", "))));
+    } else {
+        html += QStringLiteral("<p>%1</p>").arg(result.value(QStringLiteral("reason")).toString().toHtmlEscaped());
     }
-    if (result.value(QStringLiteral("status")) == QLatin1String("Interrupted"))
-        cursor.insertText(i18n("Reason: %1\n", result.value(QStringLiteral("reason")).toString()));
+    html += QStringLiteral("<p>%1</p>").arg(i18n("Duration: %1 seconds",
+        result.value(QStringLiteral("durationMs")).toInt() / 1000));
+    html += QStringLiteral("<h3>%1</h3><table border='1' cellspacing='0' cellpadding='4'><tr><th>%2</th><th>%3</th><th>%4</th><th>%5</th><th>%6</th><th>%7</th><th>%8</th></tr>")
+        .arg(i18n("Standings"), i18n("Rank"), i18n("Player"), i18n("Holes"), i18n("Strokes"),
+             i18n("vs par"), i18n("Aces"), i18n("Shots / choices"));
+    for (const auto &value : standings) {
+        const auto row = value.toObject();
+        QJsonObject player;
+        for (const auto &candidate : roster) if (candidate.toObject().value(QStringLiteral("playerId")) == row.value(QStringLiteral("playerId"))) {
+            player = candidate.toObject(); break;
+        }
+        const auto rgba = player.value(QStringLiteral("resolvedColor")).toString();
+        const auto display = player.value(QStringLiteral("displayName")).toString().toHtmlEscaped();
+        const auto relative = row.value(QStringLiteral("relativeToPar"));
+        const auto relativeText = relative.isNull() ? i18n("—") : relative.toInt() == 0 ? i18n("E")
+            : QStringLiteral("%1%2").arg(relative.toInt() > 0 ? QStringLiteral("+") : QString()).arg(relative.toInt());
+        html += QStringLiteral("<tr><td>%1</td><td><font color='%2'>■</font> %3</td><td>%4</td><td>%5</td><td>%6</td><td>%7</td><td>%8 / %9</td></tr>")
+            .arg(QString::number(row.value(QStringLiteral("rank")).toInt()), colorFromRgba(rgba).name(QColor::HexRgb),
+                 display, QString::number(row.value(QStringLiteral("completedHoles")).toInt()),
+                 QString::number(row.value(QStringLiteral("total")).toInt()), relativeText,
+                 QString::number(row.value(QStringLiteral("holesInOne")).toInt()),
+                 QString::number(row.value(QStringLiteral("acceptedShots")).toInt()),
+                 QString::number(row.value(QStringLiteral("hazardChoices")).toInt()));
+    }
+    html += QStringLiteral("</table><h3>%1</h3><table border='1' cellspacing='0' cellpadding='4'><tr><th>%2</th><th>%3</th>")
+        .arg(i18n("Scorecard"), i18n("Hole"), i18n("Par"));
+    for (const auto &value : roster) html += QStringLiteral("<th>%1</th>").arg(
+        value.toObject().value(QStringLiteral("displayName")).toString().toHtmlEscaped());
+    html += QStringLiteral("</tr>");
+    qsizetype holeCount = pars.size();
+    for (const auto &row : scores) holeCount = qMax(holeCount, row.toArray().size());
+    for (qsizetype hole = 0; hole < holeCount; ++hole) {
+        html += QStringLiteral("<tr><td>%1</td><td>%2</td>").arg(QString::number(hole + 1),
+            hole < pars.size() && pars[hole].toInt() > 0 ? QString::number(pars[hole].toInt()) : i18n("—"));
+        for (const auto &row : scores) {
+            const auto holeScores = row.toArray();
+            const int score = hole < holeScores.size() ? holeScores[hole].toInt() : 0;
+            html += QStringLiteral("<td>%1</td>").arg(score > 0 ? QString::number(score) : i18n("—"));
+        }
+        html += QStringLiteral("</tr>");
+    }
+    html += QStringLiteral("</table><h3>%1</h3><ul>").arg(i18n("Highlights"));
+    for (const auto &value : standings) {
+        const auto row = value.toObject();
+        QString name;
+        for (const auto &candidate : roster) if (candidate.toObject().value(QStringLiteral("playerId")) == row.value(QStringLiteral("playerId"))) {
+            name = candidate.toObject().value(QStringLiteral("displayName")).toString().toHtmlEscaped(); break;
+        }
+        const auto best = row.value(QStringLiteral("bestHole")).toObject();
+        const auto worst = row.value(QStringLiteral("worstHole")).toObject();
+        html += QStringLiteral("<li>%1: %2; %3</li>").arg(name,
+            best.isEmpty() ? i18n("No completed holes") : i18n("Best: hole %1 (%2)",
+                best.value(QStringLiteral("hole")).toInt(), best.value(QStringLiteral("strokes")).toInt()),
+            worst.isEmpty() ? QString() : i18n("Worst: hole %1 (%2)",
+                worst.value(QStringLiteral("hole")).toInt(), worst.value(QStringLiteral("strokes")).toInt()));
+    }
+    m_result->setHtml(html + QStringLiteral("</ul>"));
 }
 
 void OnlineWidget::leaveOnline()

@@ -3,19 +3,21 @@ import { finite, integer, validRosterState } from '../protocol/game-state.ts';
 import type { Envelope, JsonObject } from '../protocol/envelope.ts';
 import { envelope } from '../protocol/envelope.ts';
 import type { MemberId } from '../protocol/ids.ts';
-import type { FrozenPlayer, LobbyState, MatchView } from './lobby.ts';
+import type { FrozenPlayer, LobbyState, MatchMetrics, MatchView } from './lobby.ts';
 
 export interface MatchDelivery { memberId: MemberId; message: Envelope; visual?: boolean }
 export interface MatchProgress {
   deliveries: MatchDelivery[];
   becamePlaying: boolean;
   completedScores?: number[][];
+  interruptedScores?: number[][];
+  metrics?: MatchMetrics;
   interruptedReason?: string;
 }
 
 type State = Record<string, any>;
 type Ready = { manifestHash?: string; applied: number };
-type Admission = { key: string; memberId: MemberId; status: Envelope };
+type Admission = { key: string; memberId: MemberId; playerId: string; status: Envelope };
 
 /** Authoritative v3 match state machine keyed by member and player identities. */
 export class MatchCoordinator {
@@ -30,6 +32,7 @@ export class MatchCoordinator {
   private eventSeq = 0;
   private syncId = 0;
   private interrupted = false;
+  private interruptionReason = '';
   private barrier = true;
   private barrierPublished = false;
   private pending?: string;
@@ -46,6 +49,9 @@ export class MatchCoordinator {
   private loadedManifestHash?: string;
   private playingPublished = false;
   private terminalPublished = false;
+  private startedAt?: number;
+  private readonly acceptedShots: number[];
+  private readonly hazardChoices: number[];
 
   get matchId() { return this.match.matchId; }
   get lobbyIdentity() { return this.lobbyId; }
@@ -54,6 +60,8 @@ export class MatchCoordinator {
     if (!state.match?.compatibilityId || state.match.roster.length < 2 || state.match.roster.length > 8)
       throw Error('match preparation is incomplete');
     this.match = state.match; this.lobbyId = state.lobbyId; this.now = now;
+    this.acceptedShots = this.match.roster.map(() => 0);
+    this.hazardChoices = this.match.roster.map(() => 0);
     const memberIds = new Set(state.members.map(member => member.memberId));
     for (const player of this.match.roster) {
       if (!memberIds.has(player.ownerMemberId) || this.playersById.has(player.playerId)
@@ -128,7 +136,7 @@ export class MatchCoordinator {
         this.pending = p.commandId; this.pendingAt = this.now();
         this.broadcast('AimClear', { playerId: player.playerId, turnId: p.turnId });
         const status = envelope('ShotPending', { commandId: p.commandId }, { lobbyId: this.lobbyId, matchId: this.match.matchId });
-        this.admissions.set(p.commandId, { key, memberId, status });
+        this.admissions.set(p.commandId, { key, memberId, playerId: player.playerId, status });
         this.outbox.push({ memberId, message: status });
         this.send(this.match.authorityMemberId, 'AdmitShot', { ...p });
         return;
@@ -141,6 +149,7 @@ export class MatchCoordinator {
         if (admission.status.type === message.type) return;
         admission.status = envelope(message.type, { commandId: p.commandId, reason: p.reason },
           { lobbyId: this.lobbyId, matchId: this.match.matchId });
+        if (message.type === 'ShotAccepted') this.acceptedShots[this.playersById.get(admission.playerId)!.engineIndex]++;
         this.broadcastEnvelope(admission.status);
         if (message.type === 'ShotRejected') this.pending = undefined;
         return;
@@ -170,6 +179,9 @@ export class MatchCoordinator {
             throw Error('invalid generation progression');
         }
         const wasPending = this.pending;
+        if (!this.state) this.startedAt = this.now();
+        if (this.state?.phase === 'AwaitingHazardChoice' && this.choicePending)
+          this.hazardChoices[this.state.choiceSlot]++;
         this.state = next; this.lastCommit = key; this.lastFrame = 0; this.lastAimAt = 0; this.queuedResync = false;
         this.barrier = true; this.barrierPublished = true; ++this.syncId; this.pendingAt = this.now(); this.choicePending = undefined;
         for (const entry of this.members.values()) entry.applied = 0;
@@ -258,7 +270,8 @@ export class MatchCoordinator {
 
   private interrupt(reason: string) {
     if (this.interrupted) return;
-    this.interrupted = true; this.broadcast('MatchInterrupted', { reason, eventSeq: ++this.eventSeq });
+    this.interrupted = true; this.interruptionReason = reason.slice(0, 160);
+    this.broadcast('MatchInterrupted', { reason: this.interruptionReason, eventSeq: ++this.eventSeq });
   }
 
   private checkMetadata(state: State) {
@@ -284,14 +297,26 @@ export class MatchCoordinator {
     const becamePlaying = !this.playingPublished && !!this.state && !this.barrier && this.state.phase !== 'Finished';
     if (becamePlaying) this.playingPublished = true;
     let completedScores: number[][] | undefined;
+    let interruptedScores: number[][] | undefined;
+    let metrics: MatchMetrics | undefined;
     if (!this.terminalPublished && this.state?.phase === 'Finished' && !this.barrier) {
       this.terminalPublished = true; completedScores = this.state.scores as number[][];
+      metrics = this.metrics();
     }
     let interruptedReason: string | undefined;
     if (!this.terminalPublished && this.interrupted) {
-      this.terminalPublished = true; interruptedReason = 'The match protocol was interrupted.';
+      this.terminalPublished = true; interruptedReason = this.interruptionReason;
+      interruptedScores = this.state?.scores as number[][] | undefined;
+      metrics = this.metrics();
     }
-    return { deliveries, becamePlaying, completedScores, interruptedReason };
+    return { deliveries, becamePlaying, completedScores, interruptedScores, metrics, interruptedReason };
+  }
+
+  private metrics(): MatchMetrics {
+    return { acceptedShots: [...this.acceptedShots], hazardChoices: [...this.hazardChoices],
+      completedHoleCounts: this.match.roster.map((_, index) => this.state
+        ? Math.max(0, this.state.hole - 1) + (this.state.balls[index]?.state === 2 ? 1 : 0) : 0),
+      durationMs: this.startedAt === undefined ? 0 : Math.max(0, this.now() - this.startedAt) };
   }
 }
 

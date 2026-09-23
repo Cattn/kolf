@@ -243,6 +243,13 @@ void CanvasItem::setVelocity(const QPointF& newVelocity)
 	const QPointF currentVelocity = this->velocity();
 	if (newVelocity != currentVelocity)
 	{
+		if (newVelocity.isNull())
+		{
+			// A shot reset must leave no impulse-rounding remainder that could
+			// make a stopped ball roll again on the next physics step.
+			m_body->SetLinearVelocity(b2Vec2(0, 0));
+			return;
+		}
 		const qreal mass = m_body->GetMass();
 		//WARNING: Velocities are NOT scaled. The timestep is scaled, instead.
 		//See where b2World::Step() gets called for more info.

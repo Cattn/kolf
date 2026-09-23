@@ -57,6 +57,11 @@ test('two protocol clients can complete a lobby shell and start a fresh rematch'
   assert.equal(controller.beginPlaying(lobbyId, firstMatchId)[0].message.type, 'MatchStarted');
   const results = controller.finish(lobbyId, firstMatchId, [[2], [3]]);
   assert.equal(results[0].message.type, 'MatchResult');
+  const result = results[0].message.payload.result as any;
+  assert.equal(result.courseName, 'Classic');
+  assert.deepEqual(result.standings.map((row: any) => [row.playerId, row.rank, row.relativeToPar]),
+    [[firstState.players[0].playerId, 1, -1], [stateOf(joined).players[1].playerId, 2, 0]]);
+  assert.deepEqual(result.winnerPlayerIds, [firstState.players[0].playerId]);
   send(controller, alice, envelope('ReturnToLobby', {}, { requestId: 'return_a1', lobbyId, matchId: firstMatchId }));
   const open = send(controller, bob, envelope('ReturnToLobby', {}, { requestId: 'return_b1', lobbyId, matchId: firstMatchId }));
   assert.equal(stateOf(open).phase, 'Open');

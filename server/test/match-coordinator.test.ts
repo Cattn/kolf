@@ -108,6 +108,23 @@ test('remote aim is relayed only for the active owner and cleared when a shot be
   assert.equal(coordinator.receive('member_b', scoped('AimUpdate', aim)).deliveries.length, 0);
 });
 
+test('accepted shot count is idempotent and interruption retains committed partial scores', () => {
+  let now = 1_000;
+  const coordinator = new MatchCoordinator(lobbyState(['member_a', 'member_b']), () => now);
+  open(coordinator, ['member_a', 'member_b'], state(2));
+  const shot = scoped('SubmitShot', { commandId: 'shot_counted', holeGeneration: 1, turnId: 1,
+    playerId: 'player_0', puttingMode: 'normal', directionRadians: 0, launchMagnitude: 1 });
+  coordinator.receive('member_a', shot);
+  coordinator.receive('member_a', scoped('ShotAccepted', { commandId: 'shot_counted' }));
+  coordinator.receive('member_a', scoped('ShotAccepted', { commandId: 'shot_counted' }));
+  now += 1_250;
+  const interrupted = coordinator.receive('member_b', scoped('MatchInterrupted', { reason: 'fixture' }));
+  assert.deepEqual(interrupted.metrics?.acceptedShots, [1, 0]);
+  assert.deepEqual(interrupted.metrics?.hazardChoices, [0, 0]);
+  assert.equal(interrupted.metrics?.durationMs, 1_250);
+  assert.deepEqual(interrupted.interruptedScores, [[0], [0]]);
+});
+
 test('eight-player boundary accepts exact state and rejects a smaller snapshot', () => {
   const owners = ['member_a', 'member_b', 'member_a', 'member_b', 'member_a', 'member_b', 'member_a', 'member_b'];
   const coordinator = new MatchCoordinator(lobbyState(owners));
@@ -118,7 +135,7 @@ test('eight-player boundary accepts exact state and rejects a smaller snapshot',
   invalid.receive('member_a', scoped('SceneReady', { manifestHash: compatibilityId }));
   invalid.receive('member_b', scoped('SceneReady', { manifestHash: compatibilityId }));
   const progress = invalid.receive('member_a', scoped('InitialState', { state: state(7) }));
-  assert.equal(progress.interruptedReason, 'The match protocol was interrupted.');
+  assert.equal(progress.interruptedReason, 'authoritative match protocol failed');
 });
 
 test('a later hole uses its own client-verified scene manifest', () => {

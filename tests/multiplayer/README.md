@@ -50,7 +50,15 @@ cd server
 npm run test:native:rematch
 npm run test:native:four-player
 npm run test:native:hazard
+node ../tests/multiplayer/run-online-native.ts slope-out-of-bounds
+node ../tests/multiplayer/run-online-native.ts slope-in-bounds
 ```
+
+The slope scenarios use the shipped Slope Practice first-hole geometry with
+border walls disabled. They limit each player to one stroke so both owner and
+guest outcomes can be checked in a short native match. The out-of-bounds case
+asserts position reset, one stroke each, turn advance, and completion; the
+in-bounds case asserts forward motion and settlement without snapback.
 
 The native envelope fixture can be run by setting
 `KOLF_ONLINE_PROTOCOL_TESTS` to the absolute path of
