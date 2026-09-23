@@ -62,7 +62,7 @@ works after leaving Online.
 `tests/multiplayer/fixtures/static.kolf` after Craft compile/install/qmerge;
 run directory `server/local-session/online-host-reset-1790182281562`.
 Visible menu, shortcut, confirmation, rolling-ball, three-member/four-player,
-and offline checks: **not run**, source pending the next commit. Automated
+and offline checks: **not run**, reset source `4c9fc23`. Automated
 rematch regression also **passed** in
 `server/local-session/online-two-rematch-1790182072769`.
 
@@ -84,7 +84,7 @@ run directory `server/local-session/online-host-undo-1790191809909`. The host
 undid a settled guest shot; both clients restored the authority's pre-shot
 balls, objects, score, and active turn and then finished. Visible menu,
 shortcut, rolling-ball, three-member/four-player, final Results comparison,
-and offline checks: **not run** on Windows, source pending the next commit.
+and offline checks: **not run** on Windows, Undo source `459e67d`.
 
 ## One Slope Practise visual pass
 
