@@ -66,6 +66,26 @@ and offline checks: **not run**, source pending the next commit. Automated
 rematch regression also **passed** in
 `server/local-session/online-two-rematch-1790182072769`.
 
+## Host undo slice
+
+In a two-client match, leave Host Controls off and confirm **Undo Shot** is
+unavailable. Enable controls, let the guest take a shot and settle, then have
+the owner use **Hole > Undo Shot**. Confirm that both clients show the guest's
+pre-shot ball and object positions, score, and active turn, and that the guest
+can replay the shot. The guest must not be able to invoke Undo. Check that
+Undo is unavailable during rolling, after reset or a hole change, and when no
+settled shot exists. Compare final Results counts with the played shots.
+Repeat the owner-identity check with three members and four players, then
+leave Online and check that offline Undo still works.
+
+**Current result:** automated two-client Undo **passed** on Windows with
+`tests/multiplayer/fixtures/static.kolf` after Craft compile/install/qmerge;
+run directory `server/local-session/online-host-undo-1790191809909`. The host
+undid a settled guest shot; both clients restored the authority's pre-shot
+balls, objects, score, and active turn and then finished. Visible menu,
+shortcut, rolling-ball, three-member/four-player, final Results comparison,
+and offline checks: **not run** on Windows, source pending the next commit.
+
 ## One Slope Practise visual pass
 
 Select **Slope Practise** in the lobby. Before starting, turn on **Hole > Show

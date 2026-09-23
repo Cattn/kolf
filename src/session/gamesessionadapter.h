@@ -17,6 +17,9 @@ public:
     bool shoot(const ShotIntent &intent);
     bool choose(const QString &action);
     bool resetCurrentHole();
+    void rememberUndoCheckpoint(const QJsonObject &state);
+    bool canUndoShot() const;
+    bool undoShot();
     void enableSimulation(bool enabled);
     void enableInput(bool enabled);
     int activeSlot() const;
@@ -43,5 +46,15 @@ private:
     QString m_failure;
     QMap<int, QMap<QString, QString>> m_manifestKinds;
     QMap<int, QString> m_manifestHashes;
+    struct UndoBall {
+        BallStateInfo info;
+        double maxBumperBounceSpeed = 0;
+        double frictionMultiplier = 1;
+        int collisionId = 0;
+    };
+    QJsonObject m_undoState;
+    QVector<UndoBall> m_undoBalls;
+    QMap<QString, QPair<qreal, qreal>> m_undoFloaters;
+    QMap<QString, qreal> m_undoWindmills;
 };
 }

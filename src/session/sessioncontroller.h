@@ -26,6 +26,7 @@ public Q_SLOTS:
     void chooseRehit();
     void setHostControlsEnabled(bool enabled);
     void resetOnlineHole();
+    void undoOnlineShot();
     void setUseMouse(bool enabled);
     void setUseAdvancedPutting(bool enabled);
     void setSound(bool enabled);
@@ -38,7 +39,7 @@ Q_SIGNALS:
     void noticeChanged(const QString &notice);
     void scorecardChanged(const QJsonArray &scores, const QJsonArray &pars, int activePlayer, int currentHole);
     void hazardChoiceChanged(bool available);
-    void hostControlsChanged(bool enabled, bool canToggle, bool canReset);
+    void hostControlsChanged(bool enabled, bool canToggle, bool canReset, bool canUndo);
 
 private:
     void receive(const QJsonObject &message);
@@ -84,8 +85,10 @@ private:
     bool m_hostControlsEnabled = false, m_hostActionPending = false;
     QString m_hostTogglePending;
     QString m_hostResetPending;
+    QString m_hostUndoPending;
     bool m_testFaultScheduled = false;
     bool m_scriptedHostResetDone = false;
+    bool m_scriptedHostUndoDone = false;
     QJsonObject m_pendingMessage;
     QJsonObject m_lastAim;
     QGraphicsPathItem *m_remoteAim = nullptr;

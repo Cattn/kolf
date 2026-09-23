@@ -80,12 +80,12 @@ position and resting ball state, charges the accepted stroke once, and advances
 the turn. Guests receive the resulting committed state; their local presentation
 does not decide whether a shot was out of bounds.
 
-Host Controls currently begin with **Reset Hole**. They start off for every
+Host Controls currently cover **Reset Hole** and **Undo Shot**. They start off for every
 new match and rematch. Only the frozen lobby owner may send `SetHostControls`
 with a command ID, current revision/sync ID, and desired enabled state. The
 service broadcasts `HostControlsChanged`; guests can see the state but cannot
 toggle it. While enabled and input-ready, that owner may send `HostAction`
-with action `resetHole`, the current revision/sync ID, and hole generation.
+with action `resetHole` or `undoShot`, the current revision/sync ID, and hole generation.
 The server rejects guest, stale, duplicate-conflicting, disabled, or busy
 requests with `HostControlRejected` and a readable reason. A valid reset
 broadcasts `HostActionPending`, asks the authority to reload the current hole,
@@ -93,8 +93,14 @@ then publishes one new `AwaitingShot` revision behind the usual all-member
 apply barrier. Its turn and generation both advance, all current-hole scores
 return to zero, the first player starts, and the current hole's accepted-shot
 and hazard-choice counts are removed from Results. A committed reset broadcasts
-`HostActionNotice`. Exact retries do not apply the reset twice. Undo, Skip,
-and Go actions remain disabled online until their transitions are implemented.
+`HostActionNotice`. For Undo, the authority restores a bounded checkpoint taken
+immediately before the most recent accepted shot. The server admits it only
+after that shot settles on the same hole, verifies the pre-shot score and turn,
+and retracts the shot and its hazard choices from Results. Undo advances the
+turn ID but keeps the hole generation; reset clears the checkpoint. Either
+action waits for all members to apply its committed revision before input
+resumes. Exact retries do not apply an action twice. Skip and Go remain
+disabled online until their transitions are implemented.
 
 `MatchResult` contains the frozen course name and roster, per-hole scores and
 par, ordered standings with ranks and ties, totals, relative-to-par where par

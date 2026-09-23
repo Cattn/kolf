@@ -52,6 +52,8 @@ void GameSessionAdapter::enableInput(bool enabled) {
     if (enabled) g->putter->setOrigin(g->curBall()->x(), g->curBall()->y());
 }
 bool GameSessionAdapter::loadHole(int number) {
+    m_undoState = {};
+    m_undoBalls.clear(); m_undoFloaters.clear(); m_undoWindmills.clear();
     enableSimulation(false);
     g->curHole = number;
     g->curPlayer = g->players->begin();
@@ -89,6 +91,84 @@ bool GameSessionAdapter::resetCurrentHole() {
     m_choiceId.clear(); m_choiceSlot = -1; m_failure.clear();
     g->curPlayer = g->players->begin();
     g->curBall()->setVisible(true);
+    return true;
+}
+void GameSessionAdapter::rememberUndoCheckpoint(const QJsonObject &state) {
+    m_undoState = state;
+    m_undoBalls.clear(); m_undoFloaters.clear(); m_undoWindmills.clear();
+    for (const auto &player : std::as_const(*g->players)) {
+        const auto *ball = player.ball();
+        m_undoBalls.append({player.stateInfo(hole()), ball->maxBumperBounceSpeed,
+            ball->frictionMultiplier, ball->m_collisionId});
+    }
+    const auto map = registry();
+    for (auto it = map.cbegin(); it != map.cend(); ++it) {
+        if (const auto *floater = dynamic_cast<Kolf::Floater *>(it.value()))
+            m_undoFloaters.insert(it.key(), {floater->m_position, floater->m_velocity});
+        if (const auto *windmill = dynamic_cast<Kolf::Windmill *>(it.value()))
+            m_undoWindmills.insert(it.key(), windmill->m_velocity);
+    }
+}
+bool GameSessionAdapter::canUndoShot() const {
+    return g->m_role == Role::Authority && !m_undoState.isEmpty()
+        && m_undoState[QStringLiteral("hole")].toInt() == hole()
+        && m_undoState[QStringLiteral("manifestHash")].toString() == manifestHash();
+}
+bool GameSessionAdapter::undoShot() {
+    if (!canUndoShot() || g->inPlay || g->m_onlineShot || m_choiceSlot >= 0
+        || m_undoBalls.size() != g->players->size()) return false;
+    const auto objects = m_undoState[QStringLiteral("objects")].toArray();
+    const auto balls = m_undoState[QStringLiteral("balls")].toArray();
+    const auto scores = m_undoState[QStringLiteral("scores")].toArray();
+    const auto map = registry();
+    if (objects.size() != map.size() || balls.size() != g->players->size() || scores.size() != g->players->size()) return false;
+    const int slot = m_undoState[QStringLiteral("activeSlot")].toInt(-1);
+    if (slot < 0 || slot >= g->players->size()) return false;
+    for (const auto &value : objects) {
+        const auto object = value.toObject();
+        if (!map.contains(object[QStringLiteral("id")].toString())) return false;
+    }
+    enableSimulation(false); enableInput(false);
+    g->paused = true; g->setUpdatesEnabled(false);
+    for (const auto &value : objects) {
+        const auto object = value.toObject();
+        auto *item = map.value(object[QStringLiteral("id")].toString());
+        applyVisual(object, item);
+        if (auto *wall = dynamic_cast<Kolf::Wall *>(item)) {
+            const auto line = object[QStringLiteral("line")].toArray();
+            wall->setLine(QLineF(line[0].toDouble(), line[1].toDouble(), line[2].toDouble(), line[3].toDouble()));
+        }
+        if (auto *floater = dynamic_cast<Kolf::Floater *>(item)) {
+            const auto runtime = m_undoFloaters.value(object[QStringLiteral("id")].toString());
+            floater->m_position = runtime.first; floater->m_velocity = runtime.second;
+        }
+        if (auto *windmill = dynamic_cast<Kolf::Windmill *>(item))
+            windmill->m_velocity = m_undoWindmills.value(object[QStringLiteral("id")].toString());
+    }
+    for (int i = 0; i < g->players->size(); ++i) {
+        auto &player = (*g->players)[i];
+        auto *ball = player.ball();
+        ball->setDoDetect(false); ball->setVelocity(Vector());
+        applyVisual(balls[i].toObject(), ball);
+        ball->setState(m_undoBalls[i].info.state);
+        ball->setBeginningOfHole(m_undoBalls[i].info.beginningOfHole);
+        ball->setForceStillGoing(false); ball->setPlaceOnGround(false); ball->setAddStroke(0);
+        ball->maxBumperBounceSpeed = m_undoBalls[i].maxBumperBounceSpeed;
+        ball->frictionMultiplier = m_undoBalls[i].frictionMultiplier;
+        ball->m_collisionId = m_undoBalls[i].collisionId;
+        ball->setDoDetect(true);
+        QList<int> row; for (const auto score : scores[i].toArray()) row.append(score.toInt());
+        player.setScores(row);
+    }
+    g->curPlayer = g->players->begin() + slot;
+    g->curPar = m_undoState[QStringLiteral("par")].toInt();
+    g->inPlay = g->m_onlineShot = g->dontAddStroke = false;
+    g->putter->resetAngles(); g->putter->setOrigin(g->curBall()->x(), g->curBall()->y());
+    m_scored = false; m_resolutionIndex = 0; m_finished = false;
+    m_choiceId.clear(); m_choiceSlot = -1; m_failure.clear();
+    g->paused = false; g->setUpdatesEnabled(true);
+    enableInput(false);
+    m_undoState = {}; m_undoBalls.clear(); m_undoFloaters.clear(); m_undoWindmills.clear();
     return true;
 }
 QMap<QString, QGraphicsItem *> GameSessionAdapter::registry() const {

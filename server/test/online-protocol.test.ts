@@ -56,6 +56,8 @@ test('host controls require typed match-scoped requests', () => {
   const action = envelope('HostAction', { commandId: 'action_1', stateRevision: 1,
     syncId: 1, holeGeneration: 1, action: 'resetHole' }, scope);
   assert.equal(decodeClientMessage(JSON.stringify(action)).type, 'HostAction');
+  assert.equal(decodeClientMessage(JSON.stringify({ ...action,
+    payload: { ...action.payload, action: 'undoShot' } })).type, 'HostAction');
   assert.throws(() => decodeClientMessage(JSON.stringify({ ...action,
     payload: { ...action.payload, action: 'saveGame' } })), ProtocolError);
   assert.throws(() => decodeClientMessage(JSON.stringify({ ...action,

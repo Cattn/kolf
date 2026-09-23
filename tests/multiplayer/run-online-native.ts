@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
 assert(['two-rematch', 'four-player', 'four-player-hazard', 'custom-course',
-  'slope-out-of-bounds', 'slope-in-bounds', 'host-reset'].includes(scenario),
+  'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo'].includes(scenario),
   'Unknown native scenario');
 const variableRoster = scenario.startsWith('four-player');
 const hazardScenario = scenario === 'four-player-hazard';
@@ -19,7 +19,8 @@ const slopeScenario = scenario.startsWith('slope-');
 const slopeOutOfBounds = scenario === 'slope-out-of-bounds';
 const clientCount = variableRoster ? 3 : 2;
 const matchCount = scenario === 'two-rematch' || scenario === 'custom-course' ? 2 : 1;
-const turnCount = slopeScenario ? 2 : hazardScenario ? 40 : variableRoster ? 8 : scenario === 'host-reset' ? 8 : 4;
+const turnCount = slopeScenario ? 2 : hazardScenario ? 40 : variableRoster ? 8
+  : scenario === 'host-reset' || scenario === 'host-undo' ? 8 : 4;
 const directory = resolve(root, 'server/local-session', `online-${scenario}-${Date.now()}`);
 const joinCodeFile = resolve(directory, 'join-code.txt');
 const course = slopeScenario ? resolve(directory, 'slope-practice-hole-1.kolf')
@@ -115,10 +116,12 @@ try {
       additionalPlayers: variableRoster && client === 0
         ? [{ displayName: 'Owner second ball', color: '#9b59b6ff' }] : [],
       scriptedHostResetTurn: scenario === 'host-reset' && client === 0 ? 3 : undefined,
+      scriptedHostUndoTurn: scenario === 'host-undo' && client === 0 ? 3 : undefined,
       scriptedHazardAction: hazardScenario ? 'rehit' : undefined,
       scriptedShots: Array.from({ length: turnCount }, (_, turn) => ({
         directionRadians: slopeOutOfBounds ? Math.PI : 0,
-        launchMagnitude: slopeOutOfBounds ? 6.5 : scenario === 'host-reset' && turn < 2 ? 0.4 : 1.8,
+        launchMagnitude: slopeOutOfBounds ? 6.5
+          : (scenario === 'host-reset' || scenario === 'host-undo') && turn < 2 ? 0.4 : 1.8,
         advanced: turn % 2 === 1,
       })),
     };
@@ -183,6 +186,28 @@ try {
     assert.equal(authority.activeSlot, 0, 'reset restored first player turn');
     assert.equal(authority.turnId, 4, 'reset invalidated the prior turn');
     assert.deepEqual(resetStates[1][0].state, authority, 'guest reconciled exactly to reset state');
+  }
+  if (scenario === 'host-undo') {
+    const applied = Array.from({ length: clientCount }, (_, client) =>
+      events(sessionDirectories(client)[0]).filter(event => event.event === 'applied'
+        && event.state?.hole === 1 && event.state?.phase === 'AwaitingShot'));
+    const checkpoints = events(sessionDirectories(0)[0]).filter(event => event.event === 'undoCheckpoint');
+    assert(checkpoints.length >= 2, 'authority captured both opening shots');
+    const guestShot = checkpoints.find(event => event.state?.activeSlot === 1)?.state;
+    assert(guestShot, 'authority captured the guest pre-shot state');
+    for (const states of applied) {
+      const before = states.find(event => event.state.turnId === 2)?.state;
+      const after = states.find(event => event.state.turnId === 4)?.state;
+      assert(before && after, 'each client applied the guest pre-shot and host undo states');
+      assert.equal(after.holeGeneration, 1, 'undo remained on the same hole generation');
+      assert.equal(after.activeSlot, 1, 'undo returned input to the guest');
+      assert.deepEqual(after.scores, before.scores, 'undo restored pre-shot scores');
+      assert.deepEqual(after.balls, guestShot.balls, 'undo restored pre-shot balls');
+      assert.deepEqual(after.objects, guestShot.objects, 'undo restored pre-shot objects');
+    }
+    assert.deepEqual(applied[1].find(event => event.state.turnId === 4)?.state,
+      applied[0].find(event => event.state.turnId === 4)?.state,
+      'guest reconciled exactly to the authority undo state');
   }
   if (slopeScenario) for (let client = 0; client < clientCount; ++client) {
     const committed = events(sessionDirectories(client)[0]).filter(event =>

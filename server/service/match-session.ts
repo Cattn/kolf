@@ -55,7 +55,8 @@ export class MatchCoordinator {
   private holeShotBaseline: number[];
   private holeHazardBaseline: number[];
   private hostControlsEnabled = false;
-  private hostAction?: { commandId: string; action: 'resetHole'; memberId: MemberId };
+  private hostAction?: { commandId: string; action: 'resetHole' | 'undoShot'; memberId: MemberId };
+  private undoCandidate?: { state: State; acceptedShots: number[]; hazardChoices: number[]; settled: boolean };
   private hostCommands = new Map<string, { key: string; memberId: MemberId; status: Envelope }>();
 
   get matchId() { return this.match.matchId; }
@@ -141,11 +142,15 @@ export class MatchCoordinator {
           this.broadcastEnvelope(status);
           return;
         }
-        if (action !== 'resetHole' || !integer(p.holeGeneration, 1)
+        if ((action !== 'resetHole' && action !== 'undoShot') || !integer(p.holeGeneration, 1)
           || p.holeGeneration !== this.state?.holeGeneration) return deny('invalid host action or hole generation');
         if (!this.hostControlsEnabled) return deny('host controls are off');
         if (!this.state || this.barrier || this.pending || this.hostAction || this.state.phase !== 'AwaitingShot')
           return deny('match is busy');
+        if (action === 'undoShot' && (!this.undoCandidate?.settled
+          || this.undoCandidate.state.hole !== this.state.hole
+          || this.undoCandidate.state.holeGeneration !== this.state.holeGeneration))
+          return deny('no settled shot to undo on this hole');
         this.hostAction = { commandId: p.commandId, action, memberId };
         this.barrier = true; this.barrierPublished = false; this.pendingAt = this.now();
         for (const entry of this.members.values()) entry.applied = 0;
@@ -205,7 +210,11 @@ export class MatchCoordinator {
         if (admission.status.type === message.type) return;
         admission.status = envelope(message.type, { commandId: p.commandId, reason: p.reason },
           { lobbyId: this.lobbyId, matchId: this.match.matchId });
-        if (message.type === 'ShotAccepted') this.acceptedShots[this.playersById.get(admission.playerId)!.engineIndex]++;
+        if (message.type === 'ShotAccepted') {
+          this.undoCandidate = { state: this.state!, acceptedShots: [...this.acceptedShots],
+            hazardChoices: [...this.hazardChoices], settled: false };
+          this.acceptedShots[this.playersById.get(admission.playerId)!.engineIndex]++;
+        }
         this.broadcastEnvelope(admission.status);
         if (message.type === 'ShotRejected') this.pending = undefined;
         return;
@@ -229,7 +238,15 @@ export class MatchCoordinator {
             AwaitingHazardChoice: ['AwaitingHazardChoice', 'Simulating', 'AwaitingShot', 'Finished'], Finished: [],
           };
           const hostReset = !!this.hostAction && this.hostAction.action === 'resetHole';
-          if (hostReset ? (this.state.phase !== 'AwaitingShot' || next.phase !== 'AwaitingShot'
+          const hostUndo = !!this.hostAction && this.hostAction.action === 'undoShot';
+          const checkpoint = this.undoCandidate?.state;
+          if (hostUndo ? (!this.undoCandidate?.settled || !checkpoint
+            || this.state.phase !== 'AwaitingShot' || next.phase !== 'AwaitingShot'
+            || next.hole !== checkpoint.hole || next.activeSlot !== checkpoint.activeSlot
+            || next.manifestHash !== checkpoint.manifestHash || next.courseHash !== checkpoint.courseHash
+            || next.par !== checkpoint.par || next.holeGeneration !== checkpoint.holeGeneration
+            || JSON.stringify(next.scores) !== JSON.stringify(checkpoint.scores))
+            : hostReset ? (this.state.phase !== 'AwaitingShot' || next.phase !== 'AwaitingShot'
             || next.hole !== this.state.hole || next.activeSlot !== 0
             || next.manifestHash !== this.state.manifestHash || next.courseHash !== this.state.courseHash
             || next.par !== this.state.par || next.scores.some((row: number[], index: number) =>
@@ -246,8 +263,12 @@ export class MatchCoordinator {
         if (this.state?.phase === 'AwaitingHazardChoice' && this.choicePending)
           this.hazardChoices[this.state.choiceSlot]++;
         if (this.hostAction) {
-          this.acceptedShots.splice(0, this.acceptedShots.length, ...this.holeShotBaseline);
-          this.hazardChoices.splice(0, this.hazardChoices.length, ...this.holeHazardBaseline);
+          const counts = this.hostAction.action === 'undoShot' ? this.undoCandidate : undefined;
+          this.acceptedShots.splice(0, this.acceptedShots.length,
+            ...(counts?.acceptedShots ?? this.holeShotBaseline));
+          this.hazardChoices.splice(0, this.hazardChoices.length,
+            ...(counts?.hazardChoices ?? this.holeHazardBaseline));
+          this.undoCandidate = undefined;
           const { commandId, action } = this.hostAction;
           this.hostAction = undefined;
           const notice = envelope('HostActionNotice', { commandId, action, hole: next.hole },
@@ -255,8 +276,11 @@ export class MatchCoordinator {
           this.hostCommands.get(commandId)!.status = notice;
           this.broadcastEnvelope(notice);
         } else if (this.state && next.hole !== this.state.hole) {
+          this.undoCandidate = undefined;
           this.holeShotBaseline = [...this.acceptedShots];
           this.holeHazardBaseline = [...this.hazardChoices];
+        } else if (next.phase === 'AwaitingShot' && this.undoCandidate) {
+          this.undoCandidate.settled = true;
         }
         this.state = next; this.lastCommit = key; this.lastFrame = 0; this.lastAimAt = 0; this.queuedResync = false;
         this.barrier = true; this.barrierPublished = true; ++this.syncId; this.pendingAt = this.now(); this.choicePending = undefined;

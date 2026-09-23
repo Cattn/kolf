@@ -248,6 +248,8 @@ void KolfWindow::showOnline()
 	onlineModeActive = true;
 	if (game)
 		disconnect(resetHoleAction, &QAction::triggered, game, &KolfGame::resetHole);
+	if (game)
+		disconnect(undoShotAction, &QAction::triggered, game, &KolfGame::undoShot);
 	offlineActionStates.clear();
 	const QList<QAction *> offlineActions{
 		editingAction, newHoleAction, resetHoleAction, undoShotAction, clearHoleAction,
@@ -280,6 +282,8 @@ void KolfWindow::leaveOnline()
 		it.key()->setEnabled(it.value());
 	if (game)
 		connect(resetHoleAction, &QAction::triggered, game, &KolfGame::resetHole, Qt::UniqueConnection);
+	if (game)
+		connect(undoShotAction, &QAction::triggered, game, &KolfGame::undoShot, Qt::UniqueConnection);
 	offlineActionStates.clear();
 	onlineAction->setEnabled(true);
 	if (offlineGamePausedForOnline && game) {
@@ -366,15 +370,19 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 	}
 	onlineHostControls->setEnabled(false);
 	resetHoleAction->setEnabled(false);
+	undoShotAction->setEnabled(false);
 	connect(onlineHostControls, &QCheckBox::toggled, onlineMatchController,
 		&Kolf::Session::SessionController::setHostControlsEnabled);
 	connect(onlineMatchController, &Kolf::Session::SessionController::hostControlsChanged, this,
-		[this](bool enabled, bool canToggle, bool canReset) {
+		[this](bool enabled, bool canToggle, bool canReset, bool canUndo) {
 			const QSignalBlocker blocker(onlineHostControls);
 			onlineHostControls->setChecked(enabled);
 			onlineHostControls->setEnabled(canToggle);
 			resetHoleAction->setEnabled(canReset);
+			undoShotAction->setEnabled(canUndo);
 		});
+	connect(undoShotAction, &QAction::triggered, onlineMatchController,
+		&Kolf::Session::SessionController::undoOnlineShot);
 	connect(resetHoleAction, &QAction::triggered, onlineMatchController, [this] {
 		if (KMessageBox::warningTwoActions(this,
 			i18n("Reset this hole? Every player's strokes and score on this hole will be cleared."),
@@ -430,7 +438,7 @@ void KolfWindow::finishOnlineMatch()
 		onlineHostControls->setChecked(false);
 		onlineHostControls->setEnabled(false);
 	}
-	if (onlineModeActive) resetHoleAction->setEnabled(false);
+	if (onlineModeActive) { resetHoleAction->setEnabled(false); undoShotAction->setEnabled(false); }
 	if (onlineNoticeLabel) onlineNoticeLabel->hide();
 	updateOnlineHazardActions(false);
 	delete onlineMatchController;

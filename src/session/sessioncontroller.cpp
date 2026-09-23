@@ -235,12 +235,18 @@ void SessionController::receive(const QJsonObject &message) {
             m_scriptedHostResetDone = true;
             resetOnlineHole();
         }
+        if (m_role == Role::Authority && m_hostControlsEnabled && !m_scriptedHostUndoDone
+            && m_config[QStringLiteral("scriptedHostUndoTurn")].toInt() == m_turn && m_ready) {
+            m_scriptedHostUndoDone = true;
+            undoOnlineShot();
+        }
         return;
     }
     if (type == QLatin1String("HostControlRejected")) {
         const auto commandId = m[QStringLiteral("commandId")].toString();
         if (commandId == m_hostTogglePending) m_hostTogglePending.clear();
         if (commandId == m_hostResetPending) m_hostResetPending.clear();
+        if (commandId == m_hostUndoPending) m_hostUndoPending.clear();
         Q_EMIT noticeChanged(tr("Host control rejected: %1").arg(m[QStringLiteral("reason")].toString()));
         refresh(); return;
     }
@@ -249,17 +255,25 @@ void SessionController::receive(const QJsonObject &message) {
         refresh(); return;
     }
     if (type == QLatin1String("HostActionNotice")) {
-        Q_EMIT noticeChanged(tr("Host reset Hole %1. Current-hole scores were cleared.").arg(m[QStringLiteral("hole")].toInt()));
+        Q_EMIT noticeChanged(m[QStringLiteral("action")] == QLatin1String("undoShot")
+            ? tr("Host undid the last shot on Hole %1.").arg(m[QStringLiteral("hole")].toInt())
+            : tr("Host reset Hole %1. Current-hole scores were cleared.").arg(m[QStringLiteral("hole")].toInt()));
         return;
     }
     if (type == QLatin1String("AdmitHostAction") && m_role == Role::Authority) {
-        if (!m_hostActionPending || !m_hostControlsEnabled || m[QStringLiteral("action")] != QLatin1String("resetHole")
+        const auto action = m[QStringLiteral("action")].toString();
+        if (!m_hostActionPending || !m_hostControlsEnabled
+            || (action != QLatin1String("resetHole") && action != QLatin1String("undoShot"))
             || m[QStringLiteral("stateRevision")].toInt() != m_revision || m[QStringLiteral("syncId")].toInt() != m_syncId
             || m[QStringLiteral("holeGeneration")].toInt() != m_generation || m_phase != QLatin1String("AwaitingShot")) {
             interrupt(QStringLiteral("Invalid admitted host action")); return;
         }
-        if (!m_adapter->resetCurrentHole()) { interrupt(QStringLiteral("Host reset could not be applied")); return; }
-        ++m_generation;
+        if (action == QLatin1String("undoShot")) {
+            if (!m_adapter->undoShot()) { interrupt(QStringLiteral("Host undo could not be applied")); return; }
+        } else {
+            if (!m_adapter->resetCurrentHole()) { interrupt(QStringLiteral("Host reset could not be applied")); return; }
+            ++m_generation;
+        }
         commit(QStringLiteral("AwaitingShot")); return;
     }
     if (type == QLatin1String("AimClear")) { clearRemoteAim(); return; }
@@ -274,6 +288,11 @@ void SessionController::receive(const QJsonObject &message) {
             send(QStringLiteral("ShotAccepted"), {{QStringLiteral("commandId"), c.commandId}}); return;
         }
         const bool valid = m_phase == QLatin1String("AwaitingShot") && c.turnId == m_turn && c.holeGeneration == m_generation && c.playerSlot == m_adapter->activeSlot();
+        if (valid) {
+            const auto checkpoint = state();
+            m_adapter->rememberUndoCheckpoint(checkpoint);
+            log(QStringLiteral("undoCheckpoint"), {{QStringLiteral("state"), checkpoint}});
+        }
         if (!valid || !m_adapter->shoot(c.intent)) {
             const auto reason = valid ? m_adapter->failure() : QStringLiteral("engine state changed");
             send(QStringLiteral("ShotRejected"), {{QStringLiteral("commandId"), c.commandId}, {QStringLiteral("reason"), reason}});
@@ -344,7 +363,7 @@ void SessionController::receive(const QJsonObject &message) {
         m_revision = revision; m_generation = generation; m_turn = s[QStringLiteral("turnId")].toInt();
         m_syncId = syncId;
         m_phase = s[QStringLiteral("phase")].toString(); m_choiceId = s[QStringLiteral("choiceId")].toString(); m_choiceSlot = s[QStringLiteral("choiceSlot")].toInt(-1);
-        if (!frame) { m_hostActionPending = false; m_hostResetPending.clear(); }
+        if (!frame) { m_hostActionPending = false; m_hostResetPending.clear(); m_hostUndoPending.clear(); }
         if (frame) m_receivedFrame = m[QStringLiteral("frameSeq")].toInt();
         else {
             m_receivedFrame = 0; m_ready = false; m_awaitingResync = false;
@@ -389,6 +408,11 @@ void SessionController::receive(const QJsonObject &message) {
         // Development-only scripted canonical intents, read locally; never accepted as setup commands over the network.
         if (m_role == Role::Authority && m_phase == QLatin1String("AwaitingShot")
             && !m_scriptedHostResetDone && m_config[QStringLiteral("scriptedHostResetTurn")].toInt() == m_turn) {
+            setHostControlsEnabled(true);
+            return;
+        }
+        if (m_role == Role::Authority && m_phase == QLatin1String("AwaitingShot")
+            && !m_scriptedHostUndoDone && m_config[QStringLiteral("scriptedHostUndoTurn")].toInt() == m_turn) {
             setHostControlsEnabled(true);
             return;
         }
@@ -457,7 +481,9 @@ void SessionController::refresh() {
         && m_phase == QLatin1String("AwaitingShot") && m_pending.isEmpty() && !m_hostActionPending
         && m_hostTogglePending.isEmpty();
     Q_EMIT hostControlsChanged(m_hostControlsEnabled, canHostToggle,
-        canHostToggle && m_hostControlsEnabled && m_hostResetPending.isEmpty());
+        canHostToggle && m_hostControlsEnabled && m_hostResetPending.isEmpty() && m_hostUndoPending.isEmpty(),
+        canHostToggle && m_hostControlsEnabled && m_hostUndoPending.isEmpty() && m_hostResetPending.isEmpty()
+            && m_adapter->canUndoShot());
     while (m_pars.size() < m_adapter->hole()) m_pars.append(0);
     m_pars[m_adapter->hole() - 1] = m_adapter->par();
     QJsonArray scores;
@@ -498,7 +524,8 @@ void SessionController::setHostControlsEnabled(bool enabled)
 {
     if (m_role != Role::Authority || !m_adapter || !m_ready || m_interrupted
         || m_phase != QLatin1String("AwaitingShot") || !m_pending.isEmpty()
-        || m_hostActionPending || !m_hostTogglePending.isEmpty() || enabled == m_hostControlsEnabled) return;
+        || m_hostActionPending || !m_hostTogglePending.isEmpty() || !m_hostResetPending.isEmpty()
+        || !m_hostUndoPending.isEmpty() || enabled == m_hostControlsEnabled) return;
     m_hostTogglePending = QUuid::createUuid().toString(QUuid::WithoutBraces);
     send(QStringLiteral("SetHostControls"), {{QStringLiteral("commandId"), m_hostTogglePending},
         {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
@@ -510,11 +537,23 @@ void SessionController::resetOnlineHole()
 {
     if (m_role != Role::Authority || !m_adapter || !m_ready || m_interrupted || !m_hostControlsEnabled
         || m_phase != QLatin1String("AwaitingShot") || !m_pending.isEmpty()
-        || m_hostActionPending || !m_hostResetPending.isEmpty()) return;
+        || m_hostActionPending || !m_hostResetPending.isEmpty() || !m_hostUndoPending.isEmpty()) return;
     m_hostResetPending = QUuid::createUuid().toString(QUuid::WithoutBraces);
     send(QStringLiteral("HostAction"), {{QStringLiteral("commandId"), m_hostResetPending},
         {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
         {QStringLiteral("holeGeneration"), m_generation}, {QStringLiteral("action"), QStringLiteral("resetHole")}});
+    refresh();
+}
+
+void SessionController::undoOnlineShot()
+{
+    if (m_role != Role::Authority || !m_adapter || !m_ready || m_interrupted || !m_hostControlsEnabled
+        || m_phase != QLatin1String("AwaitingShot") || !m_pending.isEmpty() || !m_adapter->canUndoShot()
+        || m_hostActionPending || !m_hostResetPending.isEmpty() || !m_hostUndoPending.isEmpty()) return;
+    m_hostUndoPending = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    send(QStringLiteral("HostAction"), {{QStringLiteral("commandId"), m_hostUndoPending},
+        {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
+        {QStringLiteral("holeGeneration"), m_generation}, {QStringLiteral("action"), QStringLiteral("undoShot")}});
     refresh();
 }
 

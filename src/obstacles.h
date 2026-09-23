@@ -30,6 +30,7 @@
 
 class QCheckBox;
 class QGridLayout;
+namespace Kolf::Session { class GameSessionAdapter; }
 
 namespace Kolf
 {
@@ -179,6 +180,7 @@ namespace Kolf
 		protected:
 			Kolf::Overlay* createOverlay() override;
 		private:
+			friend class Kolf::Session::GameSessionAdapter;
 			void setMlPosition(qreal position);
 
 			QLineF m_motionLine;
@@ -242,6 +244,7 @@ namespace Kolf
 		protected:
 			void updateWallPosition() override;
 		private:
+			friend class Kolf::Session::GameSessionAdapter;
 			Kolf::Wall* m_leftWall;
 			Kolf::Wall* m_rightWall;
 			Kolf::Wall* m_guardWall;
