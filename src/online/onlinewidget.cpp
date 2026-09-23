@@ -108,7 +108,6 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     connectForm->addRow(i18nc("@label", "Server address:"), m_endpoint);
     serverLayout->addLayout(connectForm);
     connectLayout->addWidget(m_serverControls);
-    m_serverControls->hide();
     m_connectStatus = new QLabel(i18n("Choose a server to play online."), connectPage);
     m_connectStatus->setWordWrap(true);
     connectLayout->addWidget(m_connectStatus);
@@ -147,8 +146,11 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     m_entryStatus = new QLabel(i18n("Create a lobby or enter a friend's join code."), entryPage);
     m_entryStatus->setWordWrap(true);
     entryLayout->addWidget(m_entryStatus);
-    auto *entryDisconnect = new QPushButton(i18nc("@action:button", "Disconnect"), entryPage);
-    entryLayout->addStretch(); entryLayout->addWidget(entryDisconnect);
+    auto *entryChangeServer = new QPushButton(i18nc("@action:button", "Change Server"), entryPage);
+    auto *entryLeave = new QPushButton(i18nc("@action:button", "Leave Online"), entryPage);
+    auto *entryButtons = new QHBoxLayout;
+    entryButtons->addWidget(entryChangeServer); entryButtons->addStretch(); entryButtons->addWidget(entryLeave);
+    entryLayout->addStretch(); entryLayout->addLayout(entryButtons);
     m_pages->addWidget(entryPage);
 
     auto *lobbyPage = new QWidget(this);
@@ -185,9 +187,11 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     columns->addLayout(setupColumn, 1);
     lobbyLayout->addLayout(columns, 1);
     auto *lobbyButtons = new QHBoxLayout;
-    auto *lobbyDisconnect = new QPushButton(i18nc("@action:button", "Disconnect"), lobbyPage);
+    auto *lobbyChangeServer = new QPushButton(i18nc("@action:button", "Change Server"), lobbyPage);
+    auto *lobbyLeave = new QPushButton(i18nc("@action:button", "Leave Online"), lobbyPage);
     m_ready = new QPushButton(lobbyPage); m_start = new QPushButton(i18nc("@action:button", "Start"), lobbyPage);
-    lobbyButtons->addWidget(lobbyDisconnect); lobbyButtons->addStretch(); lobbyButtons->addWidget(m_ready); lobbyButtons->addWidget(m_start);
+    lobbyButtons->addWidget(lobbyChangeServer); lobbyButtons->addWidget(lobbyLeave);
+    lobbyButtons->addStretch(); lobbyButtons->addWidget(m_ready); lobbyButtons->addWidget(m_start);
     lobbyLayout->addLayout(lobbyButtons);
     m_pages->addWidget(lobbyPage);
 
@@ -197,9 +201,10 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     auto *resultButtons = new QHBoxLayout;
     auto *rematchButton = new QPushButton(i18nc("@action:button", "Rematch"), resultsPage);
     auto *returnButton = new QPushButton(i18nc("@action:button", "Return to Lobby"), resultsPage);
+    auto *resultsChangeServer = new QPushButton(i18nc("@action:button", "Change Server"), resultsPage);
     auto *resultsLeave = new QPushButton(i18nc("@action:button", "Leave Online"), resultsPage);
     resultButtons->addWidget(rematchButton); resultButtons->addWidget(returnButton);
-    resultButtons->addStretch(); resultButtons->addWidget(resultsLeave);
+    resultButtons->addStretch(); resultButtons->addWidget(resultsChangeServer); resultButtons->addWidget(resultsLeave);
     resultsLayout->addLayout(resultButtons);
     m_pages->addWidget(resultsPage);
 
@@ -218,9 +223,6 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         if (m_connectionState != ConnectionState::Connecting) setConnectionState(m_connectionState);
     });
     connect(cancelButton, &QPushButton::clicked, this, [this] {
-        m_connectTimeout->stop();
-        m_coordinator.disconnectFromService();
-        setConnectionState(ConnectionState::Disconnected);
         Q_EMIT leaveRequested();
     });
     connect(m_connectTimeout, &QTimer::timeout, this, [this] {
@@ -243,14 +245,10 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         savePreferences(); m_coordinator.joinLobby(m_joinCode->text(), m_profile->playerName(),
             m_profile->colorMode(), m_profile->customColor());
     });
-    connect(entryDisconnect, &QPushButton::clicked, this, [this] {
-        m_coordinator.disconnectFromService();
-        Q_EMIT leaveRequested();
-    });
-    connect(lobbyDisconnect, &QPushButton::clicked, this, [this] {
-        m_coordinator.disconnectFromService();
-        Q_EMIT leaveRequested();
-    });
+    connect(entryChangeServer, &QPushButton::clicked, this, &OnlineWidget::changeServer);
+    connect(lobbyChangeServer, &QPushButton::clicked, this, &OnlineWidget::changeServer);
+    connect(entryLeave, &QPushButton::clicked, this, &OnlineWidget::leaveRequested);
+    connect(lobbyLeave, &QPushButton::clicked, this, &OnlineWidget::leaveRequested);
     connect(m_ready, &QPushButton::clicked, this, [this] {
         bool ready = false;
         for (const auto &value : m_state.value(QStringLiteral("members")).toArray()) {
@@ -298,8 +296,9 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     connect(returnButton, &QPushButton::clicked, this, [this] {
         m_rematchRequested = false; m_coordinator.returnToLobby();
     });
+    connect(resultsChangeServer, &QPushButton::clicked, this, &OnlineWidget::changeServer);
     connect(resultsLeave, &QPushButton::clicked, this, [this] {
-        m_rematchRequested = false; m_coordinator.disconnectFromService(); Q_EMIT leaveRequested();
+        Q_EMIT leaveRequested();
     });
     connect(&m_coordinator, &OnlineCoordinator::connected, this, [this] {
         setConnectionState(ConnectionState::Connecting, i18n("Verifying the server…"));
@@ -321,8 +320,18 @@ OnlineWidget::OnlineWidget(QWidget *parent)
             Q_EMIT matchEnded();
         }
         m_connectTimeout->stop();
+        m_state = {};
+        m_result->clear();
+        m_joinCode->clear();
+        m_rematchRequested = m_rematchReadySent = m_rematchStartSent = false;
         m_entryRequestPending = false;
         m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
+        if (m_disconnectRequested) {
+            m_disconnectRequested = false;
+            setConnectionState(ConnectionState::Disconnected);
+            m_pages->setCurrentIndex(0);
+            return;
+        }
         if (m_connectionState != ConnectionState::Failed)
             setConnectionState(ConnectionState::Failed, i18n("The connection closed. Retry or choose another server."));
         m_pages->setCurrentIndex(0);
@@ -375,12 +384,35 @@ void OnlineWidget::enterOnline()
 {
     if (!m_automation.isEmpty()) return;
     m_pages->setCurrentIndex(0);
-    if (!m_endpoint->text().trimmed().isEmpty()) {
-        beginConnection();
-    } else {
-        setConnectionState(ConnectionState::Disconnected, i18n("Choose a private server to play online."));
-        m_serverControls->show();
+    setConnectionState(m_disconnectRequested ? ConnectionState::Disconnecting : ConnectionState::Disconnected,
+        m_endpoint->text().trimmed().isEmpty() ? i18n("Choose a private server to play online.") : QString());
+}
+
+void OnlineWidget::changeServer()
+{
+    m_connectTimeout->stop();
+    if (m_matchActive) {
+        m_matchActive = false;
+        Q_EMIT matchEnded();
     }
+    m_state = {};
+    m_result->clear();
+    m_joinCode->clear();
+    m_createCourse->clear();
+    m_lobbyCourse->clear();
+    m_entryRequestPending = false;
+    m_rematchRequested = m_rematchReadySent = m_rematchStartSent = false;
+    m_createButton->setEnabled(true);
+    m_joinButton->setEnabled(true);
+    m_pages->setCurrentIndex(0);
+    m_disconnectRequested = true;
+    setConnectionState(ConnectionState::Disconnecting);
+    m_coordinator.disconnectFromService();
+    if (m_disconnectRequested && m_coordinator.networkClient()->isDisconnected()) {
+        m_disconnectRequested = false;
+        setConnectionState(ConnectionState::Disconnected);
+    }
+    m_endpoint->setFocus();
 }
 
 void OnlineWidget::setConnectionState(ConnectionState state, const QString &message)
@@ -398,18 +430,21 @@ void OnlineWidget::setConnectionState(ConnectionState state, const QString &mess
         : i18n("Server: %1 (%2)%3", friendlyName.isEmpty() ? i18n("Private server") : friendlyName, address,
             plaintextRemote ? i18n(" (unencrypted; use only on a trusted network)") : QString()));
     m_connectStatus->setText(!message.isEmpty() ? message : state == ConnectionState::Connecting ? i18n("Connecting…")
+        : state == ConnectionState::Disconnecting ? i18n("Disconnecting…")
         : state == ConnectionState::Failed ? i18n("Connection failed. Retry or change server.")
         : state == ConnectionState::Connected ? i18n("Connected.") : i18n("Ready to connect."));
-    m_connectButton->setEnabled(state != ConnectionState::Connecting && !address.isEmpty());
+    m_connectButton->setEnabled(state != ConnectionState::Connecting && state != ConnectionState::Disconnecting && !address.isEmpty());
     m_connectButton->setText(state == ConnectionState::Failed ? i18nc("@action:button", "Retry")
         : i18nc("@action:button", "Connect"));
-    m_changeServerButton->setEnabled(state != ConnectionState::Connecting);
-    m_endpoint->setEnabled(state != ConnectionState::Connecting);
+    m_changeServerButton->setEnabled(state != ConnectionState::Connecting && state != ConnectionState::Disconnecting);
+    m_endpoint->setEnabled(state != ConnectionState::Connecting && state != ConnectionState::Disconnecting);
+    m_recentServers->setEnabled(state != ConnectionState::Connecting && state != ConnectionState::Disconnecting);
 }
 
 void OnlineWidget::beginConnection()
 {
-    if (m_connectionState == ConnectionState::Connecting) return;
+    if (m_connectionState == ConnectionState::Connecting || m_connectionState == ConnectionState::Disconnecting
+        || m_endpoint->text().trimmed().isEmpty()) return;
     setConnectionState(ConnectionState::Connecting);
     m_connectTimeout->start();
     m_coordinator.connectToService(m_endpoint->text());
@@ -767,9 +802,12 @@ void OnlineWidget::leaveOnline()
         m_matchActive = false;
         Q_EMIT matchEnded();
     }
+    m_disconnectRequested = true;
     m_coordinator.disconnectFromService();
+    if (m_coordinator.networkClient()->isDisconnected()) m_disconnectRequested = false;
     m_state = {};
-    setConnectionState(ConnectionState::Disconnected);
+    m_rematchRequested = m_rematchReadySent = m_rematchStartSent = false;
+    setConnectionState(m_disconnectRequested ? ConnectionState::Disconnecting : ConnectionState::Disconnected);
     m_pages->setCurrentIndex(0);
 }
 

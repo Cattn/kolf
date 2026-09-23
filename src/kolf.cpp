@@ -305,6 +305,29 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 		hazardLayout->addWidget(onlineRehitButton);
 		onlineGameLayout->addWidget(onlineHazardPanel);
 		onlineHazardPanel->hide();
+		auto *onlineNavigation = new QHBoxLayout;
+		auto *changeServerButton = new QPushButton(i18nc("@action:button", "Change Server"), onlineGamePage);
+		auto *leaveOnlineButton = new QPushButton(i18nc("@action:button", "Leave Online"), onlineGamePage);
+		onlineNavigation->addStretch();
+		onlineNavigation->addWidget(changeServerButton);
+		onlineNavigation->addWidget(leaveOnlineButton);
+		onlineGameLayout->addLayout(onlineNavigation);
+		connect(changeServerButton, &QPushButton::clicked, this, [this] {
+			if (KMessageBox::warningTwoActions(this,
+				i18n("Leaving this online match will interrupt it for everyone. Change server?"),
+				i18nc("@title:window", "Change Server?"),
+				KGuiItem(i18nc("@action:button", "Change Server")), KStandardGuiItem::cancel())
+				== KMessageBox::PrimaryAction)
+				onlineWidget->changeServer();
+		});
+		connect(leaveOnlineButton, &QPushButton::clicked, this, [this] {
+			if (KMessageBox::warningTwoActions(this,
+				i18n("Leaving this online match will interrupt it for everyone. Leave Online?"),
+				i18nc("@title:window", "Leave Online?"),
+				KGuiItem(i18nc("@action:button", "Leave Online")), KStandardGuiItem::cancel())
+				== KMessageBox::PrimaryAction)
+				leaveOnline();
+		});
 		applicationStack->addWidget(onlineGamePage);
 	}
 

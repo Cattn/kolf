@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
+#include <QAbstractSocket>
 #include <QElapsedTimer>
 #include <QJsonObject>
 #include <QObject>
@@ -14,6 +15,7 @@ public:
     void open(const QUrl &url, const QJsonObject &initialMessage = {});
     void send(const QJsonObject &message, bool visual = false);
     void close();
+    bool isDisconnected() const { return m_socket.state() == QAbstractSocket::UnconnectedState; }
     qint64 bufferedBytes() const { return m_socket.bytesToWrite(); }
     quint64 coalescedFrames() const { return m_coalesced; }
 Q_SIGNALS:

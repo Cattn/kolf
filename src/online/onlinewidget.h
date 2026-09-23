@@ -26,6 +26,7 @@ public:
     void startAutomation(const QJsonObject &config);
     void leaveOnline();
     void enterOnline();
+    void changeServer();
     Net::NetworkClient *networkClient() { return m_coordinator.networkClient(); }
 
 Q_SIGNALS:
@@ -35,7 +36,7 @@ Q_SIGNALS:
     void statusChanged(const QString &status);
 
 private:
-    enum class ConnectionState { Disconnected, Connecting, Connected, InLobby, InMatch, Failed };
+    enum class ConnectionState { Disconnected, Connecting, Disconnecting, Connected, InLobby, InMatch, Failed };
     void showEntry();
     void showLobby(const QJsonObject &state);
     void showResults(const QJsonObject &state);
@@ -87,6 +88,7 @@ private:
     bool m_rematchReadySent = false;
     bool m_rematchStartSent = false;
     bool m_entryRequestPending = false;
+    bool m_disconnectRequested = false;
     ConnectionState m_connectionState = ConnectionState::Disconnected;
 };
 }

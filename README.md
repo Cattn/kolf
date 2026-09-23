@@ -6,8 +6,11 @@ online multiplayer mode alongside the existing local game.
 For a private online service, set `KOLF_ONLINE_DEFAULT_ENDPOINT` to its `wss://`
 or `ws://` address before launching Kolf. You may also set
 `KOLF_ONLINE_DEFAULT_SERVER_NAME` for a friendly label. Kolf remembers the last
-server that connected successfully and reconnects when Online is opened again.
-Without a configured or saved server, Online prompts for an address. Use remote
+server that connected successfully and preselects it when Online is opened again.
+Choose **Connect** to join it, or choose another recent server or edit the address.
+**Change Server** returns to the Connect page from the connected entry, lobby,
+game, or Results; **Leave Online** returns to the paused local game. Without a
+configured or saved server, Online prompts for an address. Use remote
 `ws://` addresses only on trusted networks.
 
 ## How to play?

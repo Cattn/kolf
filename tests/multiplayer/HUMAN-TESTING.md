@@ -8,7 +8,7 @@ repository root:
 ```
 
 The launcher prints the endpoint. In each ordinary Kolf window, choose
-**Game > Online…** and connect to it.
+**Game > Online…** and press **Connect** for the preselected endpoint.
 
 ## One bounded online smoke
 
@@ -21,6 +21,18 @@ The launcher prints the endpoint. In each ordinary Kolf window, choose
 5. Finish the match, compare Results, return to the lobby, and start one
    rematch with a fresh match identity.
 6. Close the clients and confirm the launcher and service shut down.
+
+## Server navigation
+
+With two reachable servers, open Online with a saved server and confirm it
+waits for **Connect**. Connect to server A, then use **Change Server** from the
+connected entry and from a lobby to reach the same Connect page. Select server B
+from recent servers or edit the address, then connect. Verify that the old
+lobby closes for its owner or loses the departing member, **Leave Online**
+returns to the paused local game, and keyboard navigation reaches the address,
+server list, Connect, Change Server, and Leave Online controls. Check Results
+and an active match separately; leaving an active match must end its scene and
+give the remaining members an interrupted result.
 
 For the representative variable-roster smoke, run with `-ClientCount 3`, add a
 second local player to the owner, and play one four-player match. Do not expand
