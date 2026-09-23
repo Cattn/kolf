@@ -363,6 +363,8 @@ OnlineWidget::OnlineWidget(QWidget *parent)
             sessionConfig[QStringLiteral("scriptedShots")] = m_automation.value(QStringLiteral("scriptedShots"));
             if (m_automation.contains(QStringLiteral("scriptedHazardAction")))
                 sessionConfig[QStringLiteral("scriptedHazardAction")] = m_automation.value(QStringLiteral("scriptedHazardAction"));
+            if (m_automation.contains(QStringLiteral("scriptedHostResetTurn")))
+                sessionConfig[QStringLiteral("scriptedHostResetTurn")] = m_automation.value(QStringLiteral("scriptedHostResetTurn"));
             sessionConfig[QStringLiteral("capture")] = true;
             sessionConfig[QStringLiteral("verifySnapshots")] = true;
             sessionConfig[QStringLiteral("logFrames")] = true;

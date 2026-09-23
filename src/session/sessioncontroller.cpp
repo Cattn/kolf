@@ -229,7 +229,13 @@ void SessionController::receive(const QJsonObject &message) {
         m_hostControlsEnabled = m[QStringLiteral("enabled")].toBool();
         if (m[QStringLiteral("commandId")].toString() == m_hostTogglePending) m_hostTogglePending.clear();
         Q_EMIT noticeChanged(m_hostControlsEnabled ? tr("Host controls enabled.") : tr("Host controls disabled."));
-        refresh(); return;
+        refresh();
+        if (m_role == Role::Authority && m_hostControlsEnabled && !m_scriptedHostResetDone
+            && m_config[QStringLiteral("scriptedHostResetTurn")].toInt() == m_turn && m_ready) {
+            m_scriptedHostResetDone = true;
+            resetOnlineHole();
+        }
+        return;
     }
     if (type == QLatin1String("HostControlRejected")) {
         const auto commandId = m[QStringLiteral("commandId")].toString();
@@ -381,6 +387,11 @@ void SessionController::receive(const QJsonObject &message) {
             });
         }
         // Development-only scripted canonical intents, read locally; never accepted as setup commands over the network.
+        if (m_role == Role::Authority && m_phase == QLatin1String("AwaitingShot")
+            && !m_scriptedHostResetDone && m_config[QStringLiteral("scriptedHostResetTurn")].toInt() == m_turn) {
+            setHostControlsEnabled(true);
+            return;
+        }
         if (m_phase == QLatin1String("AwaitingShot") && ownsSlot(m_adapter->activeSlot()) && !m_scriptedTurns.contains(m_turn)) {
             const auto shots = m_config[QStringLiteral("scriptedShots")].toArray();
             if (m_turn <= shots.size()) {

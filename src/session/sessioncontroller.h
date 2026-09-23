@@ -85,6 +85,7 @@ private:
     QString m_hostTogglePending;
     QString m_hostResetPending;
     bool m_testFaultScheduled = false;
+    bool m_scriptedHostResetDone = false;
     QJsonObject m_pendingMessage;
     QJsonObject m_lastAim;
     QGraphicsPathItem *m_remoteAim = nullptr;

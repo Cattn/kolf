@@ -50,6 +50,7 @@ cd server
 npm run test:native:rematch
 npm run test:native:four-player
 npm run test:native:hazard
+node ../tests/multiplayer/run-online-native.ts host-reset
 node ../tests/multiplayer/run-online-native.ts slope-out-of-bounds
 node ../tests/multiplayer/run-online-native.ts slope-in-bounds
 ```
@@ -59,6 +60,9 @@ border walls disabled. They limit each player to one stroke so both owner and
 guest outcomes can be checked in a short native match. The out-of-bounds case
 asserts position reset, one stroke each, turn advance, and completion; the
 in-bounds case asserts forward motion and settlement without snapback.
+The host-reset scenario lets both players score before the owner enables
+Host Controls and resets the hole. It checks the new turn/generation, cleared
+scores, exact guest reconciliation, and completion after the reset.
 
 The native envelope fixture can be run by setting
 `KOLF_ONLINE_PROTOCOL_TESTS` to the absolute path of

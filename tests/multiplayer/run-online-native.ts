@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
 assert(['two-rematch', 'four-player', 'four-player-hazard', 'custom-course',
-  'slope-out-of-bounds', 'slope-in-bounds'].includes(scenario),
+  'slope-out-of-bounds', 'slope-in-bounds', 'host-reset'].includes(scenario),
   'Unknown native scenario');
 const variableRoster = scenario.startsWith('four-player');
 const hazardScenario = scenario === 'four-player-hazard';
@@ -19,7 +19,7 @@ const slopeScenario = scenario.startsWith('slope-');
 const slopeOutOfBounds = scenario === 'slope-out-of-bounds';
 const clientCount = variableRoster ? 3 : 2;
 const matchCount = scenario === 'two-rematch' || scenario === 'custom-course' ? 2 : 1;
-const turnCount = slopeScenario ? 2 : hazardScenario ? 40 : variableRoster ? 8 : 4;
+const turnCount = slopeScenario ? 2 : hazardScenario ? 40 : variableRoster ? 8 : scenario === 'host-reset' ? 8 : 4;
 const directory = resolve(root, 'server/local-session', `online-${scenario}-${Date.now()}`);
 const joinCodeFile = resolve(directory, 'join-code.txt');
 const course = slopeScenario ? resolve(directory, 'slope-practice-hole-1.kolf')
@@ -114,10 +114,12 @@ try {
       expectedPlayers: variableRoster ? 4 : 2, matches: matchCount, logDirectory,
       additionalPlayers: variableRoster && client === 0
         ? [{ displayName: 'Owner second ball', color: '#9b59b6ff' }] : [],
+      scriptedHostResetTurn: scenario === 'host-reset' && client === 0 ? 3 : undefined,
       scriptedHazardAction: hazardScenario ? 'rehit' : undefined,
       scriptedShots: Array.from({ length: turnCount }, (_, turn) => ({
         directionRadians: slopeOutOfBounds ? Math.PI : 0,
-        launchMagnitude: slopeOutOfBounds ? 6.5 : 1.8, advanced: turn % 2 === 1,
+        launchMagnitude: slopeOutOfBounds ? 6.5 : scenario === 'host-reset' && turn < 2 ? 0.4 : 1.8,
+        advanced: turn % 2 === 1,
       })),
     };
     mkdirSync(logDirectory, { recursive: true });
@@ -170,6 +172,18 @@ try {
   if (hazardScenario) assert(sessionDirectories(0).flatMap(events)
     .some(event => event.event === 'applied' && event.state?.phase === 'AwaitingHazardChoice'),
   'variable roster reached a hazard choice');
+  if (scenario === 'host-reset') {
+    const resetStates = Array.from({ length: clientCount }, (_, client) =>
+      events(sessionDirectories(client)[0]).filter(event => event.event === 'applied'
+        && event.state?.hole === 1 && event.state?.holeGeneration === 2
+        && event.state?.phase === 'AwaitingShot' && event.state?.turnId === 4));
+    assert(resetStates.every(states => states.length === 1), 'each client applied one reset transition');
+    const authority = resetStates[0][0].state;
+    assert.deepEqual(authority.scores, [[0], [0]], 'reset cleared both current-hole scores');
+    assert.equal(authority.activeSlot, 0, 'reset restored first player turn');
+    assert.equal(authority.turnId, 4, 'reset invalidated the prior turn');
+    assert.deepEqual(resetStates[1][0].state, authority, 'guest reconciled exactly to reset state');
+  }
   if (slopeScenario) for (let client = 0; client < clientCount; ++client) {
     const committed = events(sessionDirectories(client)[0]).filter(event =>
       event.event === 'applied' && event.state?.phase === 'AwaitingShot');

@@ -58,9 +58,13 @@ players to check owner identity is independent of the active player's slot.
 Also check a rolling-ball attempt is unavailable and that offline Reset still
 works after leaving Online.
 
-**Current result:** not run — Windows native build is blocked before Craft
-initialization completes (invalid PowerShell cursor handle; Craft failed to
-detect Python). Course and source commit will be recorded when this pass runs.
+**Current result:** automated two-client reset **passed** on Windows with
+`tests/multiplayer/fixtures/static.kolf` after Craft compile/install/qmerge;
+run directory `server/local-session/online-host-reset-1790182281562`.
+Visible menu, shortcut, confirmation, rolling-ball, three-member/four-player,
+and offline checks: **not run**, source pending the next commit. Automated
+rematch regression also **passed** in
+`server/local-session/online-two-rematch-1790182072769`.
 
 ## One Slope Practise visual pass
 
