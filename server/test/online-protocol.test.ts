@@ -60,6 +60,14 @@ test('host controls require typed match-scoped requests', () => {
     payload: { ...action.payload, action: 'undoShot' } })).type, 'HostAction');
   assert.equal(decodeClientMessage(JSON.stringify({ ...action,
     payload: { ...action.payload, action: 'skipHole' } })).type, 'HostAction');
+  assert.equal(decodeClientMessage(JSON.stringify({ ...action,
+    payload: { ...action.payload, action: 'goRandom' } })).type, 'HostAction');
+  assert.equal(decodeClientMessage(JSON.stringify({ ...action,
+    payload: { ...action.payload, action: 'goToHole', targetHole: 3 } })).type, 'HostAction');
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...action,
+    payload: { ...action.payload, action: 'goToHole' } })), ProtocolError);
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...action,
+    payload: { ...action.payload, action: 'goNext', targetHole: 2 } })), ProtocolError);
   assert.throws(() => decodeClientMessage(JSON.stringify({ ...action,
     payload: { ...action.payload, action: 'saveGame' } })), ProtocolError);
   assert.throws(() => decodeClientMessage(JSON.stringify({ ...action,

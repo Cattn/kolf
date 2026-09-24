@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { finite, integer, validRosterState } from '../protocol/game-state.ts';
+import { randomInt } from 'node:crypto';
 import type { Envelope, JsonObject } from '../protocol/envelope.ts';
 import { envelope } from '../protocol/envelope.ts';
 import type { MemberId } from '../protocol/ids.ts';
@@ -52,12 +53,15 @@ export class MatchCoordinator {
   private startedAt?: number;
   private readonly acceptedShots: number[];
   private readonly hazardChoices: number[];
-  private holeShotBaseline: number[];
-  private holeHazardBaseline: number[];
+  private readonly shotsByHole = new Map<number, number[]>();
+  private readonly hazardsByHole = new Map<number, number[]>();
+  private readonly completedHoles: Array<Set<number>>;
   private hostControlsEnabled = false;
-  private hostAction?: { commandId: string; action: 'resetHole' | 'undoShot' | 'skipHole'; memberId: MemberId };
-  private undoCandidate?: { state: State; acceptedShots: number[]; hazardChoices: number[]; settled: boolean };
-  private readonly skippedHoles: number[] = [];
+  private hostAction?: { commandId: string; action: string; memberId: MemberId; targetHole?: number };
+  private undoCandidate?: { state: State; acceptedShots: number[]; hazardChoices: number[];
+    holeShots: number[]; holeHazards: number[]; settled: boolean };
+  private readonly skippedHoles = new Set<number>();
+  private readonly navigatedHoles = new Set<number>();
   private hostCommands = new Map<string, { key: string; memberId: MemberId; status: Envelope }>();
 
   get matchId() { return this.match.matchId; }
@@ -69,8 +73,7 @@ export class MatchCoordinator {
     this.match = state.match; this.lobbyId = state.lobbyId; this.now = now;
     this.acceptedShots = this.match.roster.map(() => 0);
     this.hazardChoices = this.match.roster.map(() => 0);
-    this.holeShotBaseline = [...this.acceptedShots];
-    this.holeHazardBaseline = [...this.hazardChoices];
+    this.completedHoles = this.match.roster.map(() => new Set<number>());
     const memberIds = new Set(state.members.map(member => member.memberId));
     for (const player of this.match.roster) {
       if (!memberIds.has(player.ownerMemberId) || this.playersById.has(player.playerId)
@@ -90,6 +93,22 @@ export class MatchCoordinator {
     }
     this.broadcast('LoadCourse');
     return this.progress();
+  }
+
+  private holeCounts(map: Map<number, number[]>, hole: number): number[] {
+    let counts = map.get(hole);
+    if (!counts) { counts = this.match.roster.map(() => 0); map.set(hole, counts); }
+    return counts;
+  }
+
+  private clearHoleCounts(hole: number) {
+    const shots = this.holeCounts(this.shotsByHole, hole);
+    const hazards = this.holeCounts(this.hazardsByHole, hole);
+    for (let slot = 0; slot < this.match.roster.length; ++slot) {
+      this.acceptedShots[slot] -= shots[slot];
+      this.hazardChoices[slot] -= hazards[slot];
+      shots[slot] = hazards[slot] = 0;
+    }
   }
 
   receive(memberId: MemberId, message: Envelope): MatchProgress {
@@ -115,7 +134,7 @@ export class MatchCoordinator {
         const toggle = message.type === 'SetHostControls';
         const action = p.action;
         const key = JSON.stringify(toggle ? [message.type, p.stateRevision, p.syncId, p.enabled]
-          : [message.type, p.stateRevision, p.syncId, p.holeGeneration, action]);
+          : [message.type, p.stateRevision, p.syncId, p.holeGeneration, action, p.targetHole]);
         const known = this.hostCommands.get(p.commandId);
         if (known) {
           if (known.memberId !== memberId || known.key !== key)
@@ -143,7 +162,8 @@ export class MatchCoordinator {
           this.broadcastEnvelope(status);
           return;
         }
-        if (!['resetHole', 'undoShot', 'skipHole'].includes(String(action)) || !integer(p.holeGeneration, 1)
+        const goActions = ['goNext', 'goPrevious', 'goFirst', 'goLast', 'goRandom', 'goToHole'];
+        if (!['resetHole', 'undoShot', 'skipHole', ...goActions].includes(String(action)) || !integer(p.holeGeneration, 1)
           || p.holeGeneration !== this.state?.holeGeneration) return deny('invalid host action or hole generation');
         if (!this.hostControlsEnabled) return deny('host controls are off');
         if (!this.state || this.barrier || this.pending || this.hostAction || this.state.phase !== 'AwaitingShot')
@@ -152,7 +172,20 @@ export class MatchCoordinator {
           || this.undoCandidate.state.hole !== this.state.hole
           || this.undoCandidate.state.holeGeneration !== this.state.holeGeneration))
           return deny('no settled shot to undo on this hole');
-        this.hostAction = { commandId: p.commandId, action, memberId };
+        let targetHole: number | undefined;
+        if (goActions.includes(action)) {
+          const holes = this.match.course.holes ?? this.match.course.par?.length ?? 0;
+          if (!integer(holes, 1, 1000)) return deny('course hole count is unavailable');
+          if (action !== 'goToHole' && p.targetHole !== undefined) return deny('unexpected target hole');
+          const current = this.state.hole;
+          targetHole = action === 'goNext' ? current + 1 : action === 'goPrevious' ? current - 1
+            : action === 'goFirst' ? 1 : action === 'goLast' ? holes
+              : action === 'goRandom' && holes > 1
+                ? ((randomInt(holes - 1) + current) % holes) + 1 : p.targetHole;
+          if (!integer(targetHole, 1, holes) || targetHole === current)
+            return deny('target hole must differ and be within this course');
+        }
+        this.hostAction = { commandId: p.commandId, action, memberId, targetHole };
         this.barrier = true; this.barrierPublished = false; this.pendingAt = this.now();
         for (const entry of this.members.values()) entry.applied = 0;
         this.broadcast('AimClear', { turnId: this.state.turnId });
@@ -160,7 +193,7 @@ export class MatchCoordinator {
           { lobbyId: this.lobbyId, matchId: this.match.matchId });
         this.hostCommands.set(p.commandId, { key, memberId, status });
         this.broadcastEnvelope(status);
-        this.send(this.match.authorityMemberId, 'AdmitHostAction', { commandId: p.commandId, action,
+        this.send(this.match.authorityMemberId, 'AdmitHostAction', { commandId: p.commandId, action, targetHole,
           stateRevision: p.stateRevision, syncId: p.syncId, holeGeneration: p.holeGeneration });
         return;
       }
@@ -212,9 +245,14 @@ export class MatchCoordinator {
         admission.status = envelope(message.type, { commandId: p.commandId, reason: p.reason },
           { lobbyId: this.lobbyId, matchId: this.match.matchId });
         if (message.type === 'ShotAccepted') {
+          const hole = this.state!.hole;
           this.undoCandidate = { state: this.state!, acceptedShots: [...this.acceptedShots],
-            hazardChoices: [...this.hazardChoices], settled: false };
-          this.acceptedShots[this.playersById.get(admission.playerId)!.engineIndex]++;
+            hazardChoices: [...this.hazardChoices],
+            holeShots: [...this.holeCounts(this.shotsByHole, hole)],
+            holeHazards: [...this.holeCounts(this.hazardsByHole, hole)], settled: false };
+          const slot = this.playersById.get(admission.playerId)!.engineIndex;
+          this.acceptedShots[slot]++;
+          this.holeCounts(this.shotsByHole, hole)[slot]++;
         }
         this.broadcastEnvelope(admission.status);
         if (message.type === 'ShotRejected') this.pending = undefined;
@@ -241,6 +279,7 @@ export class MatchCoordinator {
           const hostReset = !!this.hostAction && this.hostAction.action === 'resetHole';
           const hostUndo = !!this.hostAction && this.hostAction.action === 'undoShot';
           const hostSkip = !!this.hostAction && this.hostAction.action === 'skipHole';
+          const hostGo = !!this.hostAction?.action.startsWith('go');
           const checkpoint = this.undoCandidate?.state;
           const oldHole = this.state.hole;
           const skipFinal = hostSkip && next.phase === 'Finished';
@@ -248,15 +287,27 @@ export class MatchCoordinator {
             const score = row[oldHole - 1];
             return score > 0 && score < best.score ? { slot, score } : best;
           }, { slot: 0, score: Number.MAX_SAFE_INTEGER }).slot;
-          if (hostSkip ? (this.state.phase !== 'AwaitingShot'
+          if (hostGo ? (this.state.phase !== 'AwaitingShot' || next.phase !== 'AwaitingShot'
+            || next.hole !== this.hostAction!.targetHole || next.activeSlot !== skipStarter
+            || next.courseHash !== this.state.courseHash
+            || next.scores.some((row: number[], slot: number) => {
+              const old = this.state!.scores[slot] as number[];
+              const length = Math.max(old.length, next.hole);
+              return row.length !== length || row.some((score, index) =>
+                score !== (index === next.hole - 1 ? 0 : (old[index] ?? 0)));
+            }))
+            : hostSkip ? (this.state.phase !== 'AwaitingShot'
             || (next.phase !== 'AwaitingShot' && next.phase !== 'Finished')
             || next.hole !== oldHole + (skipFinal ? 0 : 1)
             || next.activeSlot !== (skipFinal ? this.state.activeSlot : skipStarter)
             || (skipFinal && (next.manifestHash !== this.state.manifestHash || next.par !== this.state.par))
             || next.courseHash !== this.state.courseHash
-            || JSON.stringify(next.scores.map((row: number[]) => row.slice(0, oldHole)))
-              !== JSON.stringify(this.state.scores)
-            || (!skipFinal && next.scores.some((row: number[]) => row[oldHole] !== 0)))
+            || next.scores.some((row: number[], slot: number) => {
+              const old = this.state!.scores[slot] as number[];
+              return row.length !== (skipFinal ? old.length : Math.max(old.length, next.hole))
+                || row.some((score, index) => score !== (skipFinal ? old[index]
+                  : index === next.hole - 1 ? 0 : (old[index] ?? 0)));
+            }))
             : hostUndo ? (!this.undoCandidate?.settled || !checkpoint
             || this.state.phase !== 'AwaitingShot' || next.phase !== 'AwaitingShot'
             || next.hole !== checkpoint.hole || next.activeSlot !== checkpoint.activeSlot
@@ -266,48 +317,81 @@ export class MatchCoordinator {
             : hostReset ? (this.state.phase !== 'AwaitingShot' || next.phase !== 'AwaitingShot'
             || next.hole !== this.state.hole || next.activeSlot !== 0
             || next.manifestHash !== this.state.manifestHash || next.courseHash !== this.state.courseHash
-            || next.par !== this.state.par || next.scores.some((row: number[], index: number) =>
-              row[next.hole - 1] !== 0 || JSON.stringify(row.slice(0, -1))
-                !== JSON.stringify(this.state!.scores[index].slice(0, -1))))
+            || next.par !== this.state.par || next.scores.some((row: number[], slot: number) => {
+              const old = this.state!.scores[slot] as number[];
+              return row.length !== old.length || row.some((score, index) =>
+                score !== (index === next.hole - 1 ? 0 : old[index]));
+            }))
             : (!this.pending || !allowed[this.state.phase]?.includes(next.phase))) throw Error('illegal phase transition');
           if (next.turnId !== this.state.turnId + (next.phase === 'AwaitingShot' ? 1 : 0)) throw Error('invalid turn progression');
           const holeDelta = next.hole - this.state.hole;
-          if (holeDelta < 0 || holeDelta > 1 || next.holeGeneration !== this.state.holeGeneration + (hostReset ? 1 : holeDelta))
+          if (hostGo ? next.holeGeneration !== this.state.holeGeneration + 1
+            : holeDelta < 0 || holeDelta > 1
+              || next.holeGeneration !== this.state.holeGeneration + (hostReset ? 1 : holeDelta))
             throw Error('invalid generation progression');
         }
+        const previous = this.state;
+        const appliedAction = this.hostAction;
         const wasPending = this.pending;
         if (!this.state) this.startedAt = this.now();
-        if (this.state?.phase === 'AwaitingHazardChoice' && this.choicePending)
+        if (this.state?.phase === 'AwaitingHazardChoice' && this.choicePending) {
           this.hazardChoices[this.state.choiceSlot]++;
+          this.holeCounts(this.hazardsByHole, this.state.hole)[this.state.choiceSlot]++;
+        }
         if (this.hostAction) {
           const action = this.hostAction.action;
-          if (action !== 'skipHole') {
-            const counts = action === 'undoShot' ? this.undoCandidate : undefined;
-            this.acceptedShots.splice(0, this.acceptedShots.length,
-              ...(counts?.acceptedShots ?? this.holeShotBaseline));
-            this.hazardChoices.splice(0, this.hazardChoices.length,
-              ...(counts?.hazardChoices ?? this.holeHazardBaseline));
-          } else {
-            this.skippedHoles.push(this.state!.hole);
-            if (next.hole !== this.state!.hole) {
-              this.holeShotBaseline = [...this.acceptedShots];
-              this.holeHazardBaseline = [...this.hazardChoices];
-            }
+          if (action === 'undoShot') {
+            const counts = this.undoCandidate!;
+            this.acceptedShots.splice(0, this.acceptedShots.length, ...counts.acceptedShots);
+            this.hazardChoices.splice(0, this.hazardChoices.length, ...counts.hazardChoices);
+            this.shotsByHole.set(previous!.hole, [...counts.holeShots]);
+            this.hazardsByHole.set(previous!.hole, [...counts.holeHazards]);
+          } else if (action === 'resetHole') this.clearHoleCounts(previous!.hole);
+          else if (action === 'skipHole') {
+            this.skippedHoles.add(previous!.hole);
+            if (next.hole !== previous!.hole) this.clearHoleCounts(next.hole);
           }
+          else this.clearHoleCounts(this.hostAction.targetHole!);
           this.undoCandidate = undefined;
           const { commandId } = this.hostAction;
           this.hostAction = undefined;
           const notice = envelope('HostActionNotice', { commandId, action,
-            hole: action === 'skipHole' ? this.state!.hole : next.hole },
+            fromHole: previous!.hole, hole: action === 'skipHole' ? previous!.hole : next.hole },
             { lobbyId: this.lobbyId, matchId: this.match.matchId });
           this.hostCommands.get(commandId)!.status = notice;
           this.broadcastEnvelope(notice);
         } else if (this.state && next.hole !== this.state.hole) {
           this.undoCandidate = undefined;
-          this.holeShotBaseline = [...this.acceptedShots];
-          this.holeHazardBaseline = [...this.hazardChoices];
         } else if (next.phase === 'AwaitingShot' && this.undoCandidate) {
           this.undoCandidate.settled = true;
+        }
+        if (previous) {
+          const source = previous.hole;
+          if (appliedAction?.action === 'skipHole') {
+            this.navigatedHoles.delete(source);
+            for (const completed of this.completedHoles) completed.delete(source);
+            if (next.hole !== source) {
+              this.skippedHoles.delete(next.hole); this.navigatedHoles.delete(next.hole);
+              for (const completed of this.completedHoles) completed.delete(next.hole);
+            }
+          } else if (appliedAction && appliedAction.action.startsWith('go')) {
+            this.navigatedHoles.add(source);
+            this.navigatedHoles.delete(next.hole);
+            this.skippedHoles.delete(next.hole);
+            for (const completed of this.completedHoles) { completed.delete(source); completed.delete(next.hole); }
+          } else if (appliedAction?.action === 'resetHole') {
+            for (const completed of this.completedHoles) completed.delete(source);
+          } else if (!appliedAction && next.hole !== source) {
+            this.skippedHoles.delete(source); this.navigatedHoles.delete(source);
+            this.skippedHoles.delete(next.hole); this.navigatedHoles.delete(next.hole);
+            this.clearHoleCounts(next.hole);
+            for (const completed of this.completedHoles) { completed.add(source); completed.delete(next.hole); }
+          } else {
+            for (let slot = 0; slot < this.completedHoles.length; ++slot) {
+              if (next.balls[slot]?.state === 2) this.completedHoles[slot].add(next.hole);
+              else this.completedHoles[slot].delete(next.hole);
+            }
+          }
         }
         this.state = next; this.lastCommit = key; this.lastFrame = 0; this.lastAimAt = 0; this.queuedResync = false;
         this.barrier = true; this.barrierPublished = true; ++this.syncId; this.pendingAt = this.now(); this.choicePending = undefined;
@@ -441,7 +525,9 @@ export class MatchCoordinator {
 
   private metrics(): MatchMetrics {
     return { acceptedShots: [...this.acceptedShots], hazardChoices: [...this.hazardChoices],
-      skippedHoles: [...this.skippedHoles],
+      skippedHoles: [...this.skippedHoles].sort((a, b) => a - b),
+      navigatedHoles: [...this.navigatedHoles].sort((a, b) => a - b),
+      completedHoles: this.completedHoles.map(holes => [...holes].sort((a, b) => a - b)),
       completedHoleCounts: this.match.roster.map((_, index) => this.state
         ? Math.max(0, this.state.hole - 1) + (this.state.balls[index]?.state === 2 ? 1 : 0) : 0),
       durationMs: this.startedAt === undefined ? 0 : Math.max(0, this.now() - this.startedAt) };

@@ -20,8 +20,11 @@ last settled shot on this hole, including a guest's shot, to its pre-shot ball,
 object, turn, and score state. Guests see host action notices but cannot issue
 the actions. **Hole > Skip Hole** asks for confirmation, keeps each player's
 current strokes, marks that hole unfinished in Results, and advances everyone
-together; an unplayed player remains unscored. Go controls remain unavailable
-online while their shared transitions are developed.
+together; an unplayed player remains unscored. **Hole > Go** actions (Next,
+Previous, First, Last, Random, and Switch to Hole) confirm before moving the
+whole match. They leave the current hole unfinished, restart the destination,
+and clear its earlier scores and shot counts. Only the owner can use them while
+Host Controls are enabled and the match is ready for a shot.
 
 ## How to play?
 ### Download a binary

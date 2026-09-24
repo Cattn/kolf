@@ -80,13 +80,31 @@ position and resting ball state, charges the accepted stroke once, and advances
 the turn. Guests receive the resulting committed state; their local presentation
 does not decide whether a shot was out of bounds.
 
-Host Controls currently cover **Reset Hole**, **Undo Shot**, and **Skip Hole**. They start off for every
+Host Controls currently cover **Reset Hole**, **Undo Shot**, **Skip Hole**, and
+**Go** navigation. They start off for every
 new match and rematch. Only the frozen lobby owner may send `SetHostControls`
 with a command ID, current revision/sync ID, and desired enabled state. The
 service broadcasts `HostControlsChanged`; guests can see the state but cannot
 toggle it. While enabled and input-ready, that owner may send `HostAction`
-with action `resetHole`, `undoShot`, or `skipHole`, the current revision/sync ID,
+with action `resetHole`, `undoShot`, `skipHole`, `goNext`, `goPrevious`,
+`goFirst`, `goLast`, `goRandom`, or `goToHole`, the current revision/sync ID,
 and hole generation.
+`goToHole` also carries a bounded one-based `targetHole`; the server resolves
+all other Go destinations, including a different random hole, against the
+course's hole count. An out-of-range, same-hole, stale, guest, or busy Go
+request is rejected. The authority restarts the destination, clearing that
+hole's previous scores and accepted-shot/hazard counts. The source retains
+partial scores and counts and is marked unfinished. Score rows can therefore
+extend past the current hole after backward Go. The lowest positive scorer on
+the source starts the destination, or the first roster slot if nobody scored.
+Go to Last starts the last hole; it does not complete the match. Results mark
+navigation-abandoned holes separately and only highlight holes completed after
+their latest restart. The usual all-member state barrier applies before input
+resumes.
+Reset and Skip still work after a backward Go: Reset clears the current row
+entry while preserving later visited rows; Skip retains the source's partial
+scores and restarts the next hole if it was visited earlier. Ordinary play
+also restarts a previously visited next hole.
 The server rejects guest, stale, duplicate-conflicting, disabled, or busy
 requests with `HostControlRejected` and a readable reason. A valid reset
 broadcasts `HostActionPending`, asks the authority to reload the current hole,
@@ -105,8 +123,7 @@ unscored, and moves everyone to the next hole, or finishes on the last hole.
 The skipped hole number is carried in Results and excluded from completed-hole
 highlights, while its partial strokes remain in totals. The server preserves
 accepted-shot and hazard-choice counts for a skipped hole. Exact retries do
-not apply an action twice. Go remains disabled online until its transitions
-are implemented.
+not apply an action twice.
 
 `MatchResult` contains the frozen course name and roster, per-hole scores and
 par, ordered standings with ranks and ties, totals, relative-to-par where par

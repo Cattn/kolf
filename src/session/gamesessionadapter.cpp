@@ -21,6 +21,7 @@ GameSessionAdapter::GameSessionAdapter(KolfGame *game) : QObject(game), g(game) 
 }
 int GameSessionAdapter::activeSlot() const { return int(g->curPlayer - g->players->begin()); }
 int GameSessionAdapter::hole() const { return g->curHole; }
+int GameSessionAdapter::highestHole() const { return g->highestHole; }
 int GameSessionAdapter::par() const { return g->curPar; }
 bool GameSessionAdapter::prepareCourse() {
     if (!loadHole(1)) return false;
@@ -113,11 +114,32 @@ bool GameSessionAdapter::skipCurrentHole() {
         if (score > 0 && score < lowest) { lowest = score; starter = slot; }
     }
     if (!loadHole(current + 1)) return false;
+    for (auto &player : *g->players) player.resetScore(current + 1);
     g->curBall()->setVisible(false);
     g->curPlayer = g->players->begin() + starter;
     g->curBall()->setVisible(true);
     g->putter->setAngle(g->curBall());
     m_scored = false; m_resolutionIndex = 0;
+    m_choiceId.clear(); m_choiceSlot = -1; m_failure.clear();
+    return true;
+}
+bool GameSessionAdapter::navigateToHole(int targetHole) {
+    if (g->m_role != Role::Authority || g->inPlay || g->m_onlineShot || m_choiceSlot >= 0
+        || m_finished || targetHole < 1 || targetHole > g->highestHole || targetHole == hole()) return false;
+    const int source = hole();
+    int starter = 0;
+    int lowest = std::numeric_limits<int>::max();
+    for (int slot = 0; slot < g->players->size(); ++slot) {
+        const int score = (*g->players)[slot].score(source);
+        if (score > 0 && score < lowest) { lowest = score; starter = slot; }
+    }
+    if (!loadHole(targetHole)) return false;
+    for (auto &player : *g->players) player.resetScore(targetHole);
+    g->curBall()->setVisible(false);
+    g->curPlayer = g->players->begin() + starter;
+    g->curBall()->setVisible(true);
+    g->putter->setAngle(g->curBall());
+    m_scored = false; m_resolutionIndex = 0; m_finished = false;
     m_choiceId.clear(); m_choiceSlot = -1; m_failure.clear();
     return true;
 }
@@ -258,7 +280,10 @@ bool GameSessionAdapter::apply(const QJsonObject &s, QString &error) {
     for (int i = 0; i < rosterSize; ++i) {
         const auto b = balls[i].toObject();
         if (!validateVisual(b) || b[QStringLiteral("id")] != QStringLiteral("ball/%1").arg(i)
-            || !counter(b[QStringLiteral("state")], 0, 2) || scores[i].toArray().size() != s[QStringLiteral("hole")].toInt()) return reject();
+        || !counter(b[QStringLiteral("state")], 0, 2)
+        || scores[i].toArray().size() < s[QStringLiteral("hole")].toInt()
+        || scores[i].toArray().size() > 1000
+        || (i > 0 && scores[i].toArray().size() != scores[0].toArray().size())) return reject();
         for (const auto score : scores[i].toArray()) if (!counter(score, 0, 10000)) return reject();
     }
     const int requestedHole = s[QStringLiteral("hole")].toInt();
@@ -371,6 +396,7 @@ void GameSessionAdapter::continueResolution() {
             Q_EMIT failed(m_failure);
             return;
         }
+        for (auto &player : *g->players) player.resetScore(hole());
         g->curBall()->setVisible(false); g->curPlayer = g->players->begin() + starter;
     } else {
         do { ++g->curPlayer; if (g->curPlayer == g->players->end()) g->curPlayer = g->players->begin(); }

@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
 assert(['two-rematch', 'four-player', 'four-player-hazard', 'custom-course',
-  'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-skip'].includes(scenario),
+  'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-skip', 'host-go'].includes(scenario),
   'Unknown native scenario');
 const variableRoster = scenario.startsWith('four-player');
 const hazardScenario = scenario === 'four-player-hazard';
@@ -20,7 +20,7 @@ const slopeOutOfBounds = scenario === 'slope-out-of-bounds';
 const clientCount = variableRoster ? 3 : 2;
 const matchCount = scenario === 'two-rematch' || scenario === 'custom-course' ? 2 : 1;
 const turnCount = slopeScenario ? 2 : hazardScenario ? 40 : variableRoster ? 8
-  : scenario === 'host-reset' || scenario === 'host-undo' ? 8 : 4;
+  : scenario === 'host-reset' || scenario === 'host-undo' || scenario === 'host-go' ? 8 : 4;
 const directory = resolve(root, 'server/local-session', `online-${scenario}-${Date.now()}`);
 const joinCodeFile = resolve(directory, 'join-code.txt');
 const course = slopeScenario ? resolve(directory, 'slope-practice-hole-1.kolf')
@@ -118,12 +118,14 @@ try {
       scriptedHostResetTurn: scenario === 'host-reset' && client === 0 ? 3 : undefined,
       scriptedHostUndoTurn: scenario === 'host-undo' && client === 0 ? 3 : undefined,
       scriptedHostSkipTurn: scenario === 'host-skip' && client === 0 ? 2 : undefined,
+      scriptedHostGo: scenario === 'host-go' && client === 0
+        ? [{ turn: 2, action: 'goLast' }, { turn: 3, action: 'goFirst' }] : undefined,
       scriptedHazardAction: hazardScenario ? 'rehit' : undefined,
       scriptedShots: Array.from({ length: turnCount }, (_, turn) => ({
         directionRadians: slopeOutOfBounds ? Math.PI : 0,
         launchMagnitude: slopeOutOfBounds ? 6.5
           : ((scenario === 'host-reset' || scenario === 'host-undo') && turn < 2
-            || scenario === 'host-skip' && turn === 0) ? 0.4 : 1.8,
+            || (scenario === 'host-skip' || scenario === 'host-go') && turn === 0) ? 0.4 : 1.8,
         advanced: turn % 2 === 1,
       })),
     };
@@ -221,6 +223,24 @@ try {
     assert.deepEqual(authority.scores, [[1, 0], [0, 0]], 'skip kept the owner score and left guest unscored');
     assert.equal(authority.activeSlot, 0, 'only player with a partial score starts the next hole');
     assert.deepEqual(skipped[1][0].state, authority, 'guest reconciled exactly to skip state');
+  }
+  if (scenario === 'host-go') {
+    const moved = Array.from({ length: clientCount }, (_, client) =>
+      events(sessionDirectories(client)[0]).filter(event => event.event === 'applied'
+        && event.state?.hole === 2 && event.state?.holeGeneration === 2
+        && event.state?.phase === 'AwaitingShot' && event.state?.turnId === 3));
+    assert(moved.every(states => states.length === 1), 'each client applied one Go Last transition');
+    const authority = moved[0][0].state;
+    assert.deepEqual(authority.scores, [[1, 0], [0, 0]], 'Go retained the unfinished owner score');
+    assert.equal(authority.activeSlot, 0, 'lowest positive scorer starts the destination');
+    assert.deepEqual(moved[1][0].state, authority, 'guest reconciled exactly to Go state');
+    const returned = Array.from({ length: clientCount }, (_, client) =>
+      events(sessionDirectories(client)[0]).filter(event => event.event === 'applied'
+        && event.state?.hole === 1 && event.state?.holeGeneration === 3
+        && event.state?.phase === 'AwaitingShot' && event.state?.turnId === 4));
+    assert(returned.every(states => states.length === 1), 'each client applied one Go First transition');
+    assert.deepEqual(returned[0][0].state.scores, [[0, 0], [0, 0]], 'revisiting cleared earlier first-hole score');
+    assert.deepEqual(returned[1][0].state, returned[0][0].state, 'guest reconciled exactly after backward Go');
   }
   if (slopeScenario) for (let client = 0; client < clientCount; ++client) {
     const committed = events(sessionDirectories(client)[0]).filter(event =>

@@ -37,3 +37,10 @@ test('skipped partial hole keeps strokes but cannot become a completed-hole high
     [['a', 3, 1, 0], ['b', 3, 1, 0]]);
   assert(rows.every(row => row.bestHole?.hole === 2 && row.worstHole?.hole === 2));
 });
+
+test('navigation retains partial strokes but highlights only holes completed on their latest visit', () => {
+  const rows = resultStatistics(['a', 'b'], [[2, 4, 1], [0, 3, 2]], [3, 4, 3],
+    [4, 3], [0, 0], undefined, [], [[2], [2, 3]]);
+  assert.deepEqual(rows.map(row => [row.playerId, row.total, row.completedHoles, row.bestHole?.hole]),
+    [['b', 5, 2, 2], ['a', 7, 1, 2]]);
+});

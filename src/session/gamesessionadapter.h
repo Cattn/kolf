@@ -18,6 +18,7 @@ public:
     bool choose(const QString &action);
     bool resetCurrentHole();
     bool skipCurrentHole();
+    bool navigateToHole(int targetHole);
     void rememberUndoCheckpoint(const QJsonObject &state);
     bool canUndoShot() const;
     bool undoShot();
@@ -25,6 +26,7 @@ public:
     void enableInput(bool enabled);
     int activeSlot() const;
     int hole() const;
+    int highestHole() const;
     int par() const;
     int choiceSlot() const { return m_choiceSlot; }
     QString choiceId() const { return m_choiceId; }

@@ -250,6 +250,13 @@ void KolfWindow::showOnline()
 		});
 	}
 	onlineModeActive = true;
+	offlineHoleItems = holeAction->items();
+	offlineHoleIndex = holeAction->currentItem();
+	if (game) {
+		for (auto *action : {nextAction, prevAction, firstAction, lastAction, randAction})
+			disconnect(action, nullptr, game, nullptr);
+		disconnect(holeAction, nullptr, game, nullptr);
+	}
 	if (game)
 		disconnect(resetHoleAction, &QAction::triggered, game, &KolfGame::resetHole);
 	if (game)
@@ -282,6 +289,21 @@ void KolfWindow::leaveOnline()
 	onlineWidget->leaveOnline();
 	finishOnlineMatch();
 	applicationStack->setCurrentWidget(dummy);
+	{
+		const QSignalBlocker blocker(holeAction);
+		holeAction->setItems(offlineHoleItems);
+		if (offlineHoleIndex >= 0 && offlineHoleIndex < offlineHoleItems.size())
+			holeAction->setCurrentItem(offlineHoleIndex);
+	}
+	if (game) {
+		connect(holeAction, &KSelectAction::indexTriggered, game,
+			[offlineGame = game](int index) { offlineGame->switchHole(index + 1); });
+		connect(nextAction, &QAction::triggered, game, &KolfGame::nextHole);
+		connect(prevAction, &QAction::triggered, game, &KolfGame::prevHole);
+		connect(firstAction, &QAction::triggered, game, &KolfGame::firstHole);
+		connect(lastAction, &QAction::triggered, game, &KolfGame::lastHole);
+		connect(randAction, &QAction::triggered, game, &KolfGame::randHole);
+	}
 	for (auto it = offlineActionStates.constBegin(); it != offlineActionStates.constEnd(); ++it)
 		it.key()->setEnabled(it.value());
 	if (game)
@@ -289,6 +311,8 @@ void KolfWindow::leaveOnline()
 	if (game)
 		connect(undoShotAction, &QAction::triggered, game, &KolfGame::undoShot, Qt::UniqueConnection);
 	offlineActionStates.clear();
+	offlineHoleItems.clear();
+	offlineHoleIndex = -1;
 	onlineAction->setEnabled(true);
 	if (offlineGamePausedForOnline && game) {
 		game->unPause();
@@ -406,6 +430,51 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 			== KMessageBox::PrimaryAction)
 			onlineMatchController->skipOnlineHole();
 	});
+	connect(onlineMatchController, &Kolf::Session::SessionController::hostNavigationChanged, this,
+		[this](int current, int highest, bool available) {
+			onlineCurrentHole = current;
+			QStringList items;
+			for (int hole = 1; hole <= highest; ++hole) items.append(QString::number(hole));
+			{
+				const QSignalBlocker blocker(holeAction);
+				holeAction->setItems(items);
+				if (current >= 1 && current <= highest) holeAction->setCurrentItem(current - 1);
+			}
+			holeAction->setEnabled(available && highest > 1);
+			nextAction->setEnabled(available && current < highest);
+			prevAction->setEnabled(available && current > 1);
+			firstAction->setEnabled(available && current > 1);
+			lastAction->setEnabled(available && current < highest);
+			randAction->setEnabled(available && highest > 1);
+		});
+	const auto confirmGo = [this](const QString &action, int targetHole) {
+		const QString destination = action == QLatin1String("goRandom") ? i18n("a random hole")
+			: i18n("Hole %1", targetHole);
+		if (KMessageBox::warningTwoActions(this,
+			i18n("Move to %1? The current hole will be left unfinished. The destination will restart and its previous scores and shot counts will be cleared.", destination),
+			i18nc("@title:window", "Move to Online Hole?"),
+			KGuiItem(i18nc("@action:button", "Move to Hole")), KStandardGuiItem::cancel())
+			== KMessageBox::PrimaryAction)
+			onlineMatchController->navigateOnline(action, targetHole);
+		else {
+			const QSignalBlocker blocker(holeAction);
+			holeAction->setCurrentItem(onlineCurrentHole - 1);
+		}
+	};
+	connect(nextAction, &QAction::triggered, onlineMatchController, [this, confirmGo] {
+		confirmGo(QStringLiteral("goNext"), onlineCurrentHole + 1);
+	});
+	connect(prevAction, &QAction::triggered, onlineMatchController, [this, confirmGo] {
+		confirmGo(QStringLiteral("goPrevious"), onlineCurrentHole - 1);
+	});
+	connect(firstAction, &QAction::triggered, onlineMatchController, [confirmGo] { confirmGo(QStringLiteral("goFirst"), 1); });
+	connect(lastAction, &QAction::triggered, onlineMatchController, [this, confirmGo] {
+		confirmGo(QStringLiteral("goLast"), holeAction->items().size());
+	});
+	connect(randAction, &QAction::triggered, onlineMatchController, [confirmGo] { confirmGo(QStringLiteral("goRandom"), 0); });
+	connect(holeAction, &KSelectAction::indexTriggered, onlineMatchController, [confirmGo](int index) {
+		confirmGo(QStringLiteral("goToHole"), index + 1);
+	});
 	connect(onlineMatchController, &Kolf::Session::SessionController::gameReady, this, [this](KolfGame *onlineGame) {
 		onlineGameLayout->insertWidget(0, onlineGame, 1);
 		onlineGame->show();
@@ -454,6 +523,8 @@ void KolfWindow::finishOnlineMatch()
 		onlineHostControls->setEnabled(false);
 	}
 	if (onlineModeActive) { resetHoleAction->setEnabled(false); undoShotAction->setEnabled(false); }
+	if (onlineModeActive) for (QAction *action : QList<QAction *>{holeAction, nextAction, prevAction, firstAction, lastAction, randAction})
+		action->setEnabled(false);
 	skipHoleAction->setEnabled(false);
 	skipHoleAction->setVisible(false);
 	if (onlineNoticeLabel) onlineNoticeLabel->hide();
@@ -578,8 +649,8 @@ void KolfWindow::startNewGame()
 	connect(game, &KolfGame::newStatusText, this, &KolfWindow::newStatusText);
         connect(game, qOverload<int>(&KolfGame::currentHole), this,
                 &KolfWindow::setCurrentHole);
-        connect(holeAction, &QAction::triggered, game,
-                qOverload<int>(&KolfGame::switchHole));
+        connect(holeAction, &KSelectAction::indexTriggered, game,
+                [offlineGame = game](int index) { offlineGame->switchHole(index + 1); });
         connect(nextAction, &QAction::triggered, game, &KolfGame::nextHole);
 	connect(prevAction, &QAction::triggered, game, &KolfGame::prevHole);
 	connect(firstAction, &QAction::triggered, game, &KolfGame::firstHole);

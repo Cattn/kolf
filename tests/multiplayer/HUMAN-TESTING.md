@@ -106,6 +106,27 @@ applied the same next-hole state and finished. Visible confirmation, final-hole
 skip, Results presentation, rolling-ball, and three-member/four-player checks:
 **not run** on Windows, Skip source `3d60dd2`.
 
+## Host Go navigation slice
+
+In a two-client match, enable Host Controls and use Next, Previous, First,
+Last, Random, and Switch to Hole in settled turns. Cancel a confirmation and
+check that the selected hole and both scenes remain unchanged. Accept each
+action and compare the hole, scene, scorecard, starter, and host notice on both
+clients. On a revisited hole, check that its earlier scores and shot counts
+are cleared while other visited rows remain. Go Last must start the last hole
+without opening Results. Guests cannot use Go, and the actions are unavailable
+while a ball rolls or Host Controls are off. Check Results labels holes left
+unfinished and omits them from completed-hole highlights. Leave Online and
+verify the offline Go menu and shortcuts still move only the local game.
+
+**Current result:** automated two-client Go Last, Go First, and subsequent
+replay **passed** on Windows with `tests/multiplayer/fixtures/static.kolf`
+after Craft compile/install/qmerge; run directory
+`server/local-session/online-host-go-1790275347446`. Both clients applied
+identical states, including cleared scores on the revisited first hole, and
+then finished. Visible menu, confirmations, Random, rolling-ball, Results,
+offline, and three-member/four-player checks: **not run** on Windows.
+
 ## One Slope Practise visual pass
 
 Select **Slope Practise** in the lobby. Before starting, turn on **Hole > Show

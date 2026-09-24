@@ -166,6 +166,9 @@ private:
 	QAction *onlineResyncAction = nullptr;
 	Kolf::Session::SessionController *onlineMatchController = nullptr;
 	QHash<QAction *, bool> offlineActionStates;
+	QStringList offlineHoleItems;
+	int offlineHoleIndex = -1;
+	int onlineCurrentHole = 1;
 	bool offlineGamePausedForOnline = false;
 	bool onlineModeActive = false;
 };

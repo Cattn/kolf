@@ -245,6 +245,14 @@ void SessionController::receive(const QJsonObject &message) {
             m_scriptedHostSkipDone = true;
             skipOnlineHole();
         }
+        const auto scriptedGo = m_config[QStringLiteral("scriptedHostGo")].toArray();
+        if (m_role == Role::Authority && m_hostControlsEnabled && m_ready && m_scriptedHostGoIndex < scriptedGo.size()) {
+            const auto move = scriptedGo[m_scriptedHostGoIndex].toObject();
+            if (move[QStringLiteral("turn")].toInt() == m_turn) {
+                ++m_scriptedHostGoIndex;
+                navigateOnline(move[QStringLiteral("action")].toString(), move[QStringLiteral("targetHole")].toInt());
+            }
+        }
         return;
     }
     if (type == QLatin1String("HostControlRejected")) {
@@ -253,6 +261,7 @@ void SessionController::receive(const QJsonObject &message) {
         if (commandId == m_hostResetPending) m_hostResetPending.clear();
         if (commandId == m_hostUndoPending) m_hostUndoPending.clear();
         if (commandId == m_hostSkipPending) m_hostSkipPending.clear();
+        if (commandId == m_hostGoPending) m_hostGoPending.clear();
         Q_EMIT noticeChanged(tr("Host control rejected: %1").arg(m[QStringLiteral("reason")].toString()));
         refresh(); return;
     }
@@ -266,14 +275,20 @@ void SessionController::receive(const QJsonObject &message) {
             ? tr("Host undid the last shot on Hole %1.").arg(m[QStringLiteral("hole")].toInt())
             : action == QLatin1String("skipHole")
                 ? tr("Host skipped Hole %1. Current scores were kept; the hole is unfinished.").arg(m[QStringLiteral("hole")].toInt())
+                : action.startsWith(QLatin1String("go"))
+                    ? tr("Host moved from Hole %1 to Hole %2. The destination restarted; the hole left behind is unfinished.")
+                        .arg(m[QStringLiteral("fromHole")].toInt()).arg(m[QStringLiteral("hole")].toInt())
                 : tr("Host reset Hole %1. Current-hole scores were cleared.").arg(m[QStringLiteral("hole")].toInt()));
         return;
     }
     if (type == QLatin1String("AdmitHostAction") && m_role == Role::Authority) {
         const auto action = m[QStringLiteral("action")].toString();
+        const bool navigation = action == QLatin1String("goNext") || action == QLatin1String("goPrevious")
+            || action == QLatin1String("goFirst") || action == QLatin1String("goLast")
+            || action == QLatin1String("goRandom") || action == QLatin1String("goToHole");
         if (!m_hostActionPending || !m_hostControlsEnabled
             || (action != QLatin1String("resetHole") && action != QLatin1String("undoShot")
-                && action != QLatin1String("skipHole"))
+                && action != QLatin1String("skipHole") && !navigation)
             || m[QStringLiteral("stateRevision")].toInt() != m_revision || m[QStringLiteral("syncId")].toInt() != m_syncId
             || m[QStringLiteral("holeGeneration")].toInt() != m_generation || m_phase != QLatin1String("AwaitingShot")) {
             interrupt(QStringLiteral("Invalid admitted host action")); return;
@@ -282,6 +297,10 @@ void SessionController::receive(const QJsonObject &message) {
             if (!m_adapter->undoShot()) { interrupt(QStringLiteral("Host undo could not be applied")); return; }
         } else if (action == QLatin1String("skipHole")) {
             if (!m_adapter->skipCurrentHole()) { interrupt(QStringLiteral("Host skip could not be applied")); return; }
+        } else if (navigation) {
+            if (!m_adapter->navigateToHole(m[QStringLiteral("targetHole")].toInt())) {
+                interrupt(QStringLiteral("Host navigation could not be applied")); return;
+            }
         } else {
             if (!m_adapter->resetCurrentHole()) { interrupt(QStringLiteral("Host reset could not be applied")); return; }
             ++m_generation;
@@ -376,7 +395,8 @@ void SessionController::receive(const QJsonObject &message) {
         m_syncId = syncId;
         m_phase = s[QStringLiteral("phase")].toString(); m_choiceId = s[QStringLiteral("choiceId")].toString(); m_choiceSlot = s[QStringLiteral("choiceSlot")].toInt(-1);
         if (!frame) {
-            m_hostActionPending = false; m_hostResetPending.clear(); m_hostUndoPending.clear(); m_hostSkipPending.clear();
+            m_hostActionPending = false; m_hostResetPending.clear(); m_hostUndoPending.clear();
+            m_hostSkipPending.clear(); m_hostGoPending.clear();
         }
         if (frame) m_receivedFrame = m[QStringLiteral("frameSeq")].toInt();
         else {
@@ -434,6 +454,17 @@ void SessionController::receive(const QJsonObject &message) {
             && !m_scriptedHostSkipDone && m_config[QStringLiteral("scriptedHostSkipTurn")].toInt() == m_turn) {
             setHostControlsEnabled(true);
             return;
+        }
+        const auto scriptedGo = m_config[QStringLiteral("scriptedHostGo")].toArray();
+        if (m_role == Role::Authority && m_phase == QLatin1String("AwaitingShot") && m_scriptedHostGoIndex < scriptedGo.size()) {
+            const auto move = scriptedGo[m_scriptedHostGoIndex].toObject();
+            if (move[QStringLiteral("turn")].toInt() == m_turn) {
+                if (m_hostControlsEnabled) {
+                    ++m_scriptedHostGoIndex;
+                    navigateOnline(move[QStringLiteral("action")].toString(), move[QStringLiteral("targetHole")].toInt());
+                } else setHostControlsEnabled(true);
+                return;
+            }
         }
         if (m_phase == QLatin1String("AwaitingShot") && ownsSlot(m_adapter->activeSlot()) && !m_scriptedTurns.contains(m_turn)) {
             const auto shots = m_config[QStringLiteral("scriptedShots")].toArray();
@@ -501,17 +532,22 @@ void SessionController::refresh() {
         && m_hostTogglePending.isEmpty();
     Q_EMIT hostControlsChanged(m_hostControlsEnabled, canHostToggle,
         canHostToggle && m_hostControlsEnabled && m_hostResetPending.isEmpty() && m_hostUndoPending.isEmpty()
-            && m_hostSkipPending.isEmpty(),
+            && m_hostSkipPending.isEmpty() && m_hostGoPending.isEmpty(),
         canHostToggle && m_hostControlsEnabled && m_hostUndoPending.isEmpty() && m_hostResetPending.isEmpty()
-            && m_hostSkipPending.isEmpty() && m_adapter->canUndoShot(),
+            && m_hostSkipPending.isEmpty() && m_hostGoPending.isEmpty() && m_adapter->canUndoShot(),
         canHostToggle && m_hostControlsEnabled && m_hostSkipPending.isEmpty() && m_hostResetPending.isEmpty()
-            && m_hostUndoPending.isEmpty());
-    while (m_pars.size() < m_adapter->hole()) m_pars.append(0);
+            && m_hostUndoPending.isEmpty() && m_hostGoPending.isEmpty());
+    Q_EMIT hostNavigationChanged(m_adapter->hole(), m_adapter->highestHole(),
+        canHostToggle && m_hostControlsEnabled && m_hostResetPending.isEmpty() && m_hostUndoPending.isEmpty()
+            && m_hostSkipPending.isEmpty() && m_hostGoPending.isEmpty());
+    int visited = m_adapter->hole();
+    for (const auto &player : std::as_const(m_players)) visited = qMax(visited, int(player.scores().size()));
+    while (m_pars.size() < visited) m_pars.append(0);
     m_pars[m_adapter->hole() - 1] = m_adapter->par();
     QJsonArray scores;
     for (const auto &player : std::as_const(m_players)) {
         QJsonArray row;
-        for (int hole = 1; hole <= m_adapter->hole(); ++hole) row.append(player.score(hole));
+        for (int score : player.scores()) row.append(score);
         scores.append(row);
     }
     Q_EMIT scorecardChanged(scores, m_pars, activeSlot, m_adapter->hole());
@@ -547,7 +583,8 @@ void SessionController::setHostControlsEnabled(bool enabled)
     if (m_role != Role::Authority || !m_adapter || !m_ready || m_interrupted
         || m_phase != QLatin1String("AwaitingShot") || !m_pending.isEmpty()
         || m_hostActionPending || !m_hostTogglePending.isEmpty() || !m_hostResetPending.isEmpty()
-        || !m_hostUndoPending.isEmpty() || !m_hostSkipPending.isEmpty() || enabled == m_hostControlsEnabled) return;
+        || !m_hostUndoPending.isEmpty() || !m_hostSkipPending.isEmpty() || !m_hostGoPending.isEmpty()
+        || enabled == m_hostControlsEnabled) return;
     m_hostTogglePending = QUuid::createUuid().toString(QUuid::WithoutBraces);
     send(QStringLiteral("SetHostControls"), {{QStringLiteral("commandId"), m_hostTogglePending},
         {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
@@ -560,7 +597,7 @@ void SessionController::resetOnlineHole()
     if (m_role != Role::Authority || !m_adapter || !m_ready || m_interrupted || !m_hostControlsEnabled
         || m_phase != QLatin1String("AwaitingShot") || !m_pending.isEmpty()
         || m_hostActionPending || !m_hostResetPending.isEmpty() || !m_hostUndoPending.isEmpty()
-        || !m_hostSkipPending.isEmpty()) return;
+        || !m_hostSkipPending.isEmpty() || !m_hostGoPending.isEmpty()) return;
     m_hostResetPending = QUuid::createUuid().toString(QUuid::WithoutBraces);
     send(QStringLiteral("HostAction"), {{QStringLiteral("commandId"), m_hostResetPending},
         {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
@@ -573,7 +610,7 @@ void SessionController::undoOnlineShot()
     if (m_role != Role::Authority || !m_adapter || !m_ready || m_interrupted || !m_hostControlsEnabled
         || m_phase != QLatin1String("AwaitingShot") || !m_pending.isEmpty() || !m_adapter->canUndoShot()
         || m_hostActionPending || !m_hostResetPending.isEmpty() || !m_hostUndoPending.isEmpty()
-        || !m_hostSkipPending.isEmpty()) return;
+        || !m_hostSkipPending.isEmpty() || !m_hostGoPending.isEmpty()) return;
     m_hostUndoPending = QUuid::createUuid().toString(QUuid::WithoutBraces);
     send(QStringLiteral("HostAction"), {{QStringLiteral("commandId"), m_hostUndoPending},
         {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
@@ -586,11 +623,30 @@ void SessionController::skipOnlineHole()
     if (m_role != Role::Authority || !m_adapter || !m_ready || m_interrupted || !m_hostControlsEnabled
         || m_phase != QLatin1String("AwaitingShot") || !m_pending.isEmpty()
         || m_hostActionPending || !m_hostResetPending.isEmpty() || !m_hostUndoPending.isEmpty()
-        || !m_hostSkipPending.isEmpty()) return;
+        || !m_hostSkipPending.isEmpty() || !m_hostGoPending.isEmpty()) return;
     m_hostSkipPending = QUuid::createUuid().toString(QUuid::WithoutBraces);
     send(QStringLiteral("HostAction"), {{QStringLiteral("commandId"), m_hostSkipPending},
         {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
         {QStringLiteral("holeGeneration"), m_generation}, {QStringLiteral("action"), QStringLiteral("skipHole")}});
+    refresh();
+}
+
+void SessionController::navigateOnline(const QString &action, int targetHole)
+{
+    if (m_role != Role::Authority || !m_adapter || !m_ready || m_interrupted || !m_hostControlsEnabled
+        || m_phase != QLatin1String("AwaitingShot") || !m_pending.isEmpty() || m_hostActionPending
+        || !m_hostResetPending.isEmpty() || !m_hostUndoPending.isEmpty() || !m_hostSkipPending.isEmpty()
+        || !m_hostGoPending.isEmpty()) return;
+    const QStringList modes{QStringLiteral("goNext"), QStringLiteral("goPrevious"), QStringLiteral("goFirst"),
+        QStringLiteral("goLast"), QStringLiteral("goRandom"), QStringLiteral("goToHole")};
+    if (!modes.contains(action) || (action == QLatin1String("goToHole")
+        && (targetHole < 1 || targetHole > m_adapter->highestHole() || targetHole == m_adapter->hole()))) return;
+    m_hostGoPending = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    QJsonObject command{{QStringLiteral("commandId"), m_hostGoPending},
+        {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
+        {QStringLiteral("holeGeneration"), m_generation}, {QStringLiteral("action"), action}};
+    if (action == QLatin1String("goToHole")) command[QStringLiteral("targetHole")] = targetHole;
+    send(QStringLiteral("HostAction"), command);
     refresh();
 }
 

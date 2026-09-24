@@ -37,7 +37,8 @@ export function validRosterState(state: JsonObject, rosterSize?: number): boolea
     && Array.isArray(objects) && objects.length <= 4096 && objects.every((object: JsonObject) => validVisual(object))
     && new Set(objects.map((object: JsonObject) => object.id)).size === objects.length
     && Array.isArray(scores) && scores.length === size
-    && scores.every((row: unknown) => Array.isArray(row) && row.length === state.hole && row.every(value => integer(value, 0, 10_000)))
+    && scores.every((row: unknown) => Array.isArray(row) && row.length >= Number(state.hole) && row.length <= 1000
+      && row.length === scores[0].length && row.every(value => integer(value, 0, 10_000)))
     && (state.phase !== 'AwaitingHazardChoice'
       || (typeof state.choiceId === 'string' && /^[A-Za-z0-9_-]{1,96}$/.test(state.choiceId) && integer(state.choiceSlot, 0, size - 1)));
 }
