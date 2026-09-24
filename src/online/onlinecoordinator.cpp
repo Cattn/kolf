@@ -277,6 +277,7 @@ void OnlineCoordinator::receive(const QJsonObject &message)
             {QStringLiteral("course"), m_coursePath}, {QStringLiteral("roster"), roster},
             {QStringLiteral("courseSource"), match.value(QStringLiteral("course")).toObject().value(QStringLiteral("source"))},
             {QStringLiteral("localPlayerIds"), localPlayerIds},
+            {QStringLiteral("localMemberId"), m_memberId},
             {QStringLiteral("role"), match.value(QStringLiteral("authorityMemberId")).toString() == m_memberId
                 ? QStringLiteral("authority") : QStringLiteral("guest")},
             {QStringLiteral("logDirectory"), logDirectory}});

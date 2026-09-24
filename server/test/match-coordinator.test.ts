@@ -85,6 +85,117 @@ test('three members coordinate four players with multi-slot ownership and frame 
   assert(frame.deliveries.every(delivery => delivery.visual));
 });
 
+test('advisory votes count members once and only an explicit owner approval starts a host action', () => {
+  let now = 1000;
+  const owners = ['member_a', 'member_b', 'member_a', 'member_c'];
+  const coordinator = new MatchCoordinator(lobbyState(owners), () => now);
+  const initial = { ...state(4), scores: [[2], [1], [0], [0]] };
+  const syncId = open(coordinator, ['member_a', 'member_b', 'member_c'], initial);
+  coordinator.receive('member_a', scoped('SetHostControls', {
+    commandId: 'enable_controls', stateRevision: 1, syncId, enabled: true,
+  }));
+  const proposal = { commandId: 'proposal_1', stateRevision: 1, syncId, holeGeneration: 1,
+    action: 'resetHole' };
+  const proposed = coordinator.receive('member_b', scoped('ProposeHostAction', proposal));
+  const changed = proposed.deliveries.find(d => d.message.type === 'HostProposalChanged')?.message.payload;
+  assert.equal(changed?.proposerId, 'member_b');
+  assert.equal(changed?.memberCount, 3);
+  assert.equal(changed?.expiresAt, 61_000);
+  assert.equal(coordinator.receive('member_b', scoped('ProposeHostAction', proposal))
+    .deliveries[0].message.type, 'HostProposalAccepted');
+  coordinator.receive('member_a', scoped('VoteHostProposal', {
+    commandId: 'vote_a_yes', proposalId: 'proposal_1', approve: true,
+  }));
+  coordinator.receive('member_b', scoped('VoteHostProposal', {
+    commandId: 'vote_b_yes', proposalId: 'proposal_1', approve: true,
+  }));
+  const changedVote = coordinator.receive('member_a', scoped('VoteHostProposal', {
+    commandId: 'vote_a_no', proposalId: 'proposal_1', approve: false,
+  }));
+  const votes = changedVote.deliveries.find(d => d.message.type === 'HostProposalChanged')?.message.payload.votes as
+    Array<{ memberId: string; approve: boolean }>;
+  assert.equal(votes.length, 2);
+  assert.deepEqual(votes.find(v => v.memberId === 'member_a'), { memberId: 'member_a', approve: false });
+  assert.equal(changedVote.deliveries.some(d => d.message.type === 'AdmitHostAction'), false);
+  assert.equal(coordinator.receive('member_c', scoped('DecideHostProposal', {
+    commandId: 'guest_decision', proposalId: 'proposal_1', approve: true,
+  })).deliveries[0].message.type, 'HostProposalRejected');
+  const rejected = coordinator.receive('member_a', scoped('DecideHostProposal', {
+    commandId: 'reject_proposal', proposalId: 'proposal_1', approve: false,
+  }));
+  assert.equal(rejected.deliveries.filter(d => d.message.type === 'HostProposalClosed').length, 3);
+  assert.equal(rejected.deliveries.some(d => d.message.type === 'AdmitHostAction'), false);
+  assert.equal(coordinator.receive('member_b', scoped('VoteHostProposal', {
+    commandId: 'late_vote', proposalId: 'proposal_1', approve: true,
+  })).deliveries[0].message.type, 'HostProposalRejected');
+  coordinator.receive('member_c', scoped('ProposeHostAction', { ...proposal, commandId: 'proposal_2' }));
+  const approved = coordinator.receive('member_a', scoped('DecideHostProposal', {
+    commandId: 'approve_proposal', proposalId: 'proposal_2', approve: true,
+  }));
+  assert.equal(approved.deliveries.filter(d => d.message.type === 'AdmitHostAction').length, 1);
+  assert.equal(approved.deliveries.filter(d => d.message.type === 'HostProposalClosed').length, 3);
+  const resetState = { ...initial, stateRevision: 2, holeGeneration: 2, turnId: 2,
+    scores: [[0], [0], [0], [0]] };
+  const committed = coordinator.receive('member_a', scoped('CommitTransition', { state: resetState }));
+  assert.equal(committed.deliveries.filter(d => d.message.type === 'HostActionNotice').length, 3);
+  now += 1;
+});
+
+test('proposal expiry, voting disable, busy state, and stale revision never start an action', () => {
+  let now = 2000;
+  const coordinator = new MatchCoordinator(lobbyState(['member_a', 'member_b']), () => now);
+  const syncId = open(coordinator, ['member_a', 'member_b'], state(2));
+  coordinator.receive('member_a', scoped('SetHostControls', {
+    commandId: 'enable_controls', stateRevision: 1, syncId, enabled: true,
+  }));
+  const base = { stateRevision: 1, syncId, holeGeneration: 1, action: 'goToHole', targetHole: 2 };
+  assert.equal(coordinator.receive('member_b', scoped('ProposeHostAction', {
+    ...base, commandId: 'bad_target', targetHole: 100,
+  })).deliveries[0].message.type, 'HostProposalRejected');
+  assert.equal(coordinator.receive('member_b', scoped('ProposeHostAction', {
+    ...base, commandId: 'stale_proposal', stateRevision: 2,
+  })).deliveries[0].message.type, 'HostProposalRejected');
+  coordinator.receive('member_b', scoped('ProposeHostAction', { ...base, commandId: 'expires' }));
+  now += 60_001;
+  const expired = coordinator.tick();
+  assert.equal(expired.deliveries.filter(d => d.message.type === 'HostProposalClosed').length, 2);
+  assert.equal(coordinator.receive('member_a', scoped('DecideHostProposal', {
+    commandId: 'late_approval', proposalId: 'expires', approve: true,
+  })).deliveries[0].message.type, 'HostProposalRejected');
+  coordinator.receive('member_b', scoped('ProposeHostAction', { ...base, commandId: 'disable_me' }));
+  const disabled = coordinator.receive('member_a', scoped('SetAllowVoting', {
+    commandId: 'disable_voting', stateRevision: 1, syncId, enabled: false,
+  }));
+  assert.equal(disabled.deliveries.filter(d => d.message.type === 'HostProposalClosed').length, 2);
+  assert.equal(coordinator.receive('member_b', scoped('ProposeHostAction', {
+    ...base, commandId: 'while_disabled',
+  })).deliveries[0].message.type, 'HostProposalRejected');
+  coordinator.receive('member_a', scoped('SetAllowVoting', {
+    commandId: 'enable_voting', stateRevision: 1, syncId, enabled: true,
+  }));
+  coordinator.receive('member_b', scoped('ProposeHostAction', { ...base, commandId: 'withdraw_me' }));
+  assert.equal(coordinator.receive('member_a', scoped('WithdrawHostProposal', {
+    commandId: 'wrong_withdrawal', proposalId: 'withdraw_me',
+  })).deliveries[0].message.type, 'HostProposalRejected');
+  assert.equal(coordinator.receive('member_b', scoped('WithdrawHostProposal', {
+    commandId: 'own_withdrawal', proposalId: 'withdraw_me',
+  })).deliveries.filter(d => d.message.type === 'HostProposalClosed').length, 2);
+  coordinator.receive('member_b', scoped('ProposeHostAction', { ...base, commandId: 'controls_off' }));
+  assert.equal(coordinator.receive('member_a', scoped('SetHostControls', {
+    commandId: 'disable_controls', stateRevision: 1, syncId, enabled: false,
+  })).deliveries.filter(d => d.message.type === 'HostProposalClosed').length, 2);
+  coordinator.receive('member_a', scoped('SetHostControls', {
+    commandId: 'reenable_controls', stateRevision: 1, syncId, enabled: true,
+  }));
+  coordinator.receive('member_b', scoped('ProposeHostAction', { ...base, commandId: 'shot_retires' }));
+  const shot = coordinator.receive('member_a', scoped('SubmitShot', { commandId: 'shot_1', holeGeneration: 1,
+    turnId: 1, playerId: 'player_0', puttingMode: 'normal', directionRadians: 0, launchMagnitude: 1 }));
+  assert.equal(shot.deliveries.filter(d => d.message.type === 'HostProposalClosed').length, 2);
+  assert.equal(coordinator.receive('member_b', scoped('ProposeHostAction', {
+    ...base, commandId: 'while_busy',
+  })).deliveries[0].message.type, 'HostProposalRejected');
+});
+
 test('only the owner can enable controls and a reset uses the state barrier once', () => {
   const coordinator = new MatchCoordinator(lobbyState(['member_a', 'member_b', 'member_a']));
   const initial = { ...state(3), scores: [[2], [1], [0]] };

@@ -19,6 +19,9 @@ export interface MatchProgress {
 type State = Record<string, any>;
 type Ready = { manifestHash?: string; applied: number };
 type Admission = { key: string; memberId: MemberId; playerId: string; status: Envelope };
+type HostProposal = { id: string; proposerId: MemberId; action: string; targetHole?: number;
+  stateRevision: number; syncId: number; holeGeneration: number; expiresAt: number;
+  votes: Map<MemberId, boolean> };
 
 /** Authoritative v3 match state machine keyed by member and player identities. */
 export class MatchCoordinator {
@@ -57,6 +60,10 @@ export class MatchCoordinator {
   private readonly hazardsByHole = new Map<number, number[]>();
   private readonly completedHoles: Array<Set<number>>;
   private hostControlsEnabled = false;
+  private allowVoting = true;
+  private proposal?: HostProposal;
+  private readonly memberNames = new Map<MemberId, string>();
+  private readonly proposalCommands = new Map<string, { memberId: MemberId; key: string; status: Envelope }>();
   private hostAction?: { commandId: string; action: string; memberId: MemberId; targetHole?: number };
   private undoCandidate?: { state: State; acceptedShots: number[]; hazardChoices: number[];
     holeShots: number[]; holeHazards: number[]; settled: boolean };
@@ -71,6 +78,7 @@ export class MatchCoordinator {
     if (!state.match?.compatibilityId || state.match.roster.length < 2 || state.match.roster.length > 8)
       throw Error('match preparation is incomplete');
     this.match = state.match; this.lobbyId = state.lobbyId; this.now = now;
+    for (const member of state.members) this.memberNames.set(member.memberId, member.displayName);
     this.acceptedShots = this.match.roster.map(() => 0);
     this.hazardChoices = this.match.roster.map(() => 0);
     this.completedHoles = this.match.roster.map(() => new Set<number>());
@@ -119,6 +127,7 @@ export class MatchCoordinator {
   }
 
   tick(): MatchProgress {
+    if (this.proposal && this.now() >= this.proposal.expiresAt) this.retireProposal('expired');
     if (!this.interrupted && this.queuedResync && this.now() >= this.nextResyncAt) this.startResync(this.now());
     if (this.pending && this.now() - this.pendingAt > 300_000) this.interrupt('shot/choice watchdog expired');
     if (this.barrier && this.state && this.now() - this.pendingAt > 30_000) this.interrupt('state application timed out');
@@ -130,17 +139,19 @@ export class MatchCoordinator {
     const p = message.payload as State;
     const reject = (reason: string) => this.send(memberId, 'CommandRejected', { commandId: p.commandId, reason });
     switch (message.type) {
-      case 'SetHostControls': case 'HostAction': {
-        const toggle = message.type === 'SetHostControls';
+      case 'SetHostControls': case 'SetAllowVoting': case 'HostAction': {
+        const toggle = message.type !== 'HostAction';
         const action = p.action;
         const key = JSON.stringify(toggle ? [message.type, p.stateRevision, p.syncId, p.enabled]
           : [message.type, p.stateRevision, p.syncId, p.holeGeneration, action, p.targetHole]);
         const known = this.hostCommands.get(p.commandId);
+        if (this.proposalCommands.has(p.commandId) && !known) {
+          this.send(memberId, 'HostControlRejected', { commandId: p.commandId, reason: 'command ID reused' });
+          return;
+        }
         if (known) {
           if (known.memberId !== memberId || known.key !== key)
             this.send(memberId, 'HostControlRejected', { commandId: p.commandId, reason: 'command ID reused' });
-          else if (toggle) this.send(memberId, 'HostControlsChanged',
-            { enabled: this.hostControlsEnabled, commandId: p.commandId });
           else this.outbox.push({ memberId, message: known.status });
           return;
         }
@@ -155,8 +166,13 @@ export class MatchCoordinator {
           if (typeof p.enabled !== 'boolean' || this.hostAction || (p.enabled &&
             (this.barrier || this.pending || this.state?.phase !== 'AwaitingShot')))
             return deny('match is busy');
-          this.hostControlsEnabled = p.enabled;
-          const status = envelope('HostControlsChanged', { enabled: p.enabled, commandId: p.commandId },
+          if (message.type === 'SetAllowVoting' && !this.hostControlsEnabled)
+            return deny('host controls are off');
+          if (message.type === 'SetHostControls') this.hostControlsEnabled = p.enabled;
+          else this.allowVoting = p.enabled;
+          if (!p.enabled) this.retireProposal(message.type === 'SetHostControls' ? 'host controls disabled' : 'voting disabled');
+          const status = envelope(message.type === 'SetHostControls' ? 'HostControlsChanged' : 'AllowVotingChanged',
+            { enabled: p.enabled, commandId: p.commandId },
             { lobbyId: this.lobbyId, matchId: this.match.matchId });
           this.hostCommands.set(p.commandId, { key, memberId, status });
           this.broadcastEnvelope(status);
@@ -185,6 +201,7 @@ export class MatchCoordinator {
           if (!integer(targetHole, 1, holes) || targetHole === current)
             return deny('target hole must differ and be within this course');
         }
+        this.retireProposal('match action started');
         this.hostAction = { commandId: p.commandId, action, memberId, targetHole };
         this.barrier = true; this.barrierPublished = false; this.pendingAt = this.now();
         for (const entry of this.members.values()) entry.applied = 0;
@@ -195,6 +212,73 @@ export class MatchCoordinator {
         this.broadcastEnvelope(status);
         this.send(this.match.authorityMemberId, 'AdmitHostAction', { commandId: p.commandId, action, targetHole,
           stateRevision: p.stateRevision, syncId: p.syncId, holeGeneration: p.holeGeneration });
+        return;
+      }
+      case 'ProposeHostAction': case 'VoteHostProposal': case 'DecideHostProposal': case 'WithdrawHostProposal': {
+        const key = JSON.stringify([message.type, p]);
+        const known = this.proposalCommands.get(p.commandId);
+        if (known) {
+          if (known.memberId !== memberId || known.key !== key)
+            this.send(memberId, 'HostProposalRejected', { commandId: p.commandId, reason: 'command ID reused' });
+          else this.outbox.push({ memberId, message: known.status });
+          return;
+        }
+        const deny = (reason: string) => this.send(memberId, 'HostProposalRejected', { commandId: p.commandId, reason });
+        if (this.hostCommands.has(p.commandId)) return deny('command ID reused');
+        if (this.proposalCommands.size >= 10_000) return deny('proposal traffic limit reached');
+        if (!this.hostControlsEnabled || !this.allowVoting) return deny('voting is unavailable');
+        if (this.proposal && this.now() >= this.proposal.expiresAt) this.retireProposal('expired');
+        if (message.type === 'ProposeHostAction') {
+          if (this.proposal) return deny('another proposal is active');
+          if (!this.state || this.barrier || this.pending || this.hostAction || this.state.phase !== 'AwaitingShot')
+            return deny('match is busy');
+          if (p.stateRevision !== this.state.stateRevision || p.syncId !== this.syncId
+            || p.holeGeneration !== this.state.holeGeneration) return deny('stale proposal');
+          const action = String(p.action);
+          if (action === 'undoShot' && (!this.undoCandidate?.settled
+            || this.undoCandidate.state.hole !== this.state.hole
+            || this.undoCandidate.state.holeGeneration !== this.state.holeGeneration))
+            return deny('no settled shot to undo on this hole');
+          const holes = this.match.course.holes ?? this.match.course.par?.length ?? 0;
+          const current = this.state.hole;
+          const target = action === 'goNext' ? current + 1 : action === 'goPrevious' ? current - 1
+            : action === 'goFirst' ? 1 : action === 'goLast' ? holes : p.targetHole;
+          if (action.startsWith('go') && (action === 'goRandom' ? holes < 2
+            : !integer(target, 1, holes) || target === current)) return deny('invalid target hole');
+          this.proposal = { id: p.commandId, proposerId: memberId, action, targetHole: p.targetHole,
+            stateRevision: p.stateRevision, syncId: p.syncId, holeGeneration: p.holeGeneration,
+            expiresAt: this.now() + 60_000, votes: new Map() };
+          this.publishProposal();
+        } else {
+          const proposal = this.proposal;
+          if (!proposal || proposal.id !== p.proposalId) return deny('proposal is no longer active');
+          if (message.type === 'VoteHostProposal') {
+            proposal.votes.set(memberId, p.approve);
+            this.publishProposal();
+          } else if (message.type === 'WithdrawHostProposal') {
+            if (memberId !== proposal.proposerId) return deny('only the proposer can withdraw');
+            this.retireProposal('withdrawn');
+          } else {
+            if (memberId !== this.match.authorityMemberId) return deny('only the lobby owner can decide');
+            if (!p.approve) this.retireProposal('rejected by host');
+            else {
+              if (!this.state || this.barrier || this.pending || this.hostAction || this.state.phase !== 'AwaitingShot'
+                || this.state.stateRevision !== proposal.stateRevision || this.syncId !== proposal.syncId
+                || this.state.holeGeneration !== proposal.holeGeneration) return deny('proposal is stale or match is busy');
+              this.proposal = undefined;
+              this.receiveMessage(memberId, envelope('HostAction', { commandId: p.commandId,
+                stateRevision: proposal.stateRevision, syncId: proposal.syncId,
+                holeGeneration: proposal.holeGeneration, action: proposal.action, targetHole: proposal.targetHole },
+                { lobbyId: this.lobbyId, matchId: this.match.matchId }));
+              if (!this.hostAction) { this.proposal = proposal; return; }
+              this.broadcast('HostProposalClosed', { proposalId: proposal.id, reason: 'approved by host' });
+            }
+          }
+        }
+        const status = envelope('HostProposalAccepted', { commandId: p.commandId },
+          { lobbyId: this.lobbyId, matchId: this.match.matchId });
+        this.proposalCommands.set(p.commandId, { memberId, key, status });
+        this.outbox.push({ memberId, message: status });
         return;
       }
       case 'SceneReady': {
@@ -229,6 +313,7 @@ export class MatchCoordinator {
         if (p.turnId !== this.state.turnId || p.holeGeneration !== this.state.holeGeneration) return reject('stale turn');
         if (this.admissions.size >= 10_000) { this.interrupt('command retention limit reached'); return; }
         this.pending = p.commandId; this.pendingAt = this.now();
+        this.retireProposal('shot started');
         this.broadcast('AimClear', { playerId: player.playerId, turnId: p.turnId });
         const status = envelope('ShotPending', { commandId: p.commandId }, { lobbyId: this.lobbyId, matchId: this.match.matchId });
         this.admissions.set(p.commandId, { key, memberId, playerId: player.playerId, status });
@@ -331,6 +416,7 @@ export class MatchCoordinator {
             throw Error('invalid generation progression');
         }
         const previous = this.state;
+        this.retireProposal('match state changed');
         const appliedAction = this.hostAction;
         const wasPending = this.pending;
         if (!this.state) this.startedAt = this.now();
@@ -453,6 +539,7 @@ export class MatchCoordinator {
           if (this.queuedResync || (this.barrier && this.resyncRound === this.syncId)) return;
           const now = this.now();
           if (now < this.nextResyncAt) {
+            this.retireProposal('synchronization started');
             this.queuedResync = true; this.barrier = true; this.barrierPublished = false; this.pendingAt = now;
             for (const entry of this.members.values()) entry.applied = 0;
           } else this.startResync(now);
@@ -472,6 +559,7 @@ export class MatchCoordinator {
   }
 
   private startResync(now: number) {
+    this.retireProposal('synchronization started');
     this.queuedResync = false; this.barrier = true; this.barrierPublished = false; ++this.syncId; this.resyncRound = this.syncId;
     this.broadcast('AimClear', { turnId: this.state?.turnId });
     this.nextResyncAt = now + 1000; this.lastFrame = 0; this.pendingAt = now;
@@ -481,6 +569,7 @@ export class MatchCoordinator {
 
   private interrupt(reason: string) {
     if (this.interrupted) return;
+    this.retireProposal('match interrupted');
     this.interrupted = true; this.interruptionReason = reason.slice(0, 160);
     this.broadcast('MatchInterrupted', { reason: this.interruptionReason, eventSeq: ++this.eventSeq });
   }
@@ -489,6 +578,27 @@ export class MatchCoordinator {
     for (const key of ['stateRevision', 'holeGeneration', 'turnId', 'activeSlot', 'hole', 'par', 'phase', 'manifestHash',
       'courseHash', 'scores', 'choiceId', 'choiceSlot'])
       if (JSON.stringify(state[key]) !== JSON.stringify(this.state?.[key])) throw Error('uncommitted metadata change');
+  }
+
+  private publishProposal() {
+    const proposal = this.proposal;
+    if (!proposal) return;
+    const votes = [...proposal.votes].map(([memberId, approve]) => ({ memberId, approve }));
+    const summary = proposal.action === 'resetHole' ? 'Clear every player\'s strokes on this hole.'
+      : proposal.action === 'skipHole' ? 'Keep partial scores and mark this hole unfinished.'
+        : proposal.action === 'undoShot' ? 'Restore the last settled shot and its score.'
+          : 'Leave this hole unfinished and restart the destination, clearing its previous scores.';
+    this.broadcast('HostProposalChanged', { proposalId: proposal.id, proposerId: proposal.proposerId,
+      proposerName: this.memberNames.get(proposal.proposerId) ?? proposal.proposerId,
+      action: proposal.action, targetHole: proposal.targetHole, summary,
+      expiresAt: proposal.expiresAt, votes, memberCount: this.members.size });
+  }
+
+  private retireProposal(reason: string) {
+    if (!this.proposal) return;
+    const proposalId = this.proposal.id;
+    this.proposal = undefined;
+    this.broadcast('HostProposalClosed', { proposalId, reason });
   }
 
   private send(memberId: MemberId, type: string, payload: JsonObject = {}, visual = false) {

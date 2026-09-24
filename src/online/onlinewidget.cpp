@@ -371,6 +371,8 @@ OnlineWidget::OnlineWidget(QWidget *parent)
                 sessionConfig[QStringLiteral("scriptedHostSkipTurn")] = m_automation.value(QStringLiteral("scriptedHostSkipTurn"));
             if (m_automation.contains(QStringLiteral("scriptedHostGo")))
                 sessionConfig[QStringLiteral("scriptedHostGo")] = m_automation.value(QStringLiteral("scriptedHostGo"));
+            if (m_automation.contains(QStringLiteral("scriptedHostProposal")))
+                sessionConfig[QStringLiteral("scriptedHostProposal")] = m_automation.value(QStringLiteral("scriptedHostProposal"));
             sessionConfig[QStringLiteral("capture")] = true;
             sessionConfig[QStringLiteral("verifySnapshots")] = true;
             sessionConfig[QStringLiteral("logFrames")] = true;

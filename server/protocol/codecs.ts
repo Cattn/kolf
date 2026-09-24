@@ -35,6 +35,12 @@ export type ClientMessage =
       turnId: number; directionRadians: number; strength: number }>
   | Envelope<'ChooseHazardAction', { choiceId: string; stateRevision: number; syncId: number; action: 'drop' | 'rehit' }>
   | Envelope<'SetHostControls', { commandId: string; stateRevision: number; syncId: number; enabled: boolean }>
+  | Envelope<'SetAllowVoting', { commandId: string; stateRevision: number; syncId: number; enabled: boolean }>
+  | Envelope<'ProposeHostAction', { commandId: string; stateRevision: number; syncId: number; holeGeneration: number;
+      action: 'resetHole' | 'undoShot' | 'skipHole' | 'goNext' | 'goPrevious' | 'goFirst' | 'goLast' | 'goRandom' | 'goToHole'; targetHole?: number }>
+  | Envelope<'VoteHostProposal', { commandId: string; proposalId: string; approve: boolean }>
+  | Envelope<'DecideHostProposal', { commandId: string; proposalId: string; approve: boolean }>
+  | Envelope<'WithdrawHostProposal', { commandId: string; proposalId: string }>
   | Envelope<'HostAction', { commandId: string; stateRevision: number; syncId: number; holeGeneration: number;
       action: 'resetHole' | 'undoShot' | 'skipHole' | 'goNext' | 'goPrevious' | 'goFirst' | 'goLast' | 'goRandom' | 'goToHole';
       targetHole?: number }>
@@ -211,13 +217,13 @@ export function decodeClientMessage(raw: string): ClientMessage {
       if (!validId(p.choiceId) || !integer(p.stateRevision, 1) || !integer(p.syncId, 1)
         || (p.action !== 'drop' && p.action !== 'rehit')) throw new ProtocolError('InvalidPayload', 'invalid hazard action');
       return message as ClientMessage;
-    case 'SetHostControls':
+    case 'SetHostControls': case 'SetAllowVoting':
       requireGameplayScope(message);
       if (!validId(p.commandId) || !integer(p.stateRevision, 1) || !integer(p.syncId, 1)
         || typeof p.enabled !== 'boolean' || Object.keys(p).length !== 4)
         throw new ProtocolError('InvalidPayload', 'invalid host control toggle');
       return message as ClientMessage;
-    case 'HostAction':
+    case 'HostAction': case 'ProposeHostAction':
       requireGameplayScope(message);
       if (!validId(p.commandId) || !integer(p.stateRevision, 1) || !integer(p.syncId, 1)
         || !integer(p.holeGeneration, 1)
@@ -225,6 +231,17 @@ export function decodeClientMessage(raw: string): ClientMessage {
         || (p.action === 'goToHole' ? !integer(p.targetHole, 1, 1000) || Object.keys(p).length !== 6
           : p.targetHole !== undefined || Object.keys(p).length !== 5))
         throw new ProtocolError('InvalidPayload', 'invalid host action');
+      return message as ClientMessage;
+    case 'VoteHostProposal': case 'DecideHostProposal':
+      requireGameplayScope(message);
+      if (!validId(p.commandId) || !validId(p.proposalId) || typeof p.approve !== 'boolean'
+        || Object.keys(p).length !== 3)
+        throw new ProtocolError('InvalidPayload', 'invalid proposal vote or decision');
+      return message as ClientMessage;
+    case 'WithdrawHostProposal':
+      requireGameplayScope(message);
+      if (!validId(p.commandId) || !validId(p.proposalId) || Object.keys(p).length !== 2)
+        throw new ProtocolError('InvalidPayload', 'invalid proposal withdrawal');
       return message as ClientMessage;
     case 'RequestResync':
       requireGameplayScope(message); requireEmptyPayload(message); return message as ClientMessage;

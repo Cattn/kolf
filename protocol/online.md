@@ -125,6 +125,25 @@ highlights, while its partial strokes remain in totals. The server preserves
 accepted-shot and hazard-choice counts for a skipped hole. Exact retries do
 not apply an action twice.
 
+Host Controls also has **Allow Voting**, on by default in each new match and
+rematch and effective only while Host Controls is enabled. The owner may send
+`SetAllowVoting` at the current revision/sync ID. Disabling either option
+closes the current proposal. Any member may send `ProposeHostAction` with the
+same typed action, target, revision, sync ID, and hole generation as a direct
+host action. There is at most one active proposal. The service publishes
+`HostProposalChanged` with its proposer, action, plain score effect, expiry,
+member count, and votes. One member gets one changeable yes/no vote through
+`VoteHostProposal`, regardless of how many player slots that member owns.
+Votes never execute an action. The frozen lobby owner must explicitly send
+`DecideHostProposal` to approve or reject. Approval rechecks the current
+state and routes through the same `HostActionPending`/`AdmitHostAction` path
+and apply barrier as a direct action. The proposer may withdraw. The service
+retires proposals after 60 seconds, on a shot or direct action, during
+synchronization, after a state transition or interruption, or when voting is
+disabled. `HostProposalClosed` names the reason; rejected, withdrawn, expired,
+or stale proposals do not change the game. Proposal requests are bounded and
+duplicate command IDs are handled idempotently.
+
 `MatchResult` contains the frozen course name and roster, per-hole scores and
 par, ordered standings with ranks and ties, totals, relative-to-par where par
 is known, holes in one and best/worst completed holes, accepted-shot and

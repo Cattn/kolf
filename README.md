@@ -25,6 +25,12 @@ Previous, First, Last, Random, and Switch to Hole) confirm before moving the
 whole match. They leave the current hole unfinished, restart the destination,
 and clear its earlier scores and shot counts. Only the owner can use them while
 Host Controls are enabled and the match is ready for a shot.
+The **Allow Voting** option starts on in each match. While Host Controls are
+enabled, any member can propose one of those actions and vote Yes or No. The
+proposal panel shows its score effect, member vote tally, and expiry. Votes
+are advisory: only the lobby owner's explicit **Approve** executes the action;
+**Reject** and **Withdraw** close it without changing the match. The owner can
+turn voting off to close an outstanding proposal.
 
 ## How to play?
 ### Download a binary

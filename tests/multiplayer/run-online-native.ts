@@ -11,16 +11,18 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
 assert(['two-rematch', 'four-player', 'four-player-hazard', 'custom-course',
-  'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-skip', 'host-go'].includes(scenario),
+  'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-skip', 'host-go',
+  'host-proposal-approve', 'host-proposal-reject', 'host-proposal-four-player'].includes(scenario),
   'Unknown native scenario');
-const variableRoster = scenario.startsWith('four-player');
+const variableRoster = scenario.startsWith('four-player') || scenario === 'host-proposal-four-player';
 const hazardScenario = scenario === 'four-player-hazard';
 const slopeScenario = scenario.startsWith('slope-');
 const slopeOutOfBounds = scenario === 'slope-out-of-bounds';
 const clientCount = variableRoster ? 3 : 2;
 const matchCount = scenario === 'two-rematch' || scenario === 'custom-course' ? 2 : 1;
-const turnCount = slopeScenario ? 2 : hazardScenario ? 40 : variableRoster ? 8
-  : scenario === 'host-reset' || scenario === 'host-undo' || scenario === 'host-go' ? 8 : 4;
+const turnCount = slopeScenario ? 2 : hazardScenario ? 40 : scenario === 'host-proposal-four-player' ? 12 : variableRoster ? 8
+  : scenario === 'host-reset' || scenario === 'host-undo' || scenario === 'host-go'
+    || scenario.startsWith('host-proposal-') ? 8 : 4;
 const directory = resolve(root, 'server/local-session', `online-${scenario}-${Date.now()}`);
 const joinCodeFile = resolve(directory, 'join-code.txt');
 const course = slopeScenario ? resolve(directory, 'slope-practice-hole-1.kolf')
@@ -120,6 +122,9 @@ try {
       scriptedHostSkipTurn: scenario === 'host-skip' && client === 0 ? 2 : undefined,
       scriptedHostGo: scenario === 'host-go' && client === 0
         ? [{ turn: 2, action: 'goLast' }, { turn: 3, action: 'goFirst' }] : undefined,
+      scriptedHostProposal: scenario.startsWith('host-proposal-')
+        ? { turn: 2, action: 'resetHole', approve: scenario !== 'host-proposal-reject',
+          proposer: client === 1, vote: client !== 2 } : undefined,
       scriptedHazardAction: hazardScenario ? 'rehit' : undefined,
       scriptedShots: Array.from({ length: turnCount }, (_, turn) => ({
         directionRadians: slopeOutOfBounds ? Math.PI : 0,
@@ -241,6 +246,31 @@ try {
     assert(returned.every(states => states.length === 1), 'each client applied one Go First transition');
     assert.deepEqual(returned[0][0].state.scores, [[0, 0], [0, 0]], 'revisiting cleared earlier first-hole score');
     assert.deepEqual(returned[1][0].state, returned[0][0].state, 'guest reconciled exactly after backward Go');
+  }
+  if (scenario.startsWith('host-proposal-')) {
+    const logs = Array.from({ length: clientCount }, (_, client) => events(sessionDirectories(client)[0]));
+    for (const log of logs) {
+      const proposal = log.find(event => event.event === 'hostProposalChanged');
+      assert.equal(proposal?.proposal?.action, 'resetHole', 'both clients saw the guest reset proposal');
+      const closed = log.find(event => event.event === 'hostProposalClosed');
+      assert.equal(closed?.reason, scenario === 'host-proposal-reject' ? 'rejected by host' : 'approved by host');
+      if (scenario === 'host-proposal-four-player') {
+        const tally = log.filter(event => event.event === 'hostProposalChanged')
+          .map(event => event.proposal?.votes).find(votes => votes?.length === 3);
+        assert.equal(tally?.length, 3, 'each client saw one vote from each member');
+        assert.equal(new Set(tally.map((vote: { memberId: string }) => vote.memberId)).size, 3,
+          'owner with two slots cast only one vote');
+      }
+    }
+    const reset = logs.map(log => log.find(event => event.event === 'applied'
+      && event.state?.hole === 1 && event.state?.holeGeneration === 2));
+    if (scenario !== 'host-proposal-reject') {
+      assert(reset.every(Boolean), 'both clients applied the approved reset');
+      assert.deepEqual(reset[0]?.state.scores, Array.from({ length: clientCount === 3 ? 4 : 2 }, () => [0]),
+        'approval cleared the scores');
+      for (const clientReset of reset.slice(1))
+        assert.deepEqual(clientReset?.state, reset[0]?.state, 'guest reconciled to the approved reset');
+    } else assert(reset.every(value => !value), 'rejection left the hole unchanged');
   }
   if (slopeScenario) for (let client = 0; client < clientCount; ++client) {
     const committed = events(sessionDirectories(client)[0]).filter(event =>

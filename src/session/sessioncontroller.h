@@ -25,6 +25,11 @@ public Q_SLOTS:
     void chooseDrop();
     void chooseRehit();
     void setHostControlsEnabled(bool enabled);
+    void setAllowVoting(bool enabled);
+    void proposeHostAction(const QString &action, int targetHole = 0);
+    void voteHostProposal(bool approve);
+    void decideHostProposal(bool approve);
+    void withdrawHostProposal();
     void resetOnlineHole();
     void undoOnlineShot();
     void skipOnlineHole();
@@ -43,6 +48,7 @@ Q_SIGNALS:
     void hazardChoiceChanged(bool available);
     void hostControlsChanged(bool enabled, bool canToggle, bool canReset, bool canUndo, bool canSkip);
     void hostNavigationChanged(int currentHole, int highestHole, bool canNavigate);
+    void proposalUiChanged(const QJsonObject &state);
 
 private:
     void receive(const QJsonObject &message);
@@ -86,6 +92,10 @@ private:
     int m_frameSeq = 0, m_receivedFrame = 0;
     bool m_ready = false, m_interrupted = false, m_awaitingResync = false;
     bool m_hostControlsEnabled = false, m_hostActionPending = false;
+    bool m_allowVoting = true;
+    QJsonObject m_hostProposal;
+    QString m_proposalCommandPending;
+    QString m_votingTogglePending;
     QString m_hostTogglePending;
     QString m_hostResetPending;
     QString m_hostUndoPending;
@@ -95,6 +105,9 @@ private:
     bool m_scriptedHostResetDone = false;
     bool m_scriptedHostUndoDone = false;
     bool m_scriptedHostSkipDone = false;
+    bool m_scriptedProposalSent = false;
+    bool m_scriptedProposalDecided = false;
+    bool m_scriptedProposalVoted = false;
     int m_scriptedHostGoIndex = 0;
     QJsonObject m_pendingMessage;
     QJsonObject m_lastAim;

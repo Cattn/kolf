@@ -25,13 +25,16 @@
 #include "game.h"
 #include "itemfactory.h"
 #include <QHash>
+#include <QJsonObject>
 #include <QUrl>
 class QGridLayout;
 class QHBoxLayout;
 class QJsonObject;
 class QCheckBox;
+class QComboBox;
 class QLabel;
 class QPushButton;
+class QSpinBox;
 class QStackedWidget;
 class QVBoxLayout;
 class QAction;
@@ -160,6 +163,17 @@ private:
 	ScoreBoard *onlineScoreboard = nullptr;
 	QWidget *onlineHazardPanel = nullptr;
 	QCheckBox *onlineHostControls = nullptr;
+	QCheckBox *onlineAllowVoting = nullptr;
+	QComboBox *onlineProposalAction = nullptr;
+	QSpinBox *onlineProposalTarget = nullptr;
+	QLabel *onlineProposalLabel = nullptr;
+	QPushButton *onlineProposeButton = nullptr;
+	QPushButton *onlineVoteYesButton = nullptr;
+	QPushButton *onlineVoteNoButton = nullptr;
+	QPushButton *onlineApproveButton = nullptr;
+	QPushButton *onlineRejectButton = nullptr;
+	QPushButton *onlineWithdrawButton = nullptr;
+	QJsonObject onlineProposal;
 	QLabel *onlineNoticeLabel = nullptr;
 	QPushButton *onlineDropButton = nullptr;
 	QPushButton *onlineRehitButton = nullptr;

@@ -227,6 +227,7 @@ void SessionController::receive(const QJsonObject &message) {
     if (!m_adapter) { interrupt(QStringLiteral("State arrived before course load")); return; }
     if (type == QLatin1String("HostControlsChanged")) {
         m_hostControlsEnabled = m[QStringLiteral("enabled")].toBool();
+        if (!m_hostControlsEnabled) m_hostProposal = {};
         if (m[QStringLiteral("commandId")].toString() == m_hostTogglePending) m_hostTogglePending.clear();
         Q_EMIT noticeChanged(m_hostControlsEnabled ? tr("Host controls enabled.") : tr("Host controls disabled."));
         refresh();
@@ -255,6 +256,77 @@ void SessionController::receive(const QJsonObject &message) {
         }
         return;
     }
+    if (type == QLatin1String("AllowVotingChanged")) {
+        m_allowVoting = m[QStringLiteral("enabled")].toBool();
+        if (m[QStringLiteral("commandId")].toString() == m_votingTogglePending) m_votingTogglePending.clear();
+        if (!m_allowVoting) m_hostProposal = {};
+        Q_EMIT noticeChanged(m_allowVoting ? tr("Host voting enabled.") : tr("Host voting disabled."));
+        refresh(); return;
+    }
+    if (type == QLatin1String("HostProposalChanged")) {
+        m_hostProposal = m;
+        log(QStringLiteral("hostProposalChanged"), {{QStringLiteral("proposal"), m}});
+        Q_EMIT noticeChanged(tr("%1 proposed %2.").arg(m[QStringLiteral("proposerName")].toString(),
+            m[QStringLiteral("action")].toString()));
+        refresh();
+        const auto scripted = m_config.value(QStringLiteral("scriptedHostProposal")).toObject();
+        if (!scripted.isEmpty() && scripted.contains(QStringLiteral("vote")) && !m_scriptedProposalVoted
+            && m_proposalCommandPending.isEmpty()
+            && scripted.value(QStringLiteral("turn")).toInt() == m_turn) {
+            m_scriptedProposalVoted = true;
+            voteHostProposal(scripted.value(QStringLiteral("vote")).toBool());
+        }
+        if (m_role == Role::Authority && !scripted.isEmpty() && !m_scriptedProposalDecided
+            && scripted.value(QStringLiteral("turn")).toInt() == m_turn
+            && scripted.value(QStringLiteral("action")) == m.value(QStringLiteral("action"))) {
+            m_scriptedProposalDecided = true;
+            QTimer::singleShot(400, this, [this, approve = scripted.value(QStringLiteral("approve")).toBool()] {
+                if (!m_hostProposal.isEmpty() && !m_interrupted) decideHostProposal(approve);
+            });
+        }
+        return;
+    }
+    if (type == QLatin1String("HostProposalClosed")) {
+        log(QStringLiteral("hostProposalClosed"), {{QStringLiteral("proposalId"), m[QStringLiteral("proposalId")]},
+            {QStringLiteral("reason"), m[QStringLiteral("reason")]}});
+        if (m_hostProposal.value(QStringLiteral("proposalId")) == m.value(QStringLiteral("proposalId")))
+            m_hostProposal = {};
+        Q_EMIT noticeChanged(tr("Host proposal closed: %1.").arg(m[QStringLiteral("reason")].toString()));
+        refresh();
+        const auto scripted = m_config.value(QStringLiteral("scriptedHostProposal")).toObject();
+        if (!scripted.isEmpty() && scripted.value(QStringLiteral("turn")).toInt() == m_turn
+            && m.value(QStringLiteral("reason")) == QLatin1String("rejected by host")
+            && ownsSlot(m_adapter->activeSlot()) && !m_scriptedTurns.contains(m_turn)) {
+            const auto shots = m_config.value(QStringLiteral("scriptedShots")).toArray();
+            if (m_turn <= shots.size()) {
+                m_scriptedTurns.insert(m_turn);
+                const auto shot = shots[m_turn - 1].toObject();
+                const int expectedTurn = m_turn;
+                QTimer::singleShot(150, this, [this, shot, expectedTurn] {
+                    if (m_turn == expectedTurn && m_ready)
+                        submit({shot[QStringLiteral("directionRadians")].toDouble(),
+                            shot[QStringLiteral("launchMagnitude")].toDouble(), shot[QStringLiteral("advanced")].toBool()});
+                });
+            }
+        }
+        return;
+    }
+    if (type == QLatin1String("HostProposalAccepted")) {
+        if (m.value(QStringLiteral("commandId")) == m_proposalCommandPending) m_proposalCommandPending.clear();
+        refresh();
+        const auto scripted = m_config.value(QStringLiteral("scriptedHostProposal")).toObject();
+        if (!m_hostProposal.isEmpty() && !m_scriptedProposalVoted && scripted.contains(QStringLiteral("vote"))
+            && scripted.value(QStringLiteral("turn")).toInt() == m_turn) {
+            m_scriptedProposalVoted = true;
+            voteHostProposal(scripted.value(QStringLiteral("vote")).toBool());
+        }
+        return;
+    }
+    if (type == QLatin1String("HostProposalRejected")) {
+        if (m.value(QStringLiteral("commandId")) == m_proposalCommandPending) m_proposalCommandPending.clear();
+        Q_EMIT noticeChanged(tr("Host proposal rejected: %1").arg(m[QStringLiteral("reason")].toString()));
+        refresh(); return;
+    }
     if (type == QLatin1String("HostControlRejected")) {
         const auto commandId = m[QStringLiteral("commandId")].toString();
         if (commandId == m_hostTogglePending) m_hostTogglePending.clear();
@@ -262,6 +334,8 @@ void SessionController::receive(const QJsonObject &message) {
         if (commandId == m_hostUndoPending) m_hostUndoPending.clear();
         if (commandId == m_hostSkipPending) m_hostSkipPending.clear();
         if (commandId == m_hostGoPending) m_hostGoPending.clear();
+        if (commandId == m_votingTogglePending) m_votingTogglePending.clear();
+        if (commandId == m_proposalCommandPending) m_proposalCommandPending.clear();
         Q_EMIT noticeChanged(tr("Host control rejected: %1").arg(m[QStringLiteral("reason")].toString()));
         refresh(); return;
     }
@@ -440,6 +514,17 @@ void SessionController::receive(const QJsonObject &message) {
             });
         }
         // Development-only scripted canonical intents, read locally; never accepted as setup commands over the network.
+        const auto scriptedProposal = m_config.value(QStringLiteral("scriptedHostProposal")).toObject();
+        if (m_role == Role::Authority && !scriptedProposal.isEmpty() && m_turn == 1 && !m_hostControlsEnabled)
+            setHostControlsEnabled(true);
+        if (!scriptedProposal.isEmpty() && m_turn == scriptedProposal.value(QStringLiteral("turn")).toInt()) {
+            if (scriptedProposal.value(QStringLiteral("proposer")).toBool() && !m_scriptedProposalSent) {
+                m_scriptedProposalSent = true;
+                proposeHostAction(scriptedProposal.value(QStringLiteral("action")).toString(),
+                    scriptedProposal.value(QStringLiteral("targetHole")).toInt());
+            }
+            return;
+        }
         if (m_role == Role::Authority && m_phase == QLatin1String("AwaitingShot")
             && !m_scriptedHostResetDone && m_config[QStringLiteral("scriptedHostResetTurn")].toInt() == m_turn) {
             setHostControlsEnabled(true);
@@ -540,6 +625,20 @@ void SessionController::refresh() {
     Q_EMIT hostNavigationChanged(m_adapter->hole(), m_adapter->highestHole(),
         canHostToggle && m_hostControlsEnabled && m_hostResetPending.isEmpty() && m_hostUndoPending.isEmpty()
             && m_hostSkipPending.isEmpty() && m_hostGoPending.isEmpty());
+    const bool proposalsOpen = m_hostControlsEnabled && m_allowVoting && m_ready && !m_interrupted
+        && m_phase == QLatin1String("AwaitingShot") && m_pending.isEmpty() && !m_hostActionPending;
+    const bool hasProposal = !m_hostProposal.isEmpty();
+    Q_EMIT proposalUiChanged({{QStringLiteral("controlsEnabled"), m_hostControlsEnabled},
+        {QStringLiteral("votingEnabled"), m_allowVoting},
+        {QStringLiteral("canToggleVoting"), canHostToggle && m_hostControlsEnabled && m_votingTogglePending.isEmpty()},
+        {QStringLiteral("canPropose"), proposalsOpen && !hasProposal && m_proposalCommandPending.isEmpty()},
+        {QStringLiteral("canVote"), proposalsOpen && hasProposal && m_proposalCommandPending.isEmpty()},
+        {QStringLiteral("canDecide"), proposalsOpen && hasProposal && m_role == Role::Authority
+            && m_proposalCommandPending.isEmpty()},
+        {QStringLiteral("canWithdraw"), proposalsOpen && hasProposal && m_proposalCommandPending.isEmpty()
+            && m_hostProposal.value(QStringLiteral("proposerId")).toString()
+                == m_config.value(QStringLiteral("localMemberId")).toString()},
+        {QStringLiteral("proposal"), m_hostProposal}});
     int visited = m_adapter->hole();
     for (const auto &player : std::as_const(m_players)) visited = qMax(visited, int(player.scores().size()));
     while (m_pars.size() < visited) m_pars.append(0);
@@ -589,6 +688,67 @@ void SessionController::setHostControlsEnabled(bool enabled)
     send(QStringLiteral("SetHostControls"), {{QStringLiteral("commandId"), m_hostTogglePending},
         {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
         {QStringLiteral("enabled"), enabled}});
+    refresh();
+}
+
+void SessionController::setAllowVoting(bool enabled)
+{
+    if (m_role != Role::Authority || !m_adapter || !m_ready || m_interrupted || !m_hostControlsEnabled
+        || m_phase != QLatin1String("AwaitingShot") || !m_pending.isEmpty() || m_hostActionPending
+        || !m_votingTogglePending.isEmpty() || enabled == m_allowVoting) return;
+    m_votingTogglePending = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    send(QStringLiteral("SetAllowVoting"), {{QStringLiteral("commandId"), m_votingTogglePending},
+        {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
+        {QStringLiteral("enabled"), enabled}});
+    refresh();
+}
+
+void SessionController::proposeHostAction(const QString &action, int targetHole)
+{
+    if (!m_adapter || !m_ready || m_interrupted || !m_hostControlsEnabled || !m_allowVoting
+        || !m_hostProposal.isEmpty() || !m_proposalCommandPending.isEmpty()
+        || m_phase != QLatin1String("AwaitingShot") || !m_pending.isEmpty() || m_hostActionPending) return;
+    const QStringList actions{QStringLiteral("resetHole"), QStringLiteral("undoShot"), QStringLiteral("skipHole"),
+        QStringLiteral("goNext"), QStringLiteral("goPrevious"), QStringLiteral("goFirst"),
+        QStringLiteral("goLast"), QStringLiteral("goRandom"), QStringLiteral("goToHole")};
+    if (!actions.contains(action)) return;
+    m_proposalCommandPending = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    QJsonObject payload{{QStringLiteral("commandId"), m_proposalCommandPending},
+        {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
+        {QStringLiteral("holeGeneration"), m_generation}, {QStringLiteral("action"), action}};
+    if (action == QLatin1String("goToHole")) payload[QStringLiteral("targetHole")] = targetHole;
+    send(QStringLiteral("ProposeHostAction"), payload);
+    refresh();
+}
+
+void SessionController::voteHostProposal(bool approve)
+{
+    if (m_hostProposal.isEmpty() || !m_proposalCommandPending.isEmpty()) return;
+    m_proposalCommandPending = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    send(QStringLiteral("VoteHostProposal"), {{QStringLiteral("commandId"), m_proposalCommandPending},
+        {QStringLiteral("proposalId"), m_hostProposal.value(QStringLiteral("proposalId"))},
+        {QStringLiteral("approve"), approve}});
+    refresh();
+}
+
+void SessionController::decideHostProposal(bool approve)
+{
+    if (m_role != Role::Authority || m_hostProposal.isEmpty() || !m_proposalCommandPending.isEmpty()) return;
+    m_proposalCommandPending = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    send(QStringLiteral("DecideHostProposal"), {{QStringLiteral("commandId"), m_proposalCommandPending},
+        {QStringLiteral("proposalId"), m_hostProposal.value(QStringLiteral("proposalId"))},
+        {QStringLiteral("approve"), approve}});
+    refresh();
+}
+
+void SessionController::withdrawHostProposal()
+{
+    if (m_hostProposal.isEmpty() || !m_proposalCommandPending.isEmpty()
+        || m_hostProposal.value(QStringLiteral("proposerId")).toString()
+            != m_config.value(QStringLiteral("localMemberId")).toString()) return;
+    m_proposalCommandPending = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    send(QStringLiteral("WithdrawHostProposal"), {{QStringLiteral("commandId"), m_proposalCommandPending},
+        {QStringLiteral("proposalId"), m_hostProposal.value(QStringLiteral("proposalId"))}});
     refresh();
 }
 

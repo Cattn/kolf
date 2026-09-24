@@ -74,6 +74,27 @@ test('host controls require typed match-scoped requests', () => {
     payload: { ...action.payload, holeGeneration: -1 } })), ProtocolError);
 });
 
+test('proposal and vote messages enforce match scope, typed targets, and bounded decisions', () => {
+  const scope = { requestId: 'request_proposal', lobbyId: 'lobby_1', matchId: 'match_1' };
+  const proposal = envelope('ProposeHostAction', { commandId: 'proposal_1', stateRevision: 1,
+    syncId: 1, holeGeneration: 1, action: 'goToHole', targetHole: 2 }, scope);
+  assert.equal(decodeClientMessage(JSON.stringify(proposal)).type, 'ProposeHostAction');
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...proposal, matchId: undefined })), ProtocolError);
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...proposal,
+    payload: { ...proposal.payload, targetHole: 0 } })), ProtocolError);
+  const vote = envelope('VoteHostProposal', { commandId: 'vote_1', proposalId: 'proposal_1', approve: true }, scope);
+  assert.equal(decodeClientMessage(JSON.stringify(vote)).type, 'VoteHostProposal');
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...vote,
+    payload: { ...vote.payload, approve: 1 } })), ProtocolError);
+  const decision = envelope('DecideHostProposal', { commandId: 'decision_1', proposalId: 'proposal_1', approve: false }, scope);
+  assert.equal(decodeClientMessage(JSON.stringify(decision)).type, 'DecideHostProposal');
+  const withdraw = envelope('WithdrawHostProposal', { commandId: 'withdraw_1', proposalId: 'proposal_1' }, scope);
+  assert.equal(decodeClientMessage(JSON.stringify(withdraw)).type, 'WithdrawHostProposal');
+  const voting = envelope('SetAllowVoting', { commandId: 'voting_1', stateRevision: 1, syncId: 1,
+    enabled: false }, scope);
+  assert.equal(decodeClientMessage(JSON.stringify(voting)).type, 'SetAllowVoting');
+});
+
 test('compatibility identity ignores ordering and text line endings only', () => {
   const first = compatibilityIdentity([
     { path: 'game/b.cpp', content: 'two\r\nlines\r\n' },
