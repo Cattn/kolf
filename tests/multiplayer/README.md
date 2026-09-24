@@ -91,7 +91,20 @@ the owner resets, undoes a settled guest shot, goes to the last and first holes,
 then skips a partially scored hole. It checks both clients at every action,
 compares their final Results content and completed-hole highlights, and finishes
 an ordinary rematch with no inherited unfinished-hole marker. This is scripted
-native evidence; it does not verify menu layout or keyboard focus.
+native evidence; it does not verify visual layout or keyboard focus. The
+scripted clients also write `ui-state.jsonl` in each match directory. The
+combined and proposal scenarios check that the owner sees host settings and
+Go, while guests see status and proposal controls without owner-only actions.
+
+During an online match, **Match controls** shows the owner **Enable Host
+Controls**, **Allow Voting**, and **Confirm Host Actions**. The guest sees the
+current host-control and voting status. When voting is available, a proposal
+composer appears until a proposal is active; then its summary and voting row
+appear. Only the owner sees Approve and Reject; only the proposer sees Withdraw.
+Owner-only Hole actions and the Go menu are hidden for guests. **Confirm Host
+Actions** starts on, is saved as a local preference, and can be turned off to
+skip the Reset, Skip, Go, and proposal-approval confirmation dialogs. It does
+not change the server's authority checks or other leave/change-server prompts.
 
 The native envelope fixture can be run by setting
 `KOLF_ONLINE_PROTOCOL_TESTS` to the absolute path of

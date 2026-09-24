@@ -162,8 +162,13 @@ private:
 	QVBoxLayout *onlineGameLayout = nullptr;
 	ScoreBoard *onlineScoreboard = nullptr;
 	QWidget *onlineHazardPanel = nullptr;
+	QWidget *onlineHostOptions = nullptr;
+	QWidget *onlineProposalComposer = nullptr;
+	QWidget *onlineProposalVotes = nullptr;
 	QCheckBox *onlineHostControls = nullptr;
 	QCheckBox *onlineAllowVoting = nullptr;
+	QCheckBox *onlineConfirmHostActions = nullptr;
+	QLabel *onlineGuestStatusLabel = nullptr;
 	QComboBox *onlineProposalAction = nullptr;
 	QSpinBox *onlineProposalTarget = nullptr;
 	QLabel *onlineProposalLabel = nullptr;

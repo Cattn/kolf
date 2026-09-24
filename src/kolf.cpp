@@ -45,11 +45,17 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDateTime>
+#include <QDir>
+#include <QFile>
 #include <QGridLayout>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLocale>
+#include <QMenu>
+#include <QMenuBar>
 #include <QMimeDatabase>
+#include <QJsonDocument>
 #include <QPushButton>
 #include <QSet>
 #include <QSignalBlocker>
@@ -60,6 +66,15 @@
 #include <QTemporaryFile>
 #include <QTimer>
 #include <QVBoxLayout>
+
+static QAction *goMenuAction(QMenuBar *bar)
+{
+	for (auto *action : bar->actions())
+		if (action->objectName() == QLatin1String("go_course")
+			|| (action->menu() && action->menu()->objectName() == QLatin1String("go_course")))
+			return action;
+	return nullptr;
+}
 
 KolfWindow::KolfWindow()
     : KXmlGuiWindow(nullptr)
@@ -276,6 +291,9 @@ void KolfWindow::showOnline()
 		offlineActionStates.insert(action, action->isEnabled());
 		action->setEnabled(false);
 	}
+	for (QAction *action : QList<QAction *>{resetHoleAction, undoShotAction, holeAction,
+		nextAction, prevAction, firstAction, lastAction, randAction}) action->setVisible(false);
+	if (auto *goMenu = goMenuAction(menuBar())) goMenu->setVisible(false);
 	onlineAction->setEnabled(false);
 	offlineGamePausedForOnline = game != nullptr;
 	if (offlineGamePausedForOnline)
@@ -310,6 +328,9 @@ void KolfWindow::leaveOnline()
 	}
 	for (auto it = offlineActionStates.constBegin(); it != offlineActionStates.constEnd(); ++it)
 		it.key()->setEnabled(it.value());
+	for (QAction *action : QList<QAction *>{resetHoleAction, undoShotAction, holeAction,
+		nextAction, prevAction, firstAction, lastAction, randAction}) action->setVisible(true);
+	if (auto *goMenu = goMenuAction(menuBar())) goMenu->setVisible(true);
 	if (game)
 		connect(resetHoleAction, &QAction::triggered, game, &KolfGame::resetHole, Qt::UniqueConnection);
 	if (game)
@@ -353,22 +374,41 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 		hazardLayout->addWidget(onlineRehitButton);
 		onlineGameLayout->addWidget(onlineHazardPanel);
 		onlineHazardPanel->hide();
-		auto *onlineNavigation = new QHBoxLayout;
-		onlineHostControls = new QCheckBox(i18nc("@option:check", "Enable Host Controls"), onlineGamePage);
+		auto *controlsGroup = new QGroupBox(i18n("Match controls"), onlineGamePage);
+		auto *controlsLayout = new QVBoxLayout(controlsGroup);
+		controlsLayout->setContentsMargins(8, 6, 8, 6);
+		onlineHostOptions = new QWidget(controlsGroup);
+		auto *hostOptions = new QHBoxLayout(onlineHostOptions);
+		hostOptions->setContentsMargins(0, 0, 0, 0);
+		onlineHostControls = new QCheckBox(i18nc("@option:check", "Enable Host Controls"), onlineHostOptions);
 		onlineHostControls->setEnabled(false);
-		onlineNavigation->addWidget(onlineHostControls);
-		onlineAllowVoting = new QCheckBox(i18nc("@option:check", "Allow Voting"), onlineGamePage);
+		hostOptions->addWidget(onlineHostControls);
+		onlineAllowVoting = new QCheckBox(i18nc("@option:check", "Allow Voting"), onlineHostOptions);
 		onlineAllowVoting->setChecked(true);
 		onlineAllowVoting->setEnabled(false);
-		onlineNavigation->addWidget(onlineAllowVoting);
-		auto *changeServerButton = new QPushButton(i18nc("@action:button", "Change Server"), onlineGamePage);
-		auto *leaveOnlineButton = new QPushButton(i18nc("@action:button", "Leave Online"), onlineGamePage);
-		onlineNavigation->addStretch();
-		onlineNavigation->addWidget(changeServerButton);
-		onlineNavigation->addWidget(leaveOnlineButton);
-		onlineGameLayout->addLayout(onlineNavigation);
-		auto *proposalActions = new QHBoxLayout;
-		onlineProposalAction = new QComboBox(onlineGamePage);
+		hostOptions->addWidget(onlineAllowVoting);
+		onlineConfirmHostActions = new QCheckBox(i18nc("@option:check", "Confirm Host Actions"), onlineHostOptions);
+		onlineConfirmHostActions->setAccessibleName(i18n("Confirm host actions before applying them"));
+		onlineConfirmHostActions->setToolTip(i18n("Ask before Reset, Skip, Go, or approving a proposal. This preference only affects this computer."));
+		KConfigGroup onlineConfig(KSharedConfig::openConfig(), QStringLiteral("Online"));
+		onlineConfirmHostActions->setChecked(onlineConfig.readEntry("confirmHostActions", true));
+		hostOptions->addWidget(onlineConfirmHostActions);
+		hostOptions->addStretch();
+		controlsLayout->addWidget(onlineHostOptions);
+		connect(onlineConfirmHostActions, &QCheckBox::toggled, this, [](bool enabled) {
+			KConfigGroup config(KSharedConfig::openConfig(), QStringLiteral("Online"));
+			config.writeEntry("confirmHostActions", enabled);
+			config.sync();
+		});
+		onlineGuestStatusLabel = new QLabel(controlsGroup);
+		onlineGuestStatusLabel->setWordWrap(true);
+		onlineGuestStatusLabel->setAccessibleName(i18n("Host controls and voting status"));
+		controlsLayout->addWidget(onlineGuestStatusLabel);
+		onlineGuestStatusLabel->hide();
+		onlineProposalComposer = new QWidget(controlsGroup);
+		auto *proposalActions = new QHBoxLayout(onlineProposalComposer);
+		proposalActions->setContentsMargins(0, 0, 0, 0);
+		onlineProposalAction = new QComboBox(onlineProposalComposer);
 		onlineProposalAction->setAccessibleName(i18n("Proposed host action"));
 		onlineProposalAction->setEnabled(false);
 		onlineProposalAction->addItem(i18n("Undo Shot"), QStringLiteral("undoShot"));
@@ -380,36 +420,49 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 		onlineProposalAction->addItem(i18n("Go Last"), QStringLiteral("goLast"));
 		onlineProposalAction->addItem(i18n("Go Random"), QStringLiteral("goRandom"));
 		onlineProposalAction->addItem(i18n("Switch to Hole"), QStringLiteral("goToHole"));
-		onlineProposalTarget = new QSpinBox(onlineGamePage);
+		onlineProposalTarget = new QSpinBox(onlineProposalComposer);
 		onlineProposalTarget->setAccessibleName(i18n("Proposal target hole"));
 		onlineProposalTarget->setRange(1, 1000);
 		onlineProposalTarget->setVisible(false);
 		onlineProposalTarget->setEnabled(false);
-		onlineProposeButton = new QPushButton(i18nc("@action:button", "Propose"), onlineGamePage);
+		onlineProposeButton = new QPushButton(i18nc("@action:button", "Send Proposal"), onlineProposalComposer);
 		onlineProposeButton->setEnabled(false);
 		proposalActions->addWidget(onlineProposalAction);
 		proposalActions->addWidget(onlineProposalTarget);
 		proposalActions->addWidget(onlineProposeButton);
 		proposalActions->addStretch();
-		onlineGameLayout->addLayout(proposalActions);
-		onlineProposalLabel = new QLabel(i18n("No active host proposal."), onlineGamePage);
+		controlsLayout->addWidget(onlineProposalComposer);
+		onlineProposalComposer->hide();
+		onlineProposalLabel = new QLabel(i18n("No active host proposal."), controlsGroup);
 		onlineProposalLabel->setTextFormat(Qt::PlainText);
 		onlineProposalLabel->setWordWrap(true);
 		onlineProposalLabel->setAccessibleName(i18n("Host proposal and vote tally"));
-		onlineGameLayout->addWidget(onlineProposalLabel);
-		auto *proposalVotes = new QHBoxLayout;
-		onlineVoteYesButton = new QPushButton(i18nc("@action:button", "Vote Yes"), onlineGamePage);
-		onlineVoteNoButton = new QPushButton(i18nc("@action:button", "Vote No"), onlineGamePage);
-		onlineApproveButton = new QPushButton(i18nc("@action:button", "Approve"), onlineGamePage);
-		onlineRejectButton = new QPushButton(i18nc("@action:button", "Reject"), onlineGamePage);
-		onlineWithdrawButton = new QPushButton(i18nc("@action:button", "Withdraw"), onlineGamePage);
+		controlsLayout->addWidget(onlineProposalLabel);
+		onlineProposalLabel->hide();
+		onlineProposalVotes = new QWidget(controlsGroup);
+		auto *proposalVotes = new QHBoxLayout(onlineProposalVotes);
+		proposalVotes->setContentsMargins(0, 0, 0, 0);
+		onlineVoteYesButton = new QPushButton(i18nc("@action:button", "Vote Yes"), onlineProposalVotes);
+		onlineVoteNoButton = new QPushButton(i18nc("@action:button", "Vote No"), onlineProposalVotes);
+		onlineApproveButton = new QPushButton(i18nc("@action:button", "Approve"), onlineProposalVotes);
+		onlineRejectButton = new QPushButton(i18nc("@action:button", "Reject"), onlineProposalVotes);
+		onlineWithdrawButton = new QPushButton(i18nc("@action:button", "Withdraw"), onlineProposalVotes);
 		for (auto *button : {onlineVoteYesButton, onlineVoteNoButton, onlineApproveButton,
 			onlineRejectButton, onlineWithdrawButton}) {
 			button->setEnabled(false);
 			proposalVotes->addWidget(button);
 		}
 		proposalVotes->addStretch();
-		onlineGameLayout->addLayout(proposalVotes);
+		controlsLayout->addWidget(onlineProposalVotes);
+		onlineProposalVotes->hide();
+		onlineGameLayout->addWidget(controlsGroup);
+		auto *onlineNavigation = new QHBoxLayout;
+		auto *changeServerButton = new QPushButton(i18nc("@action:button", "Change Server"), onlineGamePage);
+		auto *leaveOnlineButton = new QPushButton(i18nc("@action:button", "Leave Online"), onlineGamePage);
+		onlineNavigation->addStretch();
+		onlineNavigation->addWidget(changeServerButton);
+		onlineNavigation->addWidget(leaveOnlineButton);
+		onlineGameLayout->addLayout(onlineNavigation);
 		connect(onlineProposalAction, &QComboBox::currentIndexChanged, onlineGamePage, [this] {
 			onlineProposalTarget->setVisible(onlineProposalAction->currentData().toString() == QLatin1String("goToHole"));
 		});
@@ -446,6 +499,13 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 	onlineScoreboard->setOnlineColors(config.value(QStringLiteral("roster")).toArray());
 
 	onlineMatchController = new Kolf::Session::SessionController(config, onlineWidget->networkClient(), onlineGamePage, this);
+	const bool isHost = config.value(QStringLiteral("role")) == QLatin1String("authority");
+	onlineHostOptions->setVisible(isHost);
+	onlineGuestStatusLabel->setVisible(!isHost);
+	onlineGuestStatusLabel->setText(i18n("Host controls are off."));
+	onlineProposalComposer->hide();
+	onlineProposalLabel->hide();
+	onlineProposalVotes->hide();
 	{
 		const QSignalBlocker blocker(onlineHostControls);
 		onlineHostControls->setChecked(false);
@@ -460,7 +520,10 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 	onlineProposalLabel->setText(i18n("No active host proposal."));
 	resetHoleAction->setEnabled(false);
 	undoShotAction->setEnabled(false);
-	skipHoleAction->setVisible(true);
+	for (QAction *action : QList<QAction *>{resetHoleAction, undoShotAction, holeAction,
+		nextAction, prevAction, firstAction, lastAction, randAction}) action->setVisible(isHost);
+	if (auto *goMenu = goMenuAction(menuBar())) goMenu->setVisible(isHost);
+	skipHoleAction->setVisible(isHost);
 	skipHoleAction->setEnabled(false);
 	connect(onlineHostControls, &QCheckBox::toggled, onlineMatchController,
 		&Kolf::Session::SessionController::setHostControlsEnabled);
@@ -480,7 +543,8 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 		[this] { onlineMatchController->withdrawHostProposal(); });
 	connect(onlineApproveButton, &QPushButton::clicked, onlineMatchController, [this] {
 		const auto action = onlineProposal.value(QStringLiteral("action")).toString();
-		if (action == QLatin1String("resetHole") || action == QLatin1String("skipHole") || action.startsWith(QLatin1String("go"))) {
+		if (onlineConfirmHostActions->isChecked()
+			&& (action == QLatin1String("resetHole") || action == QLatin1String("skipHole") || action.startsWith(QLatin1String("go")))) {
 			if (KMessageBox::warningTwoActions(this, onlineProposal.value(QStringLiteral("summary")).toString(),
 				i18nc("@title:window", "Approve Host Proposal?"),
 				KGuiItem(i18nc("@action:button", "Approve")), KStandardGuiItem::cancel()) != KMessageBox::PrimaryAction)
@@ -489,11 +553,27 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 		onlineMatchController->decideHostProposal(true);
 	});
 	connect(onlineMatchController, &Kolf::Session::SessionController::proposalUiChanged, this,
-		[this, localMemberId = config.value(QStringLiteral("localMemberId")).toString()](const QJsonObject &state) {
+		[this, isHost, localMemberId = config.value(QStringLiteral("localMemberId")).toString(),
+			uiLogDirectory = config.contains(QStringLiteral("scriptedShots"))
+				? config.value(QStringLiteral("logDirectory")).toString() : QString(),
+			lastUiSnapshot = QByteArray()](const QJsonObject &state) mutable {
 			const QSignalBlocker blocker(onlineAllowVoting);
-			onlineAllowVoting->setChecked(state.value(QStringLiteral("votingEnabled")).toBool());
+			const bool controlsEnabled = state.value(QStringLiteral("controlsEnabled")).toBool();
+			const bool votingEnabled = state.value(QStringLiteral("votingEnabled")).toBool();
+			onlineAllowVoting->setChecked(votingEnabled);
 			onlineAllowVoting->setEnabled(state.value(QStringLiteral("canToggleVoting")).toBool());
+			onlineGuestStatusLabel->setText(!controlsEnabled ? i18n("Host controls are off.")
+				: votingEnabled ? i18n("Host controls are on. Voting is open.")
+					: i18n("Host controls are on. Voting is off."));
 			onlineProposal = state.value(QStringLiteral("proposal")).toObject();
+			const bool hasProposal = !onlineProposal.isEmpty();
+			onlineProposalComposer->setVisible(!hasProposal && controlsEnabled && votingEnabled);
+			onlineProposalLabel->setVisible(hasProposal);
+			onlineProposalVotes->setVisible(hasProposal);
+			onlineApproveButton->setVisible(isHost && hasProposal);
+			onlineRejectButton->setVisible(isHost && hasProposal);
+			onlineWithdrawButton->setVisible(hasProposal
+				&& onlineProposal.value(QStringLiteral("proposerId")).toString() == localMemberId);
 			const bool canPropose = state.value(QStringLiteral("canPropose")).toBool();
 			onlineProposalAction->setEnabled(canPropose);
 			onlineProposalTarget->setEnabled(canPropose);
@@ -503,8 +583,33 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 			onlineApproveButton->setEnabled(state.value(QStringLiteral("canDecide")).toBool());
 			onlineRejectButton->setEnabled(state.value(QStringLiteral("canDecide")).toBool());
 			onlineWithdrawButton->setEnabled(state.value(QStringLiteral("canWithdraw")).toBool());
+			const auto recordUi = [this, isHost, controlsEnabled, votingEnabled, hasProposal,
+				&lastUiSnapshot, &uiLogDirectory] {
+				if (uiLogDirectory.isEmpty()) return;
+				const auto *goMenu = goMenuAction(menuBar());
+				const QJsonObject snapshot{{QStringLiteral("role"), isHost ? QStringLiteral("host") : QStringLiteral("guest")},
+					{QStringLiteral("controlsEnabled"), controlsEnabled}, {QStringLiteral("votingEnabled"), votingEnabled},
+					{QStringLiteral("proposalActive"), hasProposal},
+					{QStringLiteral("hostOptionsVisible"), !onlineHostOptions->isHidden()},
+					{QStringLiteral("guestStatusVisible"), !onlineGuestStatusLabel->isHidden()},
+					{QStringLiteral("composerVisible"), !onlineProposalComposer->isHidden()},
+					{QStringLiteral("proposalTextVisible"), !onlineProposalLabel->isHidden()},
+					{QStringLiteral("voteRowVisible"), !onlineProposalVotes->isHidden()},
+					{QStringLiteral("approveVisible"), !onlineApproveButton->isHidden()},
+					{QStringLiteral("rejectVisible"), !onlineRejectButton->isHidden()},
+					{QStringLiteral("withdrawVisible"), !onlineWithdrawButton->isHidden()},
+					{QStringLiteral("resetMenuVisible"), resetHoleAction->isVisible()},
+					{QStringLiteral("goMenuActionVisible"), nextAction->isVisible()},
+					{QStringLiteral("goMenuVisible"), goMenu && goMenu->isVisible()}};
+				const auto encoded = QJsonDocument(snapshot).toJson(QJsonDocument::Compact);
+				if (encoded == lastUiSnapshot) return;
+				lastUiSnapshot = encoded;
+				QFile output(QDir(uiLogDirectory).filePath(QStringLiteral("ui-state.jsonl")));
+				if (output.open(QIODevice::WriteOnly | QIODevice::Append)) { output.write(encoded); output.write("\n"); }
+			};
 			if (onlineProposal.isEmpty()) {
 				onlineProposalLabel->setText(i18n("No active host proposal."));
+				recordUi();
 				return;
 			}
 			int yes = 0, no = 0;
@@ -528,6 +633,7 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 				.arg(yes).arg(no).arg(onlineProposal.value(QStringLiteral("memberCount")).toInt())
 				.arg(QLocale().toString(expires, QLocale::ShortFormat),
 					ownVote.isEmpty() ? i18n("You have not voted.") : i18n("Your vote: %1.", ownVote)));
+			recordUi();
 		});
 	connect(onlineMatchController, &Kolf::Session::SessionController::hostControlsChanged, this,
 		[this](bool enabled, bool canToggle, bool canReset, bool canUndo, bool canSkip) {
@@ -541,7 +647,7 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 	connect(undoShotAction, &QAction::triggered, onlineMatchController,
 		&Kolf::Session::SessionController::undoOnlineShot);
 	connect(resetHoleAction, &QAction::triggered, onlineMatchController, [this] {
-		if (KMessageBox::warningTwoActions(this,
+		if (!onlineConfirmHostActions->isChecked() || KMessageBox::warningTwoActions(this,
 			i18n("Reset this hole? Every player's strokes and score on this hole will be cleared."),
 			i18nc("@title:window", "Reset Online Hole?"),
 			KGuiItem(i18nc("@action:button", "Reset Hole")), KStandardGuiItem::cancel())
@@ -549,7 +655,7 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 			onlineMatchController->resetOnlineHole();
 	});
 	connect(skipHoleAction, &QAction::triggered, onlineMatchController, [this] {
-		if (KMessageBox::warningTwoActions(this,
+		if (!onlineConfirmHostActions->isChecked() || KMessageBox::warningTwoActions(this,
 			i18n("Skip this hole? Current strokes will stay on the scorecard, but the hole will count as unfinished. Players who have not taken a stroke remain unscored."),
 			i18nc("@title:window", "Skip Online Hole?"),
 			KGuiItem(i18nc("@action:button", "Skip Hole")), KStandardGuiItem::cancel())
@@ -577,7 +683,7 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 	const auto confirmGo = [this](const QString &action, int targetHole) {
 		const QString destination = action == QLatin1String("goRandom") ? i18n("a random hole")
 			: i18n("Hole %1", targetHole);
-		if (KMessageBox::warningTwoActions(this,
+		if (!onlineConfirmHostActions->isChecked() || KMessageBox::warningTwoActions(this,
 			i18n("Move to %1? The current hole will be left unfinished. The destination will restart and its previous scores and shot counts will be cleared.", destination),
 			i18nc("@title:window", "Move to Online Hole?"),
 			KGuiItem(i18nc("@action:button", "Move to Hole")), KStandardGuiItem::cancel())
@@ -659,6 +765,11 @@ void KolfWindow::finishOnlineMatch()
 	if (onlineModeActive) { resetHoleAction->setEnabled(false); undoShotAction->setEnabled(false); }
 	if (onlineModeActive) for (QAction *action : QList<QAction *>{holeAction, nextAction, prevAction, firstAction, lastAction, randAction})
 		action->setEnabled(false);
+	if (onlineModeActive) for (QAction *action : QList<QAction *>{resetHoleAction, undoShotAction, holeAction,
+		nextAction, prevAction, firstAction, lastAction, randAction}) action->setVisible(false);
+	if (onlineModeActive) {
+		if (auto *goMenu = goMenuAction(menuBar())) goMenu->setVisible(false);
+	}
 	skipHoleAction->setEnabled(false);
 	skipHoleAction->setVisible(false);
 	if (onlineNoticeLabel) onlineNoticeLabel->hide();

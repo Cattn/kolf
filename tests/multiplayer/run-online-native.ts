@@ -83,6 +83,8 @@ const sessionDirectories = (client: number) => {
 };
 const events = (sessionDirectory: string) => readFileSync(resolve(sessionDirectory, 'session.jsonl'), 'utf8')
   .trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+const uiStates = (sessionDirectory: string) => readFileSync(resolve(sessionDirectory, 'ui-state.jsonl'), 'utf8')
+  .trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
 const nativePids = () => Array.from(new Set(Array.from({ length: clientCount }, (_, client) =>
   sessionDirectories(client).flatMap(sessionDirectory => events(sessionDirectory)
     .filter(event => event.event === 'connect').map(event => event.processId))).flat()))
@@ -252,11 +254,20 @@ try {
   }
   if (scenario === 'host-combined') {
     const runs = Array.from({ length: clientCount }, (_, client) => sessionDirectories(client).map(path => ({
-      log: events(path), evidence: JSON.parse(readFileSync(resolve(path, 'results.json'), 'utf8')),
+      log: events(path), ui: uiStates(path), evidence: JSON.parse(readFileSync(resolve(path, 'results.json'), 'utf8')),
     })));
     const initial = runs[0].find(run => run.evidence.result.skippedHoles.length === 1);
     const rematch = runs[0].find(run => run.evidence.result.skippedHoles.length === 0);
     assert(initial && rematch, 'combined match and ordinary rematch both reached Results');
+    assert(initial.ui.some(state => state.role === 'host' && state.controlsEnabled
+      && state.hostOptionsVisible && !state.guestStatusVisible && state.composerVisible
+      && state.resetMenuVisible && state.goMenuActionVisible && state.goMenuVisible),
+    'owner saw match controls, Go menu, and proposal composer');
+    const initialGuest = runs[1].find(run => run.evidence.result.matchId === initial.evidence.result.matchId);
+    assert(initialGuest?.ui.some(state => state.role === 'guest' && state.controlsEnabled
+      && !state.hostOptionsVisible && state.guestStatusVisible && state.composerVisible
+      && !state.resetMenuVisible && !state.goMenuActionVisible && !state.goMenuVisible),
+    'guest saw status and proposal composer, not host controls');
     for (const run of [initial, rematch]) {
       const peer = runs[1].find(other => other.evidence.result.matchId === run.evidence.result.matchId);
       assert(peer, 'guest recorded Results for the same match');
@@ -309,6 +320,13 @@ try {
   }
   if (scenario.startsWith('host-proposal-')) {
     const logs = Array.from({ length: clientCount }, (_, client) => events(sessionDirectories(client)[0]));
+    const ui = Array.from({ length: clientCount }, (_, client) => uiStates(sessionDirectories(client)[0]));
+    assert(ui[0].some(state => state.proposalActive && state.proposalTextVisible
+      && state.voteRowVisible && state.approveVisible && state.rejectVisible && !state.composerVisible),
+    'owner saw proposal details, voting, and decision controls');
+    assert(ui[1].some(state => state.proposalActive && state.proposalTextVisible
+      && state.voteRowVisible && !state.approveVisible && !state.rejectVisible && state.withdrawVisible),
+    'guest proposer saw voting and withdrawal without host decision controls');
     for (const log of logs) {
       const proposal = log.find(event => event.event === 'hostProposalChanged');
       assert.equal(proposal?.proposal?.action, 'resetHole', 'both clients saw the guest reset proposal');

@@ -175,6 +175,32 @@ wording and cancel behavior, focus and accessibility, rolling-ball attempts,
 disconnect recovery, and visual layout. The combined run does not replace
 those human observations.
 
+## Focused visible Host Controls pass and follow-up
+
+**Passed (user report, Windows, 24 September 2026, source `c344cf1`):** two
+ordinary Kolf clients on **Really Easy**, local endpoint
+`ws://127.0.0.1:43877`, run directory `server/local-session/v3-20260924-154935`.
+The user confirmed that Reset, Undo, Skip, and Go were unavailable with Host
+Controls off, then usable only by the lobby owner with controls on, with no
+menu or shortcut exception reported. The Reset and Skip confirmations explained
+their score effects; Cancel left both games unchanged, acceptance updated both
+clients, and the guest saw a notice. With voting on, the guest could propose
+and vote; the owner could see the proposal, tally, expiry, score effect, and
+Approve/Reject controls, and those controls were reachable and understandable
+with Tab. These answers supersede the older "not run" labels for these specific
+visible checks in the historical slice records above.
+
+The user requested a way to suppress those confirmation dialogs and a cleaner
+match menu that shows controls appropriate to host and guest. The follow-up
+implements the local **Confirm Host Actions** preference and role-specific
+**Match controls** panel described in the README. Scripted native runs passed
+for owner/guest UI state, Go visibility, proposal decision visibility, match
+state, and Results. The new panel's visual polish and the preference's manual
+toggle have **not run** a separate human pass; the passed user report above
+describes the earlier source. Rolling-ball attempts, disconnect recovery,
+visible three-member/four-player owner identity, expiry and withdrawal in a
+visible match, and the bounded offline save/reload check also remain **not run**.
+
 ## One Slope Practise visual pass
 
 Select **Slope Practise** in the lobby. Before starting, turn on **Hole > Show
