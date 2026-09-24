@@ -12,15 +12,16 @@ const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
 assert(['two-rematch', 'four-player', 'four-player-hazard', 'custom-course',
   'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-skip', 'host-go',
-  'host-proposal-approve', 'host-proposal-reject', 'host-proposal-four-player'].includes(scenario),
+  'host-proposal-approve', 'host-proposal-reject', 'host-proposal-four-player', 'host-combined'].includes(scenario),
   'Unknown native scenario');
 const variableRoster = scenario.startsWith('four-player') || scenario === 'host-proposal-four-player';
 const hazardScenario = scenario === 'four-player-hazard';
 const slopeScenario = scenario.startsWith('slope-');
 const slopeOutOfBounds = scenario === 'slope-out-of-bounds';
 const clientCount = variableRoster ? 3 : 2;
-const matchCount = scenario === 'two-rematch' || scenario === 'custom-course' ? 2 : 1;
+const matchCount = scenario === 'two-rematch' || scenario === 'custom-course' || scenario === 'host-combined' ? 2 : 1;
 const turnCount = slopeScenario ? 2 : hazardScenario ? 40 : scenario === 'host-proposal-four-player' ? 12 : variableRoster ? 8
+  : scenario === 'host-combined' ? 30
   : scenario === 'host-reset' || scenario === 'host-undo' || scenario === 'host-go'
     || scenario.startsWith('host-proposal-') ? 8 : 4;
 const directory = resolve(root, 'server/local-session', `online-${scenario}-${Date.now()}`);
@@ -120,6 +121,7 @@ try {
       scriptedHostResetTurn: scenario === 'host-reset' && client === 0 ? 3 : undefined,
       scriptedHostUndoTurn: scenario === 'host-undo' && client === 0 ? 3 : undefined,
       scriptedHostSkipTurn: scenario === 'host-skip' && client === 0 ? 2 : undefined,
+      scriptedHostCombined: scenario === 'host-combined' && client === 0,
       scriptedHostGo: scenario === 'host-go' && client === 0
         ? [{ turn: 2, action: 'goLast' }, { turn: 3, action: 'goFirst' }] : undefined,
       scriptedHostProposal: scenario.startsWith('host-proposal-')
@@ -129,6 +131,7 @@ try {
       scriptedShots: Array.from({ length: turnCount }, (_, turn) => ({
         directionRadians: slopeOutOfBounds ? Math.PI : 0,
         launchMagnitude: slopeOutOfBounds ? 6.5
+          : scenario === 'host-combined' && turn < 12 ? 0.4
           : ((scenario === 'host-reset' || scenario === 'host-undo') && turn < 2
             || (scenario === 'host-skip' || scenario === 'host-go') && turn === 0) ? 0.4 : 1.8,
         advanced: turn % 2 === 1,
@@ -246,6 +249,63 @@ try {
     assert(returned.every(states => states.length === 1), 'each client applied one Go First transition');
     assert.deepEqual(returned[0][0].state.scores, [[0, 0], [0, 0]], 'revisiting cleared earlier first-hole score');
     assert.deepEqual(returned[1][0].state, returned[0][0].state, 'guest reconciled exactly after backward Go');
+  }
+  if (scenario === 'host-combined') {
+    const runs = Array.from({ length: clientCount }, (_, client) => sessionDirectories(client).map(path => ({
+      log: events(path), evidence: JSON.parse(readFileSync(resolve(path, 'results.json'), 'utf8')),
+    })));
+    const initial = runs[0].find(run => run.evidence.result.skippedHoles.length === 1);
+    const rematch = runs[0].find(run => run.evidence.result.skippedHoles.length === 0);
+    assert(initial && rematch, 'combined match and ordinary rematch both reached Results');
+    for (const run of [initial, rematch]) {
+      const peer = runs[1].find(other => other.evidence.result.matchId === run.evidence.result.matchId);
+      assert(peer, 'guest recorded Results for the same match');
+      assert.deepEqual(peer.evidence, run.evidence, 'both clients rendered identical final Results content');
+      assert.equal(run.evidence.result.status, 'Completed');
+    }
+    const transitions = initial.log.filter(event => event.event === 'applied'
+      && event.state?.phase === 'AwaitingShot');
+    const at = (turn: number) => {
+      const state = transitions.find(event => event.state.turnId === turn)?.state;
+      assert(state, `combined match reached turn ${turn}`);
+      const guest = runs[1].find(run => run.evidence.result.matchId === initial.evidence.result.matchId);
+      assert.deepEqual(guest?.log.find(event => event.event === 'applied'
+        && event.state?.phase === 'AwaitingShot' && event.state.turnId === turn)?.state,
+      state, `guest reconciled exactly at turn ${turn}`);
+      return state;
+    };
+    assert.deepEqual(at(4).scores, [[0], [0]], 'Reset cleared both scores after both members shot');
+    assert.equal(at(4).holeGeneration, 2);
+    assert.deepEqual(at(7).scores, [[1], [0]], 'Undo restored the guest pre-shot score');
+    assert.equal(at(7).activeSlot, 1, 'Undo returned input to the guest');
+    const guestCheckpoint = initial.log.find(event => event.event === 'undoCheckpoint'
+      && event.state?.turnId === 5)?.state;
+    assert(guestCheckpoint, 'authority captured the guest pre-shot state');
+    assert.deepEqual(at(7).balls, guestCheckpoint.balls, 'Undo restored the guest pre-shot balls');
+    assert.deepEqual(at(7).objects, guestCheckpoint.objects, 'Undo restored the guest pre-shot objects');
+    assert.equal(at(9).hole, 2, 'Go Last moved to the last hole');
+    assert.deepEqual(at(9).scores, [[1, 0], [1, 0]], 'Go kept partial scores on the hole left');
+    assert.equal(at(10).hole, 1, 'Go First moved backward');
+    assert.deepEqual(at(10).scores, [[0, 0], [0, 0]], 'revisiting cleared the first-hole scores');
+    assert.equal(at(13).hole, 2, 'Skip advanced to the next hole');
+    assert.deepEqual(at(13).scores, [[1, 0], [1, 0]], 'Skip kept partial scores');
+    const result = initial.evidence.result;
+    assert.deepEqual(result.skippedHoles, [1]);
+    assert.deepEqual(result.navigatedHoles, [], 'revisited navigation marker was retired');
+    assert.deepEqual(result.scores, [[1, 1], [1, 1]]);
+    for (const row of result.standings) {
+      assert.equal(row.completedHoles, 1, 'skipped hole did not count as completed');
+      assert.equal(row.acceptedShots, 2, 'reset, undo, and revisit counts were rolled back');
+      assert.equal(row.bestHole?.hole, 2, 'skipped hole did not produce a best-hole highlight');
+      assert.equal(row.worstHole?.hole, 2, 'skipped hole did not produce a worst-hole highlight');
+    }
+    assert(initial.evidence.visibleText.includes('1 (skipped)'), 'Results labels the partial hole');
+    assert(initial.evidence.visibleText.includes('unfinished holes contain partial scores'));
+    assert.deepEqual(rematch.evidence.result.skippedHoles, [], 'rematch had no inherited skip marker');
+    assert.deepEqual(rematch.evidence.result.navigatedHoles, [], 'rematch had no inherited navigation marker');
+    assert(!rematch.evidence.visibleText.includes('(skipped)'), 'rematch Results do not inherit the partial label');
+    assert(rematch.log.every(event => event.state?.holeGeneration <= 2 || !event.state),
+      'rematch did not replay scripted host actions');
   }
   if (scenario.startsWith('host-proposal-')) {
     const logs = Array.from({ length: clientCount }, (_, client) => events(sessionDirectories(client)[0]));

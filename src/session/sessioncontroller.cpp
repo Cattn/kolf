@@ -527,17 +527,20 @@ void SessionController::receive(const QJsonObject &message) {
         }
         if (m_role == Role::Authority && m_phase == QLatin1String("AwaitingShot")
             && !m_scriptedHostResetDone && m_config[QStringLiteral("scriptedHostResetTurn")].toInt() == m_turn) {
-            setHostControlsEnabled(true);
+            if (m_hostControlsEnabled) { m_scriptedHostResetDone = true; resetOnlineHole(); }
+            else setHostControlsEnabled(true);
             return;
         }
         if (m_role == Role::Authority && m_phase == QLatin1String("AwaitingShot")
             && !m_scriptedHostUndoDone && m_config[QStringLiteral("scriptedHostUndoTurn")].toInt() == m_turn) {
-            setHostControlsEnabled(true);
+            if (m_hostControlsEnabled) { m_scriptedHostUndoDone = true; undoOnlineShot(); }
+            else setHostControlsEnabled(true);
             return;
         }
         if (m_role == Role::Authority && m_phase == QLatin1String("AwaitingShot")
             && !m_scriptedHostSkipDone && m_config[QStringLiteral("scriptedHostSkipTurn")].toInt() == m_turn) {
-            setHostControlsEnabled(true);
+            if (m_hostControlsEnabled) { m_scriptedHostSkipDone = true; skipOnlineHole(); }
+            else setHostControlsEnabled(true);
             return;
         }
         const auto scriptedGo = m_config[QStringLiteral("scriptedHostGo")].toArray();

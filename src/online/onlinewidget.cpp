@@ -373,6 +373,15 @@ OnlineWidget::OnlineWidget(QWidget *parent)
                 sessionConfig[QStringLiteral("scriptedHostGo")] = m_automation.value(QStringLiteral("scriptedHostGo"));
             if (m_automation.contains(QStringLiteral("scriptedHostProposal")))
                 sessionConfig[QStringLiteral("scriptedHostProposal")] = m_automation.value(QStringLiteral("scriptedHostProposal"));
+            if (m_automation.value(QStringLiteral("scriptedHostCombined")).toBool()
+                && m_automationCompletedMatches == 0) {
+                sessionConfig[QStringLiteral("scriptedHostResetTurn")] = 3;
+                sessionConfig[QStringLiteral("scriptedHostUndoTurn")] = 6;
+                sessionConfig[QStringLiteral("scriptedHostSkipTurn")] = 12;
+                sessionConfig[QStringLiteral("scriptedHostGo")] = QJsonArray{
+                    QJsonObject{{QStringLiteral("turn"), 8}, {QStringLiteral("action"), QStringLiteral("goLast")}},
+                    QJsonObject{{QStringLiteral("turn"), 9}, {QStringLiteral("action"), QStringLiteral("goFirst")}}};
+            }
             sessionConfig[QStringLiteral("capture")] = true;
             sessionConfig[QStringLiteral("verifySnapshots")] = true;
             sessionConfig[QStringLiteral("logFrames")] = true;
@@ -841,6 +850,14 @@ void OnlineWidget::showResults(const QJsonObject &state)
                 worst.value(QStringLiteral("hole")).toInt(), worst.value(QStringLiteral("strokes")).toInt()));
     }
     m_result->setHtml(html + QStringLiteral("</ul>"));
+    if (!m_automation.isEmpty()) {
+        const auto matchId = result.value(QStringLiteral("matchId")).toString();
+        QFile evidence(QDir(m_automation.value(QStringLiteral("logDirectory")).toString())
+            .filePath(matchId + QStringLiteral("/results.json")));
+        if (evidence.open(QIODevice::WriteOnly | QIODevice::Truncate))
+            evidence.write(QJsonDocument(QJsonObject{{QStringLiteral("result"), result},
+                {QStringLiteral("visibleText"), m_result->toPlainText()}}).toJson());
+    }
     if (state.value(QStringLiteral("rematchRequestedMemberIds")).toArray().isEmpty())
         Q_EMIT statusChanged(completed ? i18n("Match complete. Choose Rematch or Return to Lobby.")
             : i18n("Match interrupted. Review the partial Results."));
