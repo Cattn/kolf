@@ -155,6 +155,26 @@ Visible menu, option, confirmation, focus, accessibility, expiry, withdrawal,
 busy phase, and rematch checks: **not run**. These scripted runs are not a
 human visible-layout pass.
 
+## Combined host actions and final Results
+
+**Passed (scripted native, Windows, 24 September 2026, source `888aa25`):**
+`tests/multiplayer/fixtures/static.kolf`, run directory
+`server/local-session/online-host-combined-1790279027013`. In the first
+two-client match both players scored, Reset cleared both scores, the owner
+undid a settled guest shot, Go Last and Go First kept then cleared the
+appropriate score rows, and Skip retained a partially scored first hole.
+Both clients applied identical states at each action and rendered identical
+final Results data and text: Hole 1 was labelled skipped, both partial scores
+remained, and best/worst highlights used only completed Hole 2. Both clients
+completed an ordinary rematch with no inherited skip or navigation marker.
+The generated `results.json` files in each client's match directory hold the
+authoritative result and rendered plain text used for comparison.
+
+**Not run (visible acceptance):** menu/shortcut enabled state, confirmation
+wording and cancel behavior, focus and accessibility, rolling-ball attempts,
+disconnect recovery, and visual layout. The combined run does not replace
+those human observations.
+
 ## One Slope Practise visual pass
 
 Select **Slope Practise** in the lobby. Before starting, turn on **Hole > Show
@@ -176,3 +196,9 @@ it is not a broad course matrix.
 Record each item as passed, failed, or not run. Include platform, date, course,
 source commit, reproduction steps for failures, and the generated run-directory
 name. Human input and visible-layout checks are not inferred from scripted runs.
+
+On 24 September 2026, the user reported that offline functions work. In this
+pass, two ordinary shots and turn/score advance were observed on Windows with
+Really Easy at source `96810df`. The bounded normal/advanced shot plus
+save/close/reload comparison above was **not run**; no saved-game conclusion is
+inferred from the shot observation.

@@ -57,6 +57,7 @@ node ../tests/multiplayer/run-online-native.ts host-go
 node ../tests/multiplayer/run-online-native.ts host-proposal-approve
 node ../tests/multiplayer/run-online-native.ts host-proposal-reject
 node ../tests/multiplayer/run-online-native.ts host-proposal-four-player
+node ../tests/multiplayer/run-online-native.ts host-combined
 node ../tests/multiplayer/run-online-native.ts slope-out-of-bounds
 node ../tests/multiplayer/run-online-native.ts slope-in-bounds
 ```
@@ -85,6 +86,12 @@ the hole unchanged. The three-member/four-player run gives the owner two
 player slots, verifies one vote per member, then checks the approved reset
 and exact guest reconciliation. They exercise the normal native clients
 through Craft; they do not replace a visible menu and accessibility pass.
+The host-combined scenario runs two matches. In the first, both players score,
+the owner resets, undoes a settled guest shot, goes to the last and first holes,
+then skips a partially scored hole. It checks both clients at every action,
+compares their final Results content and completed-hole highlights, and finishes
+an ordinary rematch with no inherited unfinished-hole marker. This is scripted
+native evidence; it does not verify menu layout or keyboard focus.
 
 The native envelope fixture can be run by setting
 `KOLF_ONLINE_PROTOCOL_TESTS` to the absolute path of
