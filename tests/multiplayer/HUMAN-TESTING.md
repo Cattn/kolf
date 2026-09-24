@@ -127,6 +127,34 @@ identical states, including cleared scores on the revisited first hole, and
 then finished. Visible menu, confirmations, Random, rolling-ball, Results,
 offline, and three-member/four-player checks: **not run** on Windows.
 
+## Host action proposals and voting
+
+In a two-client match, confirm **Allow Voting** starts checked but can only
+be changed by the owner while Host Controls is on. Both members should see
+its current state. With controls enabled, have the guest propose Reset Hole
+and vote Yes. Have the owner change a Yes vote to No; confirm the tally still
+counts that member once. Reject the proposal and verify no score or scene
+change. Propose again, approve after reading the score-effect confirmation,
+and compare both clients' hole, scores, ball/object state, turn, and notice.
+Check Undo, Skip, Random, and Switch to Hole proposals as bounded target and
+wording examples. Turn voting off with a proposal active and confirm it closes.
+Check withdrawal, expiry, a busy/rolling-ball attempt, keyboard focus order,
+accessible names, and rematch defaults. In a three-member/four-player match,
+give the owner two local players and confirm that member has only one vote.
+
+**Current result at source `15e69b8` (Windows, 24 September 2026):** bounded
+scripted native approval **passed** on `tests/multiplayer/fixtures/static.kolf`
+in `server/local-session/online-host-proposal-approve-1790277661879`; both
+clients applied the same cleared reset state and finished. Scripted rejection
+**passed** in `online-host-proposal-reject-1790277681644`; both clients
+retained the unchanged hole and finished. The three-member/four-player vote
+and approval check **passed** in `online-host-proposal-four-player-1790277635392`:
+each client saw one vote from each member, including one vote for the owner
+with two local players, and all three reconciled to the same reset state.
+Visible menu, option, confirmation, focus, accessibility, expiry, withdrawal,
+busy phase, and rematch checks: **not run**. These scripted runs are not a
+human visible-layout pass.
+
 ## One Slope Practise visual pass
 
 Select **Slope Practise** in the lobby. Before starting, turn on **Hole > Show
