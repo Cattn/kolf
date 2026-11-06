@@ -73,7 +73,7 @@ OnlineMatchView::OnlineMatchView(QWidget *parent)
         settings.sync();
     });
     header->addWidget(m_hud, 1);
-    header->addWidget(m_matchButton);
+    header->addWidget(m_matchButton, 0, Qt::AlignTop);
     m_layout->insertLayout(0, header);
     m_canvas = new QWidget(this);
     m_canvasLayout = new QGridLayout(m_canvas);
@@ -291,7 +291,7 @@ SessionController *OnlineMatchView::startMatch(const QJsonObject &config, Net::N
         if (!m_game) return;
         m_hud->setHole(hole, m_game->holeCount(), m_game->holePar());
         if (m_controller->phase() == QLatin1String("AwaitingShot"))
-            m_hud->setTurn(m_controller->ownsSlot(slot) ? i18n("%1 (you)", m_game->currentPlayerName()) : m_game->currentPlayerName(), m_game->currentPlayerColor(), m_game->currentPlayerStrokes() + 1, m_controller->ownsSlot(slot));
+            m_hud->setTurn(m_game->currentPlayerName(), m_game->currentPlayerColor(), m_game->currentPlayerStrokes() + 1, m_controller->ownsSlot(slot), true);
         if (hole != m_lastHole) { m_scoreToggle->setChecked(true); m_lastHole = hole; }
     });
     connect(m_controller, &SessionController::hazardChoiceChanged, this, &OnlineMatchView::setHazardChoiceAvailable);

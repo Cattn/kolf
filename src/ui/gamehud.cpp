@@ -40,8 +40,6 @@ GameHud::GameHud(QWidget *parent)
     m_hole = new QLabel(this);
     m_hole->setObjectName(QStringLiteral("hudHole"));
     QFont strong = m_hole->font();
-    strong.setPointSizeF(strong.pointSizeF() * 1.15);
-    m_hole->setFont(strong);
     row->addWidget(m_hole);
     row->addStretch();
     m_swatch = new QLabel(this);
@@ -50,8 +48,14 @@ GameHud::GameHud(QWidget *parent)
     m_turn->setObjectName(QStringLiteral("hudTurn"));
     strong.setBold(true);
     m_turn->setFont(strong);
+    m_turn->setWordWrap(true);
     m_turn->setAccessibleName(i18n("Whose turn it is"));
     row->addWidget(m_turn);
+    m_stroke = new QLabel(this);
+    m_stroke->setObjectName(QStringLiteral("hudStroke"));
+    row->addSpacing(12);
+    row->addWidget(m_stroke);
+    row->addStretch();
     outer->addLayout(row);
 
     m_hintRow = new QWidget(this);
@@ -82,23 +86,28 @@ GameHud::GameHud(QWidget *parent)
 void GameHud::setHole(int hole, int holes, int par)
 {
     m_hole->setText(holes > 0
-        ? i18nc("@info HUD: hole number, hole count, par", "Hole %1 of %2 · Par %3", hole, holes, par)
-        : i18nc("@info HUD: hole number, par", "Hole %1 · Par %2", hole, par));
+        ? i18nc("@info HUD: hole number, hole count, par", "Hole %1 of %2   Par %3", hole, holes, par)
+        : i18nc("@info HUD: hole number, par", "Hole %1   Par %2", hole, par));
 }
 
-void GameHud::setTurn(const QString &name, const QColor &color, int stroke, bool yourTurn)
+void GameHud::setTurn(const QString &name, const QColor &color, int stroke, bool yourTurn, bool markLocalTurn)
 {
     const int size = m_turn->fontMetrics().height();
     m_swatch->setPixmap(swatch(color, size));
     m_swatch->show();
-    m_turn->setText(yourTurn
-        ? i18nc("@info HUD: player name, stroke number", "%1's turn · stroke %2", name, stroke)
-        : i18nc("@info HUD: waiting for another player", "Waiting for %1 · stroke %2", name, stroke));
+    m_turn->setText(yourTurn && markLocalTurn
+        ? i18nc("@info HUD: local player name", "Your turn: %1", name)
+        : yourTurn
+            ? i18nc("@info HUD: active player name", "%1's turn", name)
+            : i18nc("@info HUD: waiting for another player", "Waiting for %1", name));
+    m_stroke->setText(i18nc("@info HUD: stroke number", "Stroke %1", stroke));
+    m_stroke->show();
 }
 
 void GameHud::setMessage(const QString &message)
 {
     m_swatch->hide();
+    m_stroke->hide();
     m_turn->setText(message);
 }
 
