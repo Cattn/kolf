@@ -1,0 +1,20 @@
+{
+  "description": "Finish a two-hole local game and check the shared Results page, Play Again, and Main Menu.",
+  "steps": [
+    { "wait": 1500 },
+    { "open": "{scriptDir}/../multiplayer/fixtures/static.kolf", "wait": 1500 },
+    { "clickText": "OK", "wait": 2000 },
+    { "shot": { "direction": 0, "power": 1.8 }, "wait": 3000 },
+    { "shot": { "direction": 0, "power": 0.4 }, "wait": 3000 },
+    { "shot": { "direction": 0, "power": 1.8 }, "wait": 3000, "continueOnError": true },
+    { "shot": { "direction": 0, "power": 1.8 }, "wait": 3000, "continueOnError": true },
+    { "shot": { "direction": 0, "power": 1.8 }, "wait": 3000, "continueOnError": true },
+    { "shot": { "direction": 0, "power": 1.8 }, "wait": 3000, "continueOnError": true },
+    { "shot": { "direction": 0, "power": 1.8 }, "wait": 3000, "continueOnError": true },
+    { "wait": 1500 },
+    { "expectVisible": "resultsView", "screenshot": "01-results.png" },
+    { "click": "resultsPlayAgain", "wait": 2000 },
+    { "expectVisible": "gameHud", "screenshot": "02-play-again.png" },
+    { "quit": true }
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "description": "Game HUD, first-shot hint, and the hazard prompt after a shot into water.",
   "steps": [
-    { "wait": 1500, "resize": [900, 760] },
+    { "wait": 1500 },
     { "open": "{scriptDir}/../multiplayer/fixtures/water.kolf", "wait": 1500 },
     { "clickText": "OK", "wait": 2000 },
     { "expectVisible": "gameHud" },

@@ -51,7 +51,8 @@ NewGameDialog::NewGameDialog(bool enableCourses)
         KConfigGroup configGroup(config->group(QStringLiteral("New Game Dialog Mode")));
 
 	// lots o' colors :)
-	startColors << Qt::red << Qt::red << Qt::yellow << Qt::lightGray << Qt::cyan << Qt::darkBlue << Qt::magenta << Qt::darkGray << Qt::darkMagenta << Qt::darkYellow;
+	for (const auto *hex : {"#0072b2", "#e69f00", "#cc79a7", "#d55e00", "#56b4e9", "#332288", "#aa3377", "#333333", "#f0e442", "#ffffff"})
+		startColors << QColor(QLatin1String(hex));
 
 	playerPage = new QFrame();
 	addPage(playerPage, i18nc("@title:tab", "Players"));

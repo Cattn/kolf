@@ -46,6 +46,8 @@ target_sources(kolfprivate PRIVATE
     online/playerprofileeditor.cpp
     ui/gamehud.cpp
     ui/hazardprompt.cpp
+    ui/resultsview.cpp
+    results/summary.cpp
     ui/homeview.cpp
     ui/settingsdialog.cpp
     net/networkclient.cpp

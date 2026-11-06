@@ -177,3 +177,15 @@ void ScoreBoard::doUpdateHeight()
 }
 
 #include "moc_scoreboard.cpp"
+
+QList<int> ScoreBoard::pars() const
+{
+	QList<int> result;
+	if (rowCount() < 1)
+		return result;
+	for (int column = 0; column < columnCount() - 1; ++column) {
+		const auto *cell = item(rowCount() - 1, column);
+		result.append(cell ? cell->text().toInt() : 0);
+	}
+	return result;
+}

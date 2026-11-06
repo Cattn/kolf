@@ -57,6 +57,9 @@ ecm_set_disabled_deprecation_versions(
 )
 
 add_subdirectory(src)
+if(BUILD_TESTING)
+    add_subdirectory(autotests)
+endif()
 add_subdirectory(sounds)
 add_subdirectory(courses)
 add_subdirectory(pics)

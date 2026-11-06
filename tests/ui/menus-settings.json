@@ -1,7 +1,7 @@
 {
   "description": "Menus in play and edit mode, and every Configure Kolf page.",
   "steps": [
-    { "wait": 1500, "resize": [1100, 760] },
+    { "wait": 1500 },
     { "click": "homePlay", "wait": 1200 },
     { "clickText": "OK", "wait": 2500 },
     { "openMenu": "game", "wait": 500 },

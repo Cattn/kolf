@@ -27,6 +27,7 @@ class ScoreBoard : public QTableWidget
 	Q_OBJECT
 
 public:
+	QList<int> pars() const;
 	explicit ScoreBoard(QWidget *parent = nullptr);
 	int total(int id, QString &name);
 

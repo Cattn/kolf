@@ -1,0 +1,6 @@
+find_package(Qt6 ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS Test)
+include(ECMAddTests)
+ecm_add_test(resultsummarytest.cpp
+    TEST_NAME resultsummarytest
+    LINK_LIBRARIES kolfprivate Qt6::Test)
+target_include_directories(resultsummarytest PRIVATE ${CMAKE_SOURCE_DIR}/src)

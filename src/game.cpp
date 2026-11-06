@@ -1043,21 +1043,7 @@ void KolfGame::keyReleaseEvent(QKeyEvent *e)
 
 void KolfGame::resizeEvent( QResizeEvent* ev )
 {
-	int newW = ev->size().width();
-	int newH = ev->size().height();
-	int oldW = ev->oldSize().width();
-	int oldH = ev->oldSize().height();
-
-	if(oldW<=0 || oldH<=0)
-		return;
-	else if( (oldW==newW) && (oldH==newH) )
-		return;
-
-	if (isOnline())
-		return;
-
-	int setSize = qMin(newW, newH);
-	QGraphicsView::resize(setSize, setSize); //make sure new size is square
+	QGraphicsView::resizeEvent(ev);
 }
 
 void KolfGame::puttRelease()
@@ -1667,9 +1653,7 @@ void KolfGame::sayWhosGoing()
 {
 	if (isOnline()) return;
 	if (players->count() >= 2)
-	{
-		KMessageBox::information(this, i18n("%1 will start off.", (*curPlayer).name()), i18nc("@title:window", "New Hole"), QStringLiteral("newHole"));
-	}
+		Q_EMIT newStatusText(i18n("%1 will start off.", (*curPlayer).name()));
 }
 
 void KolfGame::holeDone()

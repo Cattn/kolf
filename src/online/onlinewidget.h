@@ -13,9 +13,9 @@ class QLineEdit;
 class QListWidget;
 class QPushButton;
 class QStackedWidget;
-class QTextEdit;
 class QTimer;
 namespace Kolf::Online { class PlayerProfileEditor; }
+namespace Kolf::Ui { class ResultsView; }
 
 namespace Kolf::Online {
 class OnlineWidget : public QWidget {
@@ -78,7 +78,7 @@ private:
     QPushButton *m_addPlayer;
     QPushButton *m_editPlayer;
     QPushButton *m_removePlayer;
-    QTextEdit *m_result;
+    Kolf::Ui::ResultsView *m_result;
     QJsonObject m_state;
     bool m_matchActive = false;
     bool m_rematchRequested = false;

@@ -26,6 +26,8 @@
 #include "online/onlinematchview.h"
 #include "ui/gamehud.h"
 #include "ui/homeview.h"
+#include "ui/resultsview.h"
+#include "results/summary.h"
 #include "ui/settingsdialog.h"
 #include "online/onlinewidget.h"
 #include "scoreboard.h"
@@ -53,6 +55,9 @@
 #include <QDir>
 #include <QFile>
 #include <QGridLayout>
+#include <QHBoxLayout>
+#include <QPushButton>
+#include <QVBoxLayout>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMimeDatabase>
@@ -119,7 +124,8 @@ KolfWindow::KolfWindow()
 	connect(homeView, &Kolf::Ui::HomeView::continueRequested, this, &KolfWindow::continueGame);
 
 	setCourseEditingActionsVisible(false);
-	resize(420, 480);
+	setMinimumSize(640, 560);
+	resize(960, 760);
 }
 
 KolfWindow::~KolfWindow()
@@ -483,7 +489,6 @@ void KolfWindow::startOnlineMatch(const QJsonObject &matchConfig)
 	onlineResyncAction->setEnabled(true);
 	applicationStack->setCurrentWidget(onlineMatchView);
 	statusBar()->showMessage(i18n("Preparing the online match…"));
-	resize(qMax(width(), 850), qMax(height(), 700));
 #ifdef KOLF_TEST_AUTOMATION
 	if (onlineAutomation)
 		onlineAutomation->attach(onlineMatchController, config);
@@ -627,7 +632,7 @@ void KolfWindow::launchGame(int firstHole)
 	connect(game, &KolfGame::parChanged, scoreboard, &ScoreBoard::parChanged);
 	connect(game, &KolfGame::modifiedChanged, this, &KolfWindow::updateModified);
 	connect(game, &KolfGame::newPlayersTurn, this, &KolfWindow::newPlayersTurn);
-	connect(game, &KolfGame::saveGame, this, &KolfWindow::saveGame);
+	connect(game, &KolfGame::saveGame, this, &KolfWindow::autoSaveGame);
 	connect(game, &KolfGame::saveGameAs, this, &KolfWindow::saveGameAs);
 	connect(game, &KolfGame::holesDone, this, &KolfWindow::gameOver);
 	connect(game, &KolfGame::leaveRequested, this, &KolfWindow::returnHome);
@@ -920,16 +925,7 @@ void KolfWindow::gameOver()
 	// only announce a winner if more than two entries
 	// (player and par) are on the scoreboard + one to go past end
 	// + 1 for koodoo
-	if (scoreBoardIndex > 4)
-	{
-		if (names.count() > 1)
-		{
-			QString winners = names.join( i18nc("@item:intext winners", " and " ));
-			KMessageBox::information(this, i18n("%1 tied", winners));
-		}
-		else
-			KMessageBox::information(this, i18n("%1 won!", names.first()));
-	}
+	showLocalResults();
 
 	if (competition)
 	{
@@ -959,6 +955,70 @@ void KolfWindow::gameOver()
 	}
 
 	QTimer::singleShot(700, this, &KolfWindow::closeGame);
+}
+
+void KolfWindow::showLocalResults()
+{
+	if (!game || !scoreboard)
+		return;
+	QList<Kolf::Results::PlayerInfo> results;
+	lastPlayers.clear();
+	for (const auto &player : std::as_const(players)) {
+		results.append({player.name(), player.ball()->color(), player.scores()});
+		lastPlayers.append({player.name(), player.ball()->color()});
+	}
+	lastCourse = game->curFilename();
+	lastCompetition = competition;
+	if (!resultsPage) {
+		resultsPage = new QWidget(applicationStack);
+		auto *pageLayout = new QVBoxLayout(resultsPage);
+		localResults = new Kolf::Ui::ResultsView(resultsPage);
+		pageLayout->addWidget(localResults, 1);
+		auto *buttons = new QHBoxLayout;
+		auto *home = new QPushButton(QIcon::fromTheme(QStringLiteral("go-home")), i18nc("@action:button", "Main Menu"), resultsPage);
+		home->setObjectName(QStringLiteral("resultsHome"));
+		auto *again = new QPushButton(QIcon::fromTheme(QStringLiteral("view-refresh")), i18nc("@action:button", "Play Again"), resultsPage);
+		again->setObjectName(QStringLiteral("resultsPlayAgain"));
+		again->setDefault(true);
+		buttons->addWidget(home);
+		buttons->addStretch();
+		buttons->addWidget(again);
+		pageLayout->addLayout(buttons);
+		applicationStack->addWidget(resultsPage);
+		connect(home, &QPushButton::clicked, this, [this] { applicationStack->setCurrentWidget(dummy); });
+		connect(again, &QPushButton::clicked, this, &KolfWindow::playAgain);
+	}
+	CourseInfo info;
+	KolfGame::courseInfo(info, lastCourse);
+	localResults->setSummary(Kolf::Results::summarizeLocalGame(
+		info.name.isEmpty() ? game->courseName() : info.name, results, scoreboard->pars()));
+	applicationStack->setCurrentWidget(resultsPage);
+	resultsPage->findChild<QPushButton *>(QStringLiteral("resultsPlayAgain"))->setFocus();
+}
+
+void KolfWindow::playAgain()
+{
+	if (lastPlayers.isEmpty())
+		return;
+	applicationStack->setCurrentWidget(dummy);
+	if (game) {
+		if (game->askSave(true))
+			return;
+		game->pause();
+	}
+	isTutorial = false;
+	loadedGame = QString();
+	filename = lastCourse;
+	competition = lastCompetition;
+	players.clear();
+	int id = 1;
+	for (const auto &entry : std::as_const(lastPlayers)) {
+		players.append(Player());
+		players.last().setName(entry.first);
+		players.last().ball()->setColor(entry.second);
+		players.last().setId(id++);
+	}
+	launchGame(1);
 }
 
 void KolfWindow::showHighScores()
@@ -1033,7 +1093,12 @@ void KolfWindow::saveGame()
 		return;
 	}
 
-	KConfig config(loadedGame);
+	writeSavedGame(loadedGame);
+}
+
+void KolfWindow::writeSavedGame(const QString &path)
+{
+	KConfig config(path, KConfig::SimpleConfig);
 	KConfigGroup configGroup(config.group(QStringLiteral("0 Saved Game")));
 
 	configGroup.writeEntry("Competition", competition);
@@ -1043,7 +1108,22 @@ void KolfWindow::saveGame()
 
 	configGroup.sync();
 	if (!isTutorial)
-		Kolf::Ui::HomeView::rememberSavedGame(loadedGame);
+		Kolf::Ui::HomeView::rememberSavedGame(path);
+}
+
+void KolfWindow::autoSaveGame()
+{
+	if (!game || isTutorial || editingAction->isChecked() || filename.isEmpty())
+		return;
+	QString path = loadedGame;
+	if (path.isEmpty()) {
+		const QDir directory(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation));
+		directory.mkpath(QStringLiteral("."));
+		const QString configName = QFileInfo(KSharedConfig::openConfig()->name()).fileName();
+		path = directory.filePath(configName == QLatin1String("kolfrc") ? QStringLiteral("autosave.kolfgame")
+			: configName + QStringLiteral("-autosave.kolfgame"));
+	}
+	writeSavedGame(path);
 }
 
 void KolfWindow::loadGame()

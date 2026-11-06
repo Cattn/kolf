@@ -75,6 +75,13 @@ QWidget *UiScript::target(const QString &name) const
     if (name == QLatin1String("modal")) return QApplication::activeModalWidget();
     if (name == QLatin1String("focus")) return QApplication::focusWidget();
     if (name == QLatin1String("active")) return QApplication::activeWindow();
+    if (name == QLatin1String("game")) {
+        KolfGame *game = nullptr;
+        if (m_mainWindow)
+            for (auto *candidate : m_mainWindow->findChildren<KolfGame *>())
+                if (candidate->isVisible() && !candidate->isPaused()) game = candidate;
+        return game;
+    }
     for (auto *topLevel : QApplication::topLevelWidgets()) {
         if (topLevel->objectName() == name) return topLevel;
         if (auto *child = topLevel->findChild<QWidget *>(name)) return child;
@@ -87,7 +94,10 @@ void UiScript::runNext()
     if (m_index >= m_steps.size()) { finish(0); return; }
     const auto step = m_steps.at(m_index).toObject();
     QString error;
-    if (!runStep(step, error)) { finish(3, error); return; }
+    if (!runStep(step, error)) {
+        if (!step.value(QStringLiteral("continueOnError")).toBool()) { finish(3, error); return; }
+        log({{QStringLiteral("event"), QStringLiteral("skipped")}, {QStringLiteral("step"), m_index}, {QStringLiteral("error"), error}});
+    }
     const auto *focus = QApplication::focusWidget();
     log({{QStringLiteral("event"), QStringLiteral("step")}, {QStringLiteral("step"), m_index}, {QStringLiteral("spec"), step},
         {QStringLiteral("focus"), focus ? QStringLiteral("%1/%2").arg(QString::fromLatin1(focus->metaObject()->className()), focus->objectName()) : QString()}});
