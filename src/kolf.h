@@ -106,6 +106,8 @@ protected Q_SLOTS:
 	void showHighScores();
 	void enableAllMessages();
 	void showSettings();
+	void showServerSettings();
+	void openSettings(bool serversPage);
 	void createSpacer();
 
 	void emptySlot() {}

@@ -12,6 +12,9 @@
 #include <KSharedConfig>
 
 #include <QComboBox>
+#include <QActionGroup>
+#include <QMenu>
+#include <QToolButton>
 #include <QApplication>
 #include <QClipboard>
 #include <QDebug>
@@ -108,12 +111,16 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
     title->setFont(titleFont);
     header->addWidget(title);
     header->addStretch();
-    m_serverLabel = new QLabel(hub);
-    m_serverLabel->setObjectName(QStringLiteral("onlineServer"));
-    header->addWidget(m_serverLabel);
-    m_changeServerButton = new QPushButton(QIcon::fromTheme(QStringLiteral("network-server")), i18nc("@action:button", "Change Server…"), hub);
-    m_changeServerButton->setObjectName(QStringLiteral("onlineChangeServer"));
-    header->addWidget(m_changeServerButton);
+    m_serverButton = new QToolButton(hub);
+    m_serverButton->setObjectName(QStringLiteral("onlineServerMenu"));
+    m_serverButton->setIcon(QIcon::fromTheme(QStringLiteral("network-server")));
+    m_serverButton->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    m_serverButton->setPopupMode(QToolButton::InstantPopup);
+    m_serverButton->setAutoRaise(false);
+    m_serverMenu = new QMenu(m_serverButton);
+    m_serverMenu->setObjectName(QStringLiteral("onlineServerMenuPopup"));
+    m_serverButton->setMenu(m_serverMenu);
+    header->addWidget(m_serverButton);
     auto *cancelButton = new QPushButton(QIcon::fromTheme(QStringLiteral("go-previous")), i18nc("@action:button", "Back"), hub);
     cancelButton->setObjectName(QStringLiteral("onlineBack"));
     header->addWidget(cancelButton);
@@ -126,11 +133,6 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
     m_serverControls = new QGroupBox(i18n("Server"), hub);
     m_serverControls->setObjectName(QStringLiteral("onlineServerControls"));
     auto *serverLayout = new QFormLayout(m_serverControls);
-    m_recentServers = new QComboBox(m_serverControls);
-    m_recentServers->setObjectName(QStringLiteral("onlineServerList"));
-    m_recentServers->setAccessibleName(i18n("Saved servers"));
-    m_recentServers->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-    serverLayout->addRow(i18nc("@label", "Saved:"), m_recentServers);
     m_endpoint = new QLineEdit(m_serverControls);
     m_endpoint->setObjectName(QStringLiteral("onlineAddress"));
     m_endpoint->setPlaceholderText(i18nc("@info:placeholder", "kolf.pro or 192.168.1.20"));
@@ -235,15 +237,7 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
     m_pages->addWidget(resultsPage);
 
     connect(m_connectButton, &QPushButton::clicked, this, &OnlineWidget::beginConnection);
-    connect(m_changeServerButton, &QPushButton::clicked, this, [this] {
-        if (m_connectionState == ConnectionState::Connected) changeServer();
-        m_serverControls->setVisible(true);
-        m_endpoint->setFocus();
-        m_endpoint->selectAll();
-    });
-    connect(m_recentServers, &QComboBox::activated, this, [this](int index) {
-        if (index >= 0) m_endpoint->setText(m_recentServers->itemData(index).toString());
-    });
+    connect(m_serverMenu, &QMenu::aboutToShow, this, &OnlineWidget::rebuildServerMenu);
     connect(m_endpoint, &QLineEdit::textChanged, this, [this] {
         if (m_connectionState != ConnectionState::Connecting) setConnectionState(m_connectionState);
     });
@@ -379,12 +373,51 @@ void OnlineWidget::reloadServers()
     const auto list = ServerList::load(onlineConfig);
     onlineConfig.sync();
     m_servers.clear();
-    m_recentServers->clear();
+    m_serverOrder.clear();
     for (const auto &server : list.servers()) {
         m_servers.insert(server.url, server.name);
-        m_recentServers->addItem(server.name, server.url);
+        m_serverOrder.append(server.url);
     }
     m_defaultServer = list.defaultUrl();
+}
+
+void OnlineWidget::rebuildServerMenu()
+{
+    m_serverMenu->clear();
+    const QString current = normalizeServerAddress(m_endpoint->text()).url.toString();
+    auto *group = new QActionGroup(m_serverMenu);
+    for (const auto &url : std::as_const(m_serverOrder)) {
+        auto *action = m_serverMenu->addAction(m_servers.value(url));
+        action->setObjectName(QStringLiteral("onlineServerChoice"));
+        action->setToolTip(url);
+        action->setCheckable(true);
+        action->setChecked(url == current);
+        action->setActionGroup(group);
+        connect(action, &QAction::triggered, this, [this, url] { switchToServer(url); });
+    }
+    m_serverMenu->addSeparator();
+    auto *other = m_serverMenu->addAction(QIcon::fromTheme(QStringLiteral("edit-rename")), i18nc("@action:inmenu", "Other Address…"));
+    connect(other, &QAction::triggered, this, [this] {
+        if (m_connectionState == ConnectionState::Connected || m_connectionState == ConnectionState::Connecting) changeServer();
+        m_serverControls->setVisible(true);
+        m_endpoint->setFocus();
+        m_endpoint->selectAll();
+    });
+    auto *manage = m_serverMenu->addAction(QIcon::fromTheme(QStringLiteral("configure")), i18nc("@action:inmenu", "Manage Servers…"));
+    connect(manage, &QAction::triggered, this, &OnlineWidget::manageServersRequested);
+    auto *disconnectAction = m_serverMenu->addAction(QIcon::fromTheme(QStringLiteral("network-disconnect")), i18nc("@action:inmenu", "Disconnect"));
+    disconnectAction->setEnabled(m_connectionState == ConnectionState::Connected || m_connectionState == ConnectionState::Connecting);
+    connect(disconnectAction, &QAction::triggered, this, &OnlineWidget::changeServer);
+}
+
+void OnlineWidget::switchToServer(const QString &url)
+{
+    m_sessionServer = url;
+    m_serverControls->hide();
+    if (m_connectionState == ConnectionState::Connected || m_connectionState == ConnectionState::Connecting) changeServer();
+    m_endpoint->setText(url);
+    if (m_disconnectRequested) m_connectAfterDisconnect = true;
+    else beginConnection();
 }
 
 void OnlineWidget::serversChanged()
@@ -486,13 +519,9 @@ void OnlineWidget::setConnectionState(ConnectionState state, const QString &mess
         && url.host() != QLatin1String("localhost") && url.host() != QLatin1String("127.0.0.1") && url.host() != QLatin1String("::1");
     const QString canonical = url.toString();
     const QString friendlyName = m_servers.value(canonical, url.host().isEmpty() ? address : url.host());
-    m_serverLabel->setText(address.isEmpty() ? i18n("No server chosen") : i18n("Server: %1", friendlyName));
-    m_serverLabel->setToolTip(normalized.isValid() ? canonical : address);
-    const int listIndex = m_recentServers->findData(canonical);
-    if (listIndex >= 0) {
-        const QSignalBlocker blocker(m_recentServers);
-        m_recentServers->setCurrentIndex(listIndex);
-    }
+    m_serverButton->setText(address.isEmpty() ? i18n("Choose a Server") : i18n("Server: %1", friendlyName));
+    m_serverButton->setToolTip(normalized.isValid() ? i18n("%1 (click to switch or manage servers)", canonical) : address);
+    m_serverButton->setAccessibleName(m_serverButton->text());
     const bool busy = state == ConnectionState::Connecting || state == ConnectionState::Disconnecting;
     QString status = !message.isEmpty() ? message
         : state == ConnectionState::Connecting ? i18n("Connecting…")
@@ -506,9 +535,8 @@ void OnlineWidget::setConnectionState(ConnectionState state, const QString &mess
     m_connectButton->setEnabled(!busy && !address.isEmpty());
     m_connectButton->setText(state == ConnectionState::Failed ? i18nc("@action:button", "Retry")
         : i18nc("@action:button", "Connect"));
-    m_changeServerButton->setEnabled(!busy);
+    m_serverButton->setEnabled(state != ConnectionState::Disconnecting);
     m_endpoint->setEnabled(!busy);
-    m_recentServers->setEnabled(!busy && m_recentServers->count() > 0);
     m_serverControls->setVisible(address.isEmpty() || state == ConnectionState::Failed
         || (state == ConnectionState::Disconnected && m_serverControls->isVisible()));
     const bool ready = state == ConnectionState::Connected;

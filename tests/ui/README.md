@@ -26,6 +26,8 @@ Each step is an object. The keys run in this order, and `wait` (ms, default
 | `click` | Click a button by object name |
 | `clickText` (+ `in`) | Click a visible button by its label, in `modal` (default) or `window` |
 | `type` (+ `into`) | Replace the text of a visible line edit, named by object name (default: the focused widget) |
+| `openMenu` / `closeMenu` | Pop up or hide a menu by object name |
+| `trigger` + `in` | Trigger an enabled item, by its text, in the named menu, and close the menu |
 | `key` (+ `to`) | Send a key sequence such as `Escape` to the focused widget, or to `to` (`game` = the active course view; use it, since desktop focus is unreliable) |
 | `resize` `[w, h]` | Resize the main window |
 | `expectVisible` / `expectHidden` | Fail unless the named widget is visible or hidden |

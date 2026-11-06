@@ -278,6 +278,7 @@ void KolfWindow::ensureOnlineWidget()
 		onlineWidget = new Kolf::Online::OnlineWidget(m_itemFactory, applicationStack);
 		applicationStack->addWidget(onlineWidget);
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::leaveRequested, this, &KolfWindow::leaveOnline);
+		connect(onlineWidget, &Kolf::Online::OnlineWidget::manageServersRequested, this, &KolfWindow::showServerSettings, Qt::QueuedConnection);
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::matchRequested, this, &KolfWindow::startOnlineMatch);
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::matchEnded, this, &KolfWindow::finishOnlineMatch);
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::statusChanged, this, [this](const QString &status) {
@@ -1405,6 +1406,16 @@ void KolfWindow::setCourseEditingActionsVisible(bool visible)
 
 void KolfWindow::showSettings()
 {
+	openSettings(false);
+}
+
+void KolfWindow::showServerSettings()
+{
+	openSettings(true);
+}
+
+void KolfWindow::openSettings(bool serversPage)
+{
 	KConfigGroup online(KSharedConfig::openConfig(), QStringLiteral("Online"));
 	Kolf::Ui::Preferences current;
 	current.advancedPutting = useAdvancedPuttingAction->isChecked();
@@ -1421,6 +1432,8 @@ void KolfWindow::showSettings()
 
 	QPointer<Kolf::Ui::SettingsDialog> dialog = new Kolf::Ui::SettingsDialog(current, this);
 	connect(dialog, &Kolf::Ui::SettingsDialog::resetMessagesRequested, this, &KolfWindow::enableAllMessages);
+	if (serversPage)
+		dialog->showServersPage();
 	if (dialog->exec() == QDialog::Accepted && dialog) {
 		const auto chosen = dialog->preferences();
 		useAdvancedPuttingAction->setChecked(chosen.advancedPutting);

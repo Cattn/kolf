@@ -4,6 +4,7 @@
 #include "onlinecoordinator.h"
 
 #include <QHash>
+#include <QStringList>
 #include <QJsonObject>
 #include <QSet>
 #include <QWidget>
@@ -13,6 +14,8 @@ class QGroupBox;
 class QLabel;
 class QLineEdit;
 class QListWidget;
+class QMenu;
+class QToolButton;
 class QPushButton;
 class QStackedWidget;
 class QTimer;
@@ -45,6 +48,7 @@ Q_SIGNALS:
     void matchRequested(const QJsonObject &config);
     void matchEnded();
     void statusChanged(const QString &status);
+    void manageServersRequested();
 
 private:
     enum class ConnectionState { Disconnected, Connecting, Disconnecting, Connected, InLobby, InMatch, Failed };
@@ -57,14 +61,17 @@ private:
     static QString normalizeJoinCode(const QString &input);
     void beginConnection();
     void reloadServers();
+    void rebuildServerMenu();
+    void switchToServer(const QString &url);
     void setConnectionState(ConnectionState state, const QString &message = {});
 
     OnlineCoordinator m_coordinator;
     QStackedWidget *m_pages;
     QLineEdit *m_endpoint;
     QLabel *m_connectStatus;
-    QLabel *m_serverLabel;
-    QComboBox *m_recentServers;
+    QToolButton *m_serverButton;
+    QMenu *m_serverMenu;
+    QStringList m_serverOrder;
     QHash<QString, QString> m_servers;
     QString m_defaultServer;
     QString m_sessionServer;
@@ -74,7 +81,6 @@ private:
     QGroupBox *m_joinCard;
     QLabel *m_profileChip;
     QPushButton *m_connectButton;
-    QPushButton *m_changeServerButton;
     QPushButton *m_createButton;
     QPushButton *m_joinButton;
     QTimer *m_connectTimeout;

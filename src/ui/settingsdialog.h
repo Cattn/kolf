@@ -30,6 +30,7 @@ public:
     explicit SettingsDialog(const Preferences &preferences, QWidget *parent = nullptr);
     Preferences preferences() const;
     bool onlineProfileValid() const;
+    void showServersPage();
 
 Q_SIGNALS:
     void resetMessagesRequested();
@@ -45,5 +46,6 @@ private:
     QCheckBox *m_confirmHostActions;
     Online::PlayerProfileEditor *m_profile;
     Online::ServerSettingsPage *m_servers;
+    KPageWidgetItem *m_serversItem;
 };
 }

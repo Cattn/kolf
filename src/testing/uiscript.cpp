@@ -185,6 +185,17 @@ bool UiScript::runStep(const QJsonObject &step, QString &error)
             if (window) menu->popup(window->mapToGlobal(QPoint(40, 40)));
         });
     }
+    if (step.contains(QStringLiteral("trigger"))) {
+        const auto text = step.value(QStringLiteral("trigger")).toString();
+        auto *menu = m_mainWindow ? m_mainWindow->findChild<QMenu *>(step.value(QStringLiteral("in")).toString()) : nullptr;
+        QAction *match = nullptr;
+        if (menu)
+            for (auto *action : menu->actions())
+                if (action->isVisible() && action->isEnabled() && action->text().remove(QLatin1Char('&')) == text) { match = action; break; }
+        if (!match) { error = QStringLiteral("no enabled menu item %1").arg(text); return false; }
+        menu->hide();
+        QTimer::singleShot(0, match, &QAction::trigger);
+    }
     if (step.contains(QStringLiteral("closeMenu"))) {
         auto *menu = m_mainWindow ? m_mainWindow->findChild<QMenu *>(step.value(QStringLiteral("closeMenu")).toString()) : nullptr;
         if (menu) menu->hide();
