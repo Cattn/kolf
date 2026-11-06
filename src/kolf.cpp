@@ -26,6 +26,9 @@
 #include "online/onlinewidget.h"
 #include "scoreboard.h"
 #include "session/sessioncontroller.h"
+#ifdef KOLF_TEST_AUTOMATION
+#include "testing/onlineautomation.h"
+#endif
 
 #include <KGameHighScoreDialog>
 #include <KGameStandardAction>
@@ -253,10 +256,8 @@ void KolfWindow::setupActions()
 	setupGUI();
 }
 
-void KolfWindow::showOnline()
+void KolfWindow::ensureOnlineWidget()
 {
-	if (onlineModeActive)
-		return;
 	if (!onlineWidget) {
 		onlineWidget = new Kolf::Online::OnlineWidget(applicationStack);
 		applicationStack->addWidget(onlineWidget);
@@ -268,6 +269,13 @@ void KolfWindow::showOnline()
 				statusBar()->showMessage(status);
 		});
 	}
+}
+
+void KolfWindow::showOnline()
+{
+	if (onlineModeActive)
+		return;
+	ensureOnlineWidget();
 	onlineModeActive = true;
 	offlineHoleItems = holeAction->items();
 	offlineHoleIndex = holeAction->currentItem();
@@ -300,8 +308,11 @@ void KolfWindow::showOnline()
 		game->pause();
 	applicationStack->setCurrentWidget(onlineWidget);
 	onlineWidget->setFocus();
-	if (qEnvironmentVariableIsEmpty("KOLF_ONLINE_TEST_CONFIG"))
-		onlineWidget->enterOnline();
+#ifdef KOLF_TEST_AUTOMATION
+	if (onlineAutomation)
+		return;
+#endif
+	onlineWidget->enterOnline();
 }
 
 void KolfWindow::leaveOnline()
@@ -348,8 +359,13 @@ void KolfWindow::leaveOnline()
 	statusBar()->clearMessage();
 }
 
-void KolfWindow::startOnlineMatch(const QJsonObject &config)
+void KolfWindow::startOnlineMatch(const QJsonObject &matchConfig)
 {
+#ifdef KOLF_TEST_AUTOMATION
+	const QJsonObject config = onlineAutomation ? onlineAutomation->sessionConfig(matchConfig) : matchConfig;
+#else
+	const QJsonObject &config = matchConfig;
+#endif
 	finishOnlineMatch();
 	if (!onlineGamePage) {
 		onlineGamePage = new QWidget(applicationStack);
@@ -553,10 +569,7 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 		onlineMatchController->decideHostProposal(true);
 	});
 	connect(onlineMatchController, &Kolf::Session::SessionController::proposalUiChanged, this,
-		[this, isHost, localMemberId = config.value(QStringLiteral("localMemberId")).toString(),
-			uiLogDirectory = config.contains(QStringLiteral("scriptedShots"))
-				? config.value(QStringLiteral("logDirectory")).toString() : QString(),
-			lastUiSnapshot = QByteArray()](const QJsonObject &state) mutable {
+		[this, isHost, localMemberId = config.value(QStringLiteral("localMemberId")).toString()](const QJsonObject &state) {
 			const QSignalBlocker blocker(onlineAllowVoting);
 			const bool controlsEnabled = state.value(QStringLiteral("controlsEnabled")).toBool();
 			const bool votingEnabled = state.value(QStringLiteral("votingEnabled")).toBool();
@@ -583,33 +596,8 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 			onlineApproveButton->setEnabled(state.value(QStringLiteral("canDecide")).toBool());
 			onlineRejectButton->setEnabled(state.value(QStringLiteral("canDecide")).toBool());
 			onlineWithdrawButton->setEnabled(state.value(QStringLiteral("canWithdraw")).toBool());
-			const auto recordUi = [this, isHost, controlsEnabled, votingEnabled, hasProposal,
-				&lastUiSnapshot, &uiLogDirectory] {
-				if (uiLogDirectory.isEmpty()) return;
-				const auto *goMenu = goMenuAction(menuBar());
-				const QJsonObject snapshot{{QStringLiteral("role"), isHost ? QStringLiteral("host") : QStringLiteral("guest")},
-					{QStringLiteral("controlsEnabled"), controlsEnabled}, {QStringLiteral("votingEnabled"), votingEnabled},
-					{QStringLiteral("proposalActive"), hasProposal},
-					{QStringLiteral("hostOptionsVisible"), !onlineHostOptions->isHidden()},
-					{QStringLiteral("guestStatusVisible"), !onlineGuestStatusLabel->isHidden()},
-					{QStringLiteral("composerVisible"), !onlineProposalComposer->isHidden()},
-					{QStringLiteral("proposalTextVisible"), !onlineProposalLabel->isHidden()},
-					{QStringLiteral("voteRowVisible"), !onlineProposalVotes->isHidden()},
-					{QStringLiteral("approveVisible"), !onlineApproveButton->isHidden()},
-					{QStringLiteral("rejectVisible"), !onlineRejectButton->isHidden()},
-					{QStringLiteral("withdrawVisible"), !onlineWithdrawButton->isHidden()},
-					{QStringLiteral("resetMenuVisible"), resetHoleAction->isVisible()},
-					{QStringLiteral("goMenuActionVisible"), nextAction->isVisible()},
-					{QStringLiteral("goMenuVisible"), goMenu && goMenu->isVisible()}};
-				const auto encoded = QJsonDocument(snapshot).toJson(QJsonDocument::Compact);
-				if (encoded == lastUiSnapshot) return;
-				lastUiSnapshot = encoded;
-				QFile output(QDir(uiLogDirectory).filePath(QStringLiteral("ui-state.jsonl")));
-				if (output.open(QIODevice::WriteOnly | QIODevice::Append)) { output.write(encoded); output.write("\n"); }
-			};
 			if (onlineProposal.isEmpty()) {
 				onlineProposalLabel->setText(i18n("No active host proposal."));
-				recordUi();
 				return;
 			}
 			int yes = 0, no = 0;
@@ -633,7 +621,6 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 				.arg(yes).arg(no).arg(onlineProposal.value(QStringLiteral("memberCount")).toInt())
 				.arg(QLocale().toString(expires, QLocale::ShortFormat),
 					ownVote.isEmpty() ? i18n("You have not voted.") : i18n("Your vote: %1.", ownVote)));
-			recordUi();
 		});
 	connect(onlineMatchController, &Kolf::Session::SessionController::hostControlsChanged, this,
 		[this](bool enabled, bool canToggle, bool canReset, bool canUndo, bool canSkip) {
@@ -745,6 +732,10 @@ void KolfWindow::startOnlineMatch(const QJsonObject &config)
 	applicationStack->setCurrentWidget(onlineGamePage);
 	statusBar()->showMessage(i18n("Preparing the online match…"));
 	resize(qMax(width(), 850), qMax(height(), 700));
+#ifdef KOLF_TEST_AUTOMATION
+	if (onlineAutomation)
+		onlineAutomation->attach(onlineMatchController, config);
+#endif
 }
 
 void KolfWindow::finishOnlineMatch()
@@ -788,11 +779,32 @@ void KolfWindow::updateOnlineHazardActions(bool available)
 	onlineRehitButton->setEnabled(available);
 }
 
+#ifdef KOLF_TEST_AUTOMATION
 void KolfWindow::startOnlineAutomation(const QJsonObject &config)
 {
+	ensureOnlineWidget();
+	onlineAutomation = new Kolf::Testing::OnlineAutomation(config, onlineWidget,
+		[this] { return onlineUiSnapshot(); }, this);
 	showOnline();
-	onlineWidget->startAutomation(config);
+	onlineAutomation->start();
 }
+
+QJsonObject KolfWindow::onlineUiSnapshot() const
+{
+	const auto *goMenu = goMenuAction(menuBar());
+	return QJsonObject{{QStringLiteral("hostOptionsVisible"), !onlineHostOptions->isHidden()},
+		{QStringLiteral("guestStatusVisible"), !onlineGuestStatusLabel->isHidden()},
+		{QStringLiteral("composerVisible"), !onlineProposalComposer->isHidden()},
+		{QStringLiteral("proposalTextVisible"), !onlineProposalLabel->isHidden()},
+		{QStringLiteral("voteRowVisible"), !onlineProposalVotes->isHidden()},
+		{QStringLiteral("approveVisible"), !onlineApproveButton->isHidden()},
+		{QStringLiteral("rejectVisible"), !onlineRejectButton->isHidden()},
+		{QStringLiteral("withdrawVisible"), !onlineWithdrawButton->isHidden()},
+		{QStringLiteral("resetMenuVisible"), resetHoleAction->isVisible()},
+		{QStringLiteral("goMenuActionVisible"), nextAction->isVisible()},
+		{QStringLiteral("goMenuVisible"), goMenu && goMenu->isVisible()}};
+}
+#endif
 
 bool KolfWindow::queryClose()
 {

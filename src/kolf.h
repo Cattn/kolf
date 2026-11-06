@@ -45,6 +45,7 @@ class Editor;
 class ScoreBoard;
 namespace Kolf::Online { class OnlineWidget; }
 namespace Kolf::Session { class SessionController; }
+namespace Kolf::Testing { class OnlineAutomation; }
 
 class KolfWindow : public KXmlGuiWindow
 {
@@ -55,7 +56,9 @@ public:
 	~KolfWindow() override;
 
 	void openUrl(const QUrl &url);
+#ifdef KOLF_TEST_AUTOMATION
 	void startOnlineAutomation(const QJsonObject &config);
+#endif
 
 public Q_SLOTS:
 	void closeGame();
@@ -69,6 +72,7 @@ protected Q_SLOTS:
 	void loadGame();
 	void tutorial();
 	void showOnline();
+	void ensureOnlineWidget();
 	void leaveOnline();
 	void startOnlineMatch(const QJsonObject &config);
 	void finishOnlineMatch();
@@ -184,6 +188,10 @@ private:
 	QPushButton *onlineRehitButton = nullptr;
 	QAction *onlineResyncAction = nullptr;
 	Kolf::Session::SessionController *onlineMatchController = nullptr;
+#ifdef KOLF_TEST_AUTOMATION
+	QJsonObject onlineUiSnapshot() const;
+	Kolf::Testing::OnlineAutomation *onlineAutomation = nullptr;
+#endif
 	QHash<QAction *, bool> offlineActionStates;
 	QStringList offlineHoleItems;
 	int offlineHoleIndex = -1;

@@ -231,29 +231,7 @@ void SessionController::receive(const QJsonObject &message) {
         if (m[QStringLiteral("commandId")].toString() == m_hostTogglePending) m_hostTogglePending.clear();
         Q_EMIT noticeChanged(m_hostControlsEnabled ? tr("Host controls enabled.") : tr("Host controls disabled."));
         refresh();
-        if (m_role == Role::Authority && m_hostControlsEnabled && !m_scriptedHostResetDone
-            && m_config[QStringLiteral("scriptedHostResetTurn")].toInt() == m_turn && m_ready) {
-            m_scriptedHostResetDone = true;
-            resetOnlineHole();
-        }
-        if (m_role == Role::Authority && m_hostControlsEnabled && !m_scriptedHostUndoDone
-            && m_config[QStringLiteral("scriptedHostUndoTurn")].toInt() == m_turn && m_ready) {
-            m_scriptedHostUndoDone = true;
-            undoOnlineShot();
-        }
-        if (m_role == Role::Authority && m_hostControlsEnabled && !m_scriptedHostSkipDone
-            && m_config[QStringLiteral("scriptedHostSkipTurn")].toInt() == m_turn && m_ready) {
-            m_scriptedHostSkipDone = true;
-            skipOnlineHole();
-        }
-        const auto scriptedGo = m_config[QStringLiteral("scriptedHostGo")].toArray();
-        if (m_role == Role::Authority && m_hostControlsEnabled && m_ready && m_scriptedHostGoIndex < scriptedGo.size()) {
-            const auto move = scriptedGo[m_scriptedHostGoIndex].toObject();
-            if (move[QStringLiteral("turn")].toInt() == m_turn) {
-                ++m_scriptedHostGoIndex;
-                navigateOnline(move[QStringLiteral("action")].toString(), move[QStringLiteral("targetHole")].toInt());
-            }
-        }
+        Q_EMIT messageProcessed(type, m);
         return;
     }
     if (type == QLatin1String("AllowVotingChanged")) {
@@ -269,21 +247,7 @@ void SessionController::receive(const QJsonObject &message) {
         Q_EMIT noticeChanged(tr("%1 proposed %2.").arg(m[QStringLiteral("proposerName")].toString(),
             m[QStringLiteral("action")].toString()));
         refresh();
-        const auto scripted = m_config.value(QStringLiteral("scriptedHostProposal")).toObject();
-        if (!scripted.isEmpty() && scripted.contains(QStringLiteral("vote")) && !m_scriptedProposalVoted
-            && m_proposalCommandPending.isEmpty()
-            && scripted.value(QStringLiteral("turn")).toInt() == m_turn) {
-            m_scriptedProposalVoted = true;
-            voteHostProposal(scripted.value(QStringLiteral("vote")).toBool());
-        }
-        if (m_role == Role::Authority && !scripted.isEmpty() && !m_scriptedProposalDecided
-            && scripted.value(QStringLiteral("turn")).toInt() == m_turn
-            && scripted.value(QStringLiteral("action")) == m.value(QStringLiteral("action"))) {
-            m_scriptedProposalDecided = true;
-            QTimer::singleShot(400, this, [this, approve = scripted.value(QStringLiteral("approve")).toBool()] {
-                if (!m_hostProposal.isEmpty() && !m_interrupted) decideHostProposal(approve);
-            });
-        }
+        Q_EMIT messageProcessed(type, m);
         return;
     }
     if (type == QLatin1String("HostProposalClosed")) {
@@ -293,33 +257,13 @@ void SessionController::receive(const QJsonObject &message) {
             m_hostProposal = {};
         Q_EMIT noticeChanged(tr("Host proposal closed: %1.").arg(m[QStringLiteral("reason")].toString()));
         refresh();
-        const auto scripted = m_config.value(QStringLiteral("scriptedHostProposal")).toObject();
-        if (!scripted.isEmpty() && scripted.value(QStringLiteral("turn")).toInt() == m_turn
-            && m.value(QStringLiteral("reason")) == QLatin1String("rejected by host")
-            && ownsSlot(m_adapter->activeSlot()) && !m_scriptedTurns.contains(m_turn)) {
-            const auto shots = m_config.value(QStringLiteral("scriptedShots")).toArray();
-            if (m_turn <= shots.size()) {
-                m_scriptedTurns.insert(m_turn);
-                const auto shot = shots[m_turn - 1].toObject();
-                const int expectedTurn = m_turn;
-                QTimer::singleShot(150, this, [this, shot, expectedTurn] {
-                    if (m_turn == expectedTurn && m_ready)
-                        submit({shot[QStringLiteral("directionRadians")].toDouble(),
-                            shot[QStringLiteral("launchMagnitude")].toDouble(), shot[QStringLiteral("advanced")].toBool()});
-                });
-            }
-        }
+        Q_EMIT messageProcessed(type, m);
         return;
     }
     if (type == QLatin1String("HostProposalAccepted")) {
         if (m.value(QStringLiteral("commandId")) == m_proposalCommandPending) m_proposalCommandPending.clear();
         refresh();
-        const auto scripted = m_config.value(QStringLiteral("scriptedHostProposal")).toObject();
-        if (!m_hostProposal.isEmpty() && !m_scriptedProposalVoted && scripted.contains(QStringLiteral("vote"))
-            && scripted.value(QStringLiteral("turn")).toInt() == m_turn) {
-            m_scriptedProposalVoted = true;
-            voteHostProposal(scripted.value(QStringLiteral("vote")).toBool());
-        }
+        Q_EMIT messageProcessed(type, m);
         return;
     }
     if (type == QLatin1String("HostProposalRejected")) {
@@ -513,62 +457,7 @@ void SessionController::receive(const QJsonObject &message) {
                 }
             });
         }
-        // Development-only scripted canonical intents, read locally; never accepted as setup commands over the network.
-        const auto scriptedProposal = m_config.value(QStringLiteral("scriptedHostProposal")).toObject();
-        if (m_role == Role::Authority && !scriptedProposal.isEmpty() && m_turn == 1 && !m_hostControlsEnabled)
-            setHostControlsEnabled(true);
-        if (!scriptedProposal.isEmpty() && m_turn == scriptedProposal.value(QStringLiteral("turn")).toInt()) {
-            if (scriptedProposal.value(QStringLiteral("proposer")).toBool() && !m_scriptedProposalSent) {
-                m_scriptedProposalSent = true;
-                proposeHostAction(scriptedProposal.value(QStringLiteral("action")).toString(),
-                    scriptedProposal.value(QStringLiteral("targetHole")).toInt());
-            }
-            return;
-        }
-        if (m_role == Role::Authority && m_phase == QLatin1String("AwaitingShot")
-            && !m_scriptedHostResetDone && m_config[QStringLiteral("scriptedHostResetTurn")].toInt() == m_turn) {
-            if (m_hostControlsEnabled) { m_scriptedHostResetDone = true; resetOnlineHole(); }
-            else setHostControlsEnabled(true);
-            return;
-        }
-        if (m_role == Role::Authority && m_phase == QLatin1String("AwaitingShot")
-            && !m_scriptedHostUndoDone && m_config[QStringLiteral("scriptedHostUndoTurn")].toInt() == m_turn) {
-            if (m_hostControlsEnabled) { m_scriptedHostUndoDone = true; undoOnlineShot(); }
-            else setHostControlsEnabled(true);
-            return;
-        }
-        if (m_role == Role::Authority && m_phase == QLatin1String("AwaitingShot")
-            && !m_scriptedHostSkipDone && m_config[QStringLiteral("scriptedHostSkipTurn")].toInt() == m_turn) {
-            if (m_hostControlsEnabled) { m_scriptedHostSkipDone = true; skipOnlineHole(); }
-            else setHostControlsEnabled(true);
-            return;
-        }
-        const auto scriptedGo = m_config[QStringLiteral("scriptedHostGo")].toArray();
-        if (m_role == Role::Authority && m_phase == QLatin1String("AwaitingShot") && m_scriptedHostGoIndex < scriptedGo.size()) {
-            const auto move = scriptedGo[m_scriptedHostGoIndex].toObject();
-            if (move[QStringLiteral("turn")].toInt() == m_turn) {
-                if (m_hostControlsEnabled) {
-                    ++m_scriptedHostGoIndex;
-                    navigateOnline(move[QStringLiteral("action")].toString(), move[QStringLiteral("targetHole")].toInt());
-                } else setHostControlsEnabled(true);
-                return;
-            }
-        }
-        if (m_phase == QLatin1String("AwaitingShot") && ownsSlot(m_adapter->activeSlot()) && !m_scriptedTurns.contains(m_turn)) {
-            const auto shots = m_config[QStringLiteral("scriptedShots")].toArray();
-            if (m_turn <= shots.size()) {
-                m_scriptedTurns.insert(m_turn); const auto shot = shots[m_turn - 1].toObject();
-                const int expectedTurn = m_turn;
-                QTimer::singleShot(150, this, [this, shot, expectedTurn] {
-                    if (m_turn == expectedTurn) submit({shot[QStringLiteral("directionRadians")].toDouble(), shot[QStringLiteral("launchMagnitude")].toDouble(), shot[QStringLiteral("advanced")].toBool()});
-                });
-            }
-        }
-        if (m_phase == QLatin1String("AwaitingHazardChoice") && ownsSlot(m_choiceSlot) && m_config.contains(QStringLiteral("scriptedHazardAction"))) {
-            send(QStringLiteral("ChooseHazardAction"), {{QStringLiteral("choiceId"), m_choiceId},
-                {QStringLiteral("stateRevision"), m_revision}, {QStringLiteral("syncId"), m_syncId},
-                {QStringLiteral("action"), m_config[QStringLiteral("scriptedHazardAction")]}});
-        }
+        Q_EMIT messageProcessed(type, m);
         if (m_phase == QLatin1String("Finished") && m_config[QStringLiteral("exitWhenFinished")].toBool()) QTimer::singleShot(700, qApp, &QApplication::quit);
         return;
     }
@@ -677,6 +566,8 @@ void SessionController::chooseHazardAction(const QString &action)
         {QStringLiteral("action"), action}});
 }
 
+int SessionController::activeSlot() const { return m_adapter ? m_adapter->activeSlot() : -1; }
+void SessionController::submitShot(const ShotIntent &intent) { submit(intent); }
 void SessionController::chooseDrop() { chooseHazardAction(QStringLiteral("drop")); }
 void SessionController::chooseRehit() { chooseHazardAction(QStringLiteral("rehit")); }
 

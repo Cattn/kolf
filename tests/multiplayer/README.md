@@ -43,6 +43,19 @@ online window or test-only UI path. During a match, the main window owns the
 normal game area, `ScoreBoard`, settings actions, status bar, and contextual
 hazard controls; the online match controller contains no widgets.
 
+Scripted runs are driven by `Kolf::Testing::OnlineAutomation`
+(`src/testing/onlineautomation.*`). When `KOLF_ONLINE_TEST_CONFIG` names a
+config file, it creates or joins the lobby, adds players, readies, starts,
+plays the scripted shots and host actions, and writes `results.json` and
+`ui-state.jsonl`. It drives only the public slots and signals of
+`OnlineCoordinator`, `OnlineWidget`, and `SessionController`; production
+classes contain no scripted behaviour. The driver is built when the CMake
+option `KOLF_TEST_AUTOMATION` is `ON` (the default). Release builds can turn it
+off, which also removes the `KOLF_ONLINE_TEST_CONFIG` entry point.
+
+Agent shells may need the environment prelude in `.agents/skills/kde-craft`
+before these runs.
+
 The bounded scripted scenarios are:
 
 ```powershell

@@ -23,11 +23,17 @@ class OnlineWidget : public QWidget {
 public:
     explicit OnlineWidget(QWidget *parent = nullptr);
     ~OnlineWidget() override;
-    void startAutomation(const QJsonObject &config);
     void leaveOnline();
     void enterOnline();
     void changeServer();
     Net::NetworkClient *networkClient() { return m_coordinator.networkClient(); }
+    OnlineCoordinator &coordinator() { return m_coordinator; }
+    void setEndpointAddress(const QString &endpoint);
+    void setProfile(const QString &name, const QString &colorMode, const QString &customColor);
+    QString profileName() const;
+    QString profileColorMode() const;
+    QString profileCustomColor() const;
+    QString resultsText() const;
 
 Q_SIGNALS:
     void leaveRequested();
@@ -44,8 +50,6 @@ private:
     void savePreferences();
     void beginConnection();
     void setConnectionState(ConnectionState state, const QString &message = {});
-    void advanceAutomation(const QJsonObject &state);
-    void failAutomation(const QString &reason);
 
     OnlineCoordinator m_coordinator;
     QStackedWidget *m_pages;
@@ -76,14 +80,6 @@ private:
     QPushButton *m_removePlayer;
     QTextEdit *m_result;
     QJsonObject m_state;
-    QJsonObject m_automation;
-    QSet<QString> m_automationReturnedMatches;
-    int m_automationCompletedMatches = 0;
-    int m_automationAddedPlayers = 0;
-    bool m_automationCreateOrJoinSent = false;
-    bool m_automationMutationPending = false;
-    bool m_automationStartRequested = false;
-    bool m_automationCustomCourseSent = false;
     bool m_matchActive = false;
     bool m_rematchRequested = false;
     bool m_rematchReadySent = false;

@@ -29,6 +29,12 @@ target_include_directories(kolfprivate PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
 )
 
+option(KOLF_TEST_AUTOMATION "Build the scripted online test driver used by tests/multiplayer" ON)
+if(KOLF_TEST_AUTOMATION)
+    target_sources(kolfprivate PRIVATE testing/onlineautomation.cpp)
+    target_compile_definitions(kolfprivate PUBLIC KOLF_TEST_AUTOMATION)
+endif()
+
 target_sources(kolfprivate PRIVATE
     session/shotcommand.cpp
     session/onlineprotocol.cpp

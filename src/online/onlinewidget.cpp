@@ -358,39 +358,8 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         Q_EMIT statusChanged(reason);
     });
     connect(&m_coordinator, &OnlineCoordinator::matchPrepared, this, [this](const QJsonObject &config) {
-        auto sessionConfig = config;
-        if (!m_automation.isEmpty()) {
-            sessionConfig[QStringLiteral("scriptedShots")] = m_automation.value(QStringLiteral("scriptedShots"));
-            if (m_automation.contains(QStringLiteral("scriptedHazardAction")))
-                sessionConfig[QStringLiteral("scriptedHazardAction")] = m_automation.value(QStringLiteral("scriptedHazardAction"));
-            if (m_automation.contains(QStringLiteral("scriptedHostResetTurn")))
-                sessionConfig[QStringLiteral("scriptedHostResetTurn")] = m_automation.value(QStringLiteral("scriptedHostResetTurn"));
-            if (m_automation.contains(QStringLiteral("scriptedHostUndoTurn")))
-                sessionConfig[QStringLiteral("scriptedHostUndoTurn")] = m_automation.value(QStringLiteral("scriptedHostUndoTurn"));
-            if (m_automation.contains(QStringLiteral("scriptedHostSkipTurn")))
-                sessionConfig[QStringLiteral("scriptedHostSkipTurn")] = m_automation.value(QStringLiteral("scriptedHostSkipTurn"));
-            if (m_automation.contains(QStringLiteral("scriptedHostGo")))
-                sessionConfig[QStringLiteral("scriptedHostGo")] = m_automation.value(QStringLiteral("scriptedHostGo"));
-            if (m_automation.contains(QStringLiteral("scriptedHostProposal")))
-                sessionConfig[QStringLiteral("scriptedHostProposal")] = m_automation.value(QStringLiteral("scriptedHostProposal"));
-            if (m_automation.value(QStringLiteral("scriptedHostCombined")).toBool()
-                && m_automationCompletedMatches == 0) {
-                sessionConfig[QStringLiteral("scriptedHostResetTurn")] = 3;
-                sessionConfig[QStringLiteral("scriptedHostUndoTurn")] = 6;
-                sessionConfig[QStringLiteral("scriptedHostSkipTurn")] = 12;
-                sessionConfig[QStringLiteral("scriptedHostGo")] = QJsonArray{
-                    QJsonObject{{QStringLiteral("turn"), 8}, {QStringLiteral("action"), QStringLiteral("goLast")}},
-                    QJsonObject{{QStringLiteral("turn"), 9}, {QStringLiteral("action"), QStringLiteral("goFirst")}}};
-            }
-            sessionConfig[QStringLiteral("capture")] = true;
-            sessionConfig[QStringLiteral("verifySnapshots")] = true;
-            sessionConfig[QStringLiteral("logFrames")] = true;
-            sessionConfig[QStringLiteral("exitWhenFinished")] = false;
-            sessionConfig[QStringLiteral("logDirectory")] = QDir(m_automation.value(QStringLiteral("logDirectory")).toString())
-                .filePath(config.value(QStringLiteral("matchId")).toString());
-        }
         m_matchActive = true;
-        Q_EMIT matchRequested(sessionConfig);
+        Q_EMIT matchRequested(config);
     });
     connect(&m_coordinator, &OnlineCoordinator::statusChanged, this, [this](const QString &status) {
         m_lobbyStatus->setText(status);
@@ -405,7 +374,6 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
         m_entryStatus->setText(reason); m_lobbyStatus->setText(reason);
         Q_EMIT statusChanged(reason);
-        if (!m_automation.isEmpty()) failAutomation(reason);
     });
 }
 
@@ -415,7 +383,6 @@ OnlineWidget::~OnlineWidget()
 
 void OnlineWidget::enterOnline()
 {
-    if (!m_automation.isEmpty()) return;
     m_pages->setCurrentIndex(0);
     setConnectionState(m_disconnectRequested ? ConnectionState::Disconnecting : ConnectionState::Disconnected,
         m_endpoint->text().trimmed().isEmpty() ? i18n("Choose a private server to play online.") : QString());
@@ -485,118 +452,20 @@ void OnlineWidget::beginConnection()
     m_coordinator.connectToService(m_endpoint->text());
 }
 
-void OnlineWidget::startAutomation(const QJsonObject &config)
+void OnlineWidget::setEndpointAddress(const QString &endpoint)
 {
-    const auto role = config.value(QStringLiteral("role")).toString();
-    const auto endpoint = config.value(QStringLiteral("endpoint")).toString();
-    const auto joinCodeFile = config.value(QStringLiteral("joinCodeFile")).toString();
-    const auto logDirectory = config.value(QStringLiteral("logDirectory")).toString();
-    const int expectedMembers = config.value(QStringLiteral("expectedMembers")).toInt();
-    const int expectedPlayers = config.value(QStringLiteral("expectedPlayers")).toInt();
-    const int matches = config.value(QStringLiteral("matches")).toInt();
-    if ((role != QLatin1String("owner") && role != QLatin1String("joiner")) || endpoint.isEmpty()
-        || joinCodeFile.isEmpty() || logDirectory.isEmpty() || expectedMembers < 2 || expectedMembers > 8
-        || expectedPlayers < expectedMembers || expectedPlayers > 8
-        || matches < 1 || matches > 2 || !config.value(QStringLiteral("scriptedShots")).isArray()) {
-        failAutomation(QStringLiteral("Invalid online automation configuration."));
-        return;
-    }
-    m_automation = config;
     m_endpoint->setText(endpoint);
-    m_profile->setProfile(config.value(QStringLiteral("displayName")).toString(), QStringLiteral("custom"),
-        config.value(QStringLiteral("color")).toString());
-    QDir().mkpath(logDirectory);
-    m_coordinator.connectToService(endpoint);
 }
 
-void OnlineWidget::advanceAutomation(const QJsonObject &state)
+void OnlineWidget::setProfile(const QString &name, const QString &colorMode, const QString &customColor)
 {
-    if (m_automation.isEmpty()) return;
-    m_automationMutationPending = false;
-    const auto role = m_automation.value(QStringLiteral("role")).toString();
-    const auto phase = state.value(QStringLiteral("phase")).toString();
-    const auto members = state.value(QStringLiteral("members")).toArray();
-    const auto players = state.value(QStringLiteral("players")).toArray();
-    if (role == QLatin1String("owner")) {
-        QFile joinCode(m_automation.value(QStringLiteral("joinCodeFile")).toString());
-        if (joinCode.open(QIODevice::WriteOnly | QIODevice::Truncate))
-            joinCode.write(state.value(QStringLiteral("joinCode")).toString().toUtf8());
-    }
-    if (phase == QLatin1String("Results")) {
-        m_automationStartRequested = false;
-        const auto matchId = state.value(QStringLiteral("latestResult")).toObject().value(QStringLiteral("matchId")).toString();
-        if (!matchId.isEmpty() && !m_automationReturnedMatches.contains(matchId)) {
-            m_automationReturnedMatches.insert(matchId);
-            ++m_automationCompletedMatches;
-            m_coordinator.returnToLobby();
-        }
-        return;
-    }
-    if (phase != QLatin1String("Open")) return;
-    if (m_automationCompletedMatches >= m_automation.value(QStringLiteral("matches")).toInt()) {
-        QTimer::singleShot(250, qApp, &QApplication::quit);
-        return;
-    }
-    if (members.size() != m_automation.value(QStringLiteral("expectedMembers")).toInt()) return;
-
-    const auto customCourse = m_automation.value(QStringLiteral("customCourse")).toString();
-    if (!customCourse.isEmpty()) {
-        const auto selectedId = state.value(QStringLiteral("selectedCourseId")).toString();
-        if (!selectedId.startsWith(QStringLiteral("upload_"))) {
-            if (role == QLatin1String("owner") && !m_automationCustomCourseSent) {
-                m_automationCustomCourseSent = true;
-                m_coordinator.uploadCourse(customCourse);
-            }
-            return;
-        }
-    }
-
-    int localPlayers = 0;
-    bool localReady = false;
-    bool allReady = true;
-    for (const auto &value : members) {
-        const auto member = value.toObject();
-        const bool ready = member.value(QStringLiteral("ready")).toBool();
-        allReady = allReady && ready;
-        if (member.value(QStringLiteral("memberId")).toString() == m_coordinator.memberId()) localReady = ready;
-    }
-    for (const auto &value : players)
-        if (value.toObject().value(QStringLiteral("ownerMemberId")).toString() == m_coordinator.memberId()) ++localPlayers;
-
-    const auto additionalPlayers = m_automation.value(QStringLiteral("additionalPlayers")).toArray();
-    if (m_automationAddedPlayers < additionalPlayers.size()) {
-        if (localPlayers == m_automationAddedPlayers + 1 && !m_automationMutationPending) {
-            const auto player = additionalPlayers.at(m_automationAddedPlayers).toObject();
-            ++m_automationAddedPlayers;
-            m_automationMutationPending = true;
-            m_coordinator.addPlayer(player.value(QStringLiteral("displayName")).toString(), QStringLiteral("custom"),
-                player.value(QStringLiteral("color")).toString());
-        }
-        return;
-    }
-    if (players.size() != m_automation.value(QStringLiteral("expectedPlayers")).toInt()) return;
-    if (!localReady && !m_automationMutationPending) {
-        m_automationMutationPending = true;
-        m_coordinator.setReady(true);
-        return;
-    }
-    if (role == QLatin1String("owner") && allReady && !m_automationMutationPending && !m_automationStartRequested) {
-        m_automationMutationPending = true;
-        m_automationStartRequested = true;
-        m_coordinator.startMatch();
-    }
+    m_profile->setProfile(name, colorMode, customColor);
 }
 
-void OnlineWidget::failAutomation(const QString &reason)
-{
-    qCritical() << reason;
-    if (!m_automation.isEmpty()) {
-        QFile error(QDir(m_automation.value(QStringLiteral("logDirectory")).toString())
-            .filePath(QStringLiteral("automation-error.txt")));
-        if (error.open(QIODevice::WriteOnly | QIODevice::Truncate)) error.write(reason.toUtf8());
-    }
-    QTimer::singleShot(0, qApp, [] { QCoreApplication::exit(3); });
-}
+QString OnlineWidget::profileName() const { return m_profile->playerName(); }
+QString OnlineWidget::profileColorMode() const { return m_profile->colorMode(); }
+QString OnlineWidget::profileCustomColor() const { return m_profile->customColor(); }
+QString OnlineWidget::resultsText() const { return m_result->toPlainText(); }
 
 void OnlineWidget::showEntry()
 {
@@ -617,24 +486,6 @@ void OnlineWidget::showEntry()
     m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
     m_entryStatus->setText(i18n("Connected. Create a lobby or enter a friend's join code."));
     m_pages->setCurrentIndex(1);
-    if (m_automation.isEmpty() || m_automationCreateOrJoinSent) return;
-    m_automationCreateOrJoinSent = true;
-    if (m_automation.value(QStringLiteral("role")) == QLatin1String("owner")) {
-        m_coordinator.createLobby(m_profile->playerName(), m_profile->colorMode(), m_profile->customColor(),
-            m_automation.value(QStringLiteral("courseId")).toString());
-        return;
-    }
-    auto *timer = new QTimer(this);
-    timer->setInterval(100);
-    connect(timer, &QTimer::timeout, this, [this, timer] {
-        QFile file(m_automation.value(QStringLiteral("joinCodeFile")).toString());
-        if (!file.open(QIODevice::ReadOnly)) return;
-        const auto joinCode = QString::fromUtf8(file.readAll()).trimmed();
-        if (joinCode.isEmpty()) return;
-        timer->stop(); timer->deleteLater();
-        m_coordinator.joinLobby(joinCode, m_profile->playerName(), m_profile->colorMode(), m_profile->customColor());
-    });
-    timer->start();
 }
 
 void OnlineWidget::showLobby(const QJsonObject &state)
@@ -647,7 +498,6 @@ void OnlineWidget::showLobby(const QJsonObject &state)
     m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
     if (state.value(QStringLiteral("phase")) == QLatin1String("Results")) {
         showResults(state);
-        advanceAutomation(state);
         return;
     }
     if (!m_matchActive) m_pages->setCurrentIndex(2);
@@ -737,7 +587,6 @@ void OnlineWidget::showLobby(const QJsonObject &state)
         ? i18n("At least two players and two members are required. Add a player or invite another member.")
         : allReady ? i18n("All members are ready. The owner can start.")
         : i18n("Ready every member on this revision, then the owner can start."));
-    advanceAutomation(state);
     if (open) {
         if (!state.value(QStringLiteral("rematchRequestedMemberIds")).toArray().isEmpty())
             announceRematch(state);
@@ -850,14 +699,6 @@ void OnlineWidget::showResults(const QJsonObject &state)
                 worst.value(QStringLiteral("hole")).toInt(), worst.value(QStringLiteral("strokes")).toInt()));
     }
     m_result->setHtml(html + QStringLiteral("</ul>"));
-    if (!m_automation.isEmpty()) {
-        const auto matchId = result.value(QStringLiteral("matchId")).toString();
-        QFile evidence(QDir(m_automation.value(QStringLiteral("logDirectory")).toString())
-            .filePath(matchId + QStringLiteral("/results.json")));
-        if (evidence.open(QIODevice::WriteOnly | QIODevice::Truncate))
-            evidence.write(QJsonDocument(QJsonObject{{QStringLiteral("result"), result},
-                {QStringLiteral("visibleText"), m_result->toPlainText()}}).toJson());
-    }
     if (state.value(QStringLiteral("rematchRequestedMemberIds")).toArray().isEmpty())
         Q_EMIT statusChanged(completed ? i18n("Match complete. Choose Rematch or Return to Lobby.")
             : i18n("Match interrupted. Review the partial Results."));

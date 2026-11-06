@@ -97,6 +97,7 @@ int main(int argc, char **argv)
 
     const auto protocolTests = qEnvironmentVariable("KOLF_ONLINE_PROTOCOL_TESTS");
     if (!protocolTests.isEmpty()) return Kolf::Session::runOnlineProtocolFixtures(protocolTests);
+#ifdef KOLF_TEST_AUTOMATION
     const auto onlineTestConfig = qEnvironmentVariable("KOLF_ONLINE_TEST_CONFIG");
     if (!onlineTestConfig.isEmpty()) {
         QFile config(onlineTestConfig);
@@ -110,6 +111,7 @@ int main(int argc, char **argv)
         window.show();
         return app.exec();
     }
+#endif
 
 	// I've actually added this for my web site uploaded courses display
 	if (parser.isSet(QStringLiteral("course-info")))

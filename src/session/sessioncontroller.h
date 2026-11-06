@@ -20,8 +20,22 @@ public:
     explicit SessionController(const QJsonObject &config, Net::NetworkClient *network, QWidget *gameHost, QObject *parent = nullptr);
     ~SessionController() override;
 
+    bool isAuthority() const { return m_role == Role::Authority; }
+    bool isReady() const { return m_ready; }
+    bool isInterrupted() const { return m_interrupted; }
+    bool hostControlsEnabled() const { return m_hostControlsEnabled; }
+    bool hasHostProposal() const { return !m_hostProposal.isEmpty(); }
+    bool proposalRequestPending() const { return !m_proposalCommandPending.isEmpty(); }
+    int turn() const { return m_turn; }
+    const QString &phase() const { return m_phase; }
+    int activeSlot() const;
+    int choiceSlot() const { return m_choiceSlot; }
+    bool ownsSlot(int slot) const;
+
 public Q_SLOTS:
     void requestResync();
+    void submitShot(const Kolf::Session::ShotIntent &intent);
+    void chooseHazardAction(const QString &action);
     void chooseDrop();
     void chooseRehit();
     void setHostControlsEnabled(bool enabled);
@@ -49,6 +63,7 @@ Q_SIGNALS:
     void hostControlsChanged(bool enabled, bool canToggle, bool canReset, bool canUndo, bool canSkip);
     void hostNavigationChanged(int currentHole, int highestHole, bool canNavigate);
     void proposalUiChanged(const QJsonObject &state);
+    void messageProcessed(const QString &type, const QJsonObject &message);
 
 private:
     void receive(const QJsonObject &message);
@@ -62,9 +77,7 @@ private:
     void send(const QString &type, QJsonObject payload = {}, bool visual = false);
     QJsonObject unwrap(const QJsonObject &message) const;
     QJsonObject state() const;
-    bool ownsSlot(int slot) const;
     QString playerIdForSlot(int slot) const;
-    void chooseHazardAction(const QString &action);
     void sendAim();
     void showRemoteAim(const QJsonObject &aim);
     void clearRemoteAim();
@@ -102,13 +115,6 @@ private:
     QString m_hostSkipPending;
     QString m_hostGoPending;
     bool m_testFaultScheduled = false;
-    bool m_scriptedHostResetDone = false;
-    bool m_scriptedHostUndoDone = false;
-    bool m_scriptedHostSkipDone = false;
-    bool m_scriptedProposalSent = false;
-    bool m_scriptedProposalDecided = false;
-    bool m_scriptedProposalVoted = false;
-    int m_scriptedHostGoIndex = 0;
     QJsonObject m_pendingMessage;
     QJsonObject m_lastAim;
     QGraphicsPathItem *m_remoteAim = nullptr;
@@ -116,7 +122,6 @@ private:
     qint64 m_frameBytes = 0;
     qint64 m_frameCount = 0;
     QHash<QString, QJsonObject> m_admitted;
-    QSet<int> m_scriptedTurns;
     QSet<QString> m_localPlayerIds;
     QJsonArray m_pars;
     bool m_useMouse = true;
