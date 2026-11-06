@@ -37,6 +37,7 @@ GameHud::GameHud(QWidget *parent)
     outer->setSpacing(4);
 
     auto *row = new QHBoxLayout;
+    m_header = row;
     m_hole = new QLabel(this);
     m_hole->setObjectName(QStringLiteral("hudHole"));
     QFont strong = m_hole->font();
@@ -63,8 +64,7 @@ GameHud::GameHud(QWidget *parent)
     hintCard->setAutoFillBackground(true);
     hintCard->setBackgroundRole(QPalette::AlternateBase);
     m_hintRow = hintCard;
-    m_hintRow->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-    m_hintRow->setMaximumWidth(680);
+    m_hintRow->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     m_hintRow->setObjectName(QStringLiteral("hudHint"));
     auto *hintLayout = new QHBoxLayout(m_hintRow);
     hintLayout->setContentsMargins(8, 4, 8, 4);
@@ -81,7 +81,7 @@ GameHud::GameHud(QWidget *parent)
     m_dismissHint->setToolTip(i18n("Hide this tip"));
     m_dismissHint->setAccessibleName(i18n("Hide this tip"));
     hintLayout->addWidget(m_dismissHint);
-    outer->addWidget(m_hintRow, 0, Qt::AlignLeft);
+    outer->addWidget(m_hintRow);
     m_hintRow->hide();
     connect(m_dismissHint, &QToolButton::clicked, this, [this] {
         clearHint();
@@ -126,13 +126,15 @@ void GameHud::setEditing(int hole, int holes)
 void GameHud::setHint(const QString &hint)
 {
     m_hint->setText(hint);
-    const int cardWidth = qMin(680, m_hint->fontMetrics().horizontalAdvance(hint) + 80);
-    m_hintRow->setFixedWidth(cardWidth);
-    m_hintRow->setMinimumHeight(m_hintRow->layout()->totalHeightForWidth(cardWidth));
     m_hintRow->show();
 }
 
 void GameHud::clearHint()
 {
     m_hintRow->hide();
+}
+
+void GameHud::addControl(QWidget *widget)
+{
+    m_header->addWidget(widget);
 }

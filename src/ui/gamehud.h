@@ -5,6 +5,7 @@
 #include <QFrame>
 
 class QLabel;
+class QHBoxLayout;
 class QToolButton;
 
 namespace Kolf::Ui {
@@ -18,11 +19,13 @@ public:
     void setEditing(int hole, int holes);
     void setHint(const QString &hint);
     void clearHint();
+    void addControl(QWidget *widget);
 
 Q_SIGNALS:
     void hintDismissed();
 
 private:
+    QHBoxLayout *m_header;
     QLabel *m_hole;
     QLabel *m_swatch;
     QLabel *m_turn;

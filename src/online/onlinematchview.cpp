@@ -65,16 +65,14 @@ OnlineMatchView::OnlineMatchView(QWidget *parent)
     m_matchButton->setAccessibleName(i18n("Match actions"));
     m_matchButton->setMenu(m_matchMenu);
     m_matchButton->setPopupMode(QToolButton::InstantPopup);
-    auto *header = new QHBoxLayout;
     m_hud = new Kolf::Ui::GameHud(this);
     connect(m_hud, &Kolf::Ui::GameHud::hintDismissed, this, [] {
         KConfigGroup settings(KSharedConfig::openConfig(), QStringLiteral("Settings"));
         settings.writeEntry("firstShotHintShown", true);
         settings.sync();
     });
-    header->addWidget(m_hud, 1);
-    header->addWidget(m_matchButton, 0, Qt::AlignTop);
-    m_layout->insertLayout(0, header);
+    m_hud->addControl(m_matchButton);
+    m_layout->insertWidget(0, m_hud);
     m_canvas = new QWidget(this);
     m_canvasLayout = new QGridLayout(m_canvas);
     m_canvasLayout->setContentsMargins(0, 0, 0, 0);
