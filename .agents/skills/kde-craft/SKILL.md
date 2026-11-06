@@ -86,6 +86,16 @@ node tests/multiplayer/run-online-native.ts host-combined
 
 The runner prints one JSON line with `"outcome":"passed"` and the run directory under `server/local-session/`. Scenarios include `two-rematch`, `four-player`, `four-player-hazard`, `custom-course`, `host-combined`, `host-proposal-approve`, and `host-proposal-reject`. Each can take a few minutes; run long batches in the background.
 
+## Scripted UI checks and screenshots
+
+Prefer these over asking the user to look. After a build:
+
+```powershell
+.\tests\ui\run-ui-script.ps1 -Script tests\ui\home-flow.json -PythonPath $craftPython
+```
+
+The runner applies the environment fixes above itself. Screenshots and `ui-script.jsonl` are written to `tests/ui/output/<script>/`; view the PNGs with the Read tool. Step syntax is in `tests/ui/README.md`. Exit code 0 means every step and expectation passed.
+
 ### `scripts/build-windows-craft.ps1`
 
 That helper is for first-time setup of a Craft tree: it runs `craft -i libs/qt6/qtwebsockets` and patches and rebuilds `libkdegames`. Installing is otherwise forbidden by this skill, so run it **only** when the user approves (for example on a new or reset Craft root). For everyday builds, use `craft --compile --install --qmerge kolf`.

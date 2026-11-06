@@ -31,7 +31,11 @@
 #include <QUrl>
 
 #include <KAboutData>
+#include <KConfig>
 #include <KCrash>
+#ifdef KOLF_TEST_AUTOMATION
+#include "testing/uiscript.h"
+#endif
 #include <KLocalizedString>
 #define HAVE_KICONTHEME __has_include(<KIconTheme>)
 #if HAVE_KICONTHEME
@@ -50,6 +54,10 @@ int main(int argc, char **argv)
     KIconTheme::initTheme();
 #endif
     QApplication app(argc, argv);
+#ifdef KOLF_TEST_AUTOMATION
+    if (!qEnvironmentVariableIsEmpty("KOLF_ONLINE_TEST_CONFIG") || !qEnvironmentVariableIsEmpty("KOLF_UI_TEST_SCRIPT"))
+        KConfig::setMainConfigName(qEnvironmentVariable("KOLF_TEST_CONFIG_NAME", QStringLiteral("kolf-testrc")));
+#endif
 #if HAVE_STYLE_MANAGER
     KStyleManager::initStyle();
 #else // !HAVE_STYLE_MANAGER
@@ -148,6 +156,11 @@ int main(int argc, char **argv)
 		top->closeGame();
 
 	top->show();
+#ifdef KOLF_TEST_AUTOMATION
+	const auto uiTestScript = qEnvironmentVariable("KOLF_UI_TEST_SCRIPT");
+	if (!uiTestScript.isEmpty())
+		(new Kolf::Testing::UiScript(uiTestScript, top, top))->start();
+#endif
 
 	return app.exec();
 }

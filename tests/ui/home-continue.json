@@ -1,0 +1,17 @@
+{
+  "description": "Home screen: Continue appears for the last saved game and resumes it on the saved hole.",
+  "steps": [
+    { "wait": 1500 },
+    { "expectHidden": "homeContinue", "screenshot": "01-home-without-save.png" },
+    {
+      "writeFile": "continue.kolfgame",
+      "content": "[0 Saved Game]\nCompetition=false\nCourse={courses}/ReallyEasy\nCurrent Hole=3\nPlayers=2\n\n[1]\nColor=#0072b2\nName=Ada\nScores=2,3\n\n[2]\nColor=#e69f00\nName=Grace\nScores=3,2\n"
+    },
+    { "setConfig": { "group": "Settings", "key": "lastSavedGame", "value": "{output}/continue.kolfgame" } },
+    { "action": "mainmenu", "wait": 1500 },
+    { "expectVisible": "homeContinue", "screenshot": "02-home-with-continue.png" },
+    { "click": "homeContinue", "wait": 2500 },
+    { "expectHidden": "homeView", "screenshot": "03-continued-game.png" },
+    { "quit": true }
+  ]
+}

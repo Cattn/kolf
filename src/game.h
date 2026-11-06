@@ -321,6 +321,7 @@ Q_SIGNALS:
 	void shotIntentReady(const Kolf::Session::ShotIntent &intent);
 	void onlineSettlementRequested();
 	void holesDone();
+	void leaveRequested();
 	void newHole(int);
 	void parChanged(int, int);
 	void titleChanged(const QString &);

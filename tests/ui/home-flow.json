@@ -1,0 +1,24 @@
+{
+  "description": "Home screen: start a local game, return home with Esc, open the course editor.",
+  "steps": [
+    { "wait": 1500 },
+    { "expectVisible": "homeView", "screenshot": "01-home-default-size.png" },
+    { "resize": [1024, 720], "wait": 800 },
+    { "expectVisible": "homeEditor", "screenshot": "02-home-1024.png" },
+    { "click": "homePlay", "wait": 1200 },
+    { "screenshot": "03-new-game-dialog.png", "of": "modal" },
+    { "clickText": "OK", "wait": 2500 },
+    { "expectHidden": "homeView", "screenshot": "04-game.png" },
+    { "key": "Escape", "wait": 800 },
+    { "screenshot": "05-return-confirmation.png", "of": "modal" },
+    { "clickText": "Return to Main Menu", "wait": 1500 },
+    { "expectVisible": "homeView", "screenshot": "06-home-again.png" },
+    { "click": "homeOnline", "wait": 1000 },
+    { "expectHidden": "homeView", "screenshot": "06b-online.png" },
+    { "clickText": "Cancel", "in": "window", "wait": 1000 },
+    { "expectVisible": "homeView" },
+    { "click": "homeEditor", "wait": 2500 },
+    { "expectHidden": "homeView", "screenshot": "07-course-editor.png" },
+    { "quit": true }
+  ]
+}

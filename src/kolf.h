@@ -39,6 +39,7 @@ class ScoreBoard;
 namespace Kolf::Online { class OnlineMatchView; class OnlineWidget; }
 namespace Kolf::Session { class SessionController; }
 namespace Kolf::Testing { class OnlineAutomation; }
+namespace Kolf::Ui { class HomeView; }
 
 class KolfWindow : public KXmlGuiWindow
 {
@@ -62,9 +63,13 @@ protected:
 
 protected Q_SLOTS:
 	void startNewGame();
+	void launchGame(int firstHole);
 	void loadGame();
 	void tutorial();
 	void showOnline();
+	void editNewCourse();
+	void continueGame(const QString &savedGame);
+	void returnHome();
 	void ensureOnlineWidget();
 	void leaveOnline();
 	void startOnlineMatch(const QJsonObject &config);
@@ -155,6 +160,8 @@ private:
 	QString tempStatusBarText;
 	Kolf::Online::OnlineWidget *onlineWidget = nullptr;
 	Kolf::Online::OnlineMatchView *onlineMatchView = nullptr;
+	Kolf::Ui::HomeView *homeView = nullptr;
+	QAction *homeAction = nullptr;
 	QAction *onlineResyncAction = nullptr;
 	Kolf::Session::SessionController *onlineMatchController = nullptr;
 #ifdef KOLF_TEST_AUTOMATION

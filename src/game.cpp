@@ -487,6 +487,7 @@ KolfGame::KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const 
 	inPlay = false;
 	putting = false;
 	stroking = false;
+	finishStroking = false;
 	editing = false;
 	strict = false;
 	lastDelId = -1;
@@ -902,6 +903,10 @@ void KolfGame::keyPressEvent(QKeyEvent *e)
 			break;
 
 		case Qt::Key_Escape:
+			if (!putting && !stroking && !finishStroking && !isOnline()) {
+				Q_EMIT leaveRequested();
+				break;
+			}
 			putting = false;
 			stroking = false;
 			finishStroking = false;

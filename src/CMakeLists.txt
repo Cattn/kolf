@@ -31,7 +31,7 @@ target_include_directories(kolfprivate PRIVATE
 
 option(KOLF_TEST_AUTOMATION "Build the scripted online test driver used by tests/multiplayer" ON)
 if(KOLF_TEST_AUTOMATION)
-    target_sources(kolfprivate PRIVATE testing/onlineautomation.cpp)
+    target_sources(kolfprivate PRIVATE testing/onlineautomation.cpp testing/uiscript.cpp)
     target_compile_definitions(kolfprivate PUBLIC KOLF_TEST_AUTOMATION)
 endif()
 
@@ -44,6 +44,7 @@ target_sources(kolfprivate PRIVATE
     online/onlinematchview.cpp
     online/onlinewidget.cpp
     online/playerprofileeditor.cpp
+    ui/homeview.cpp
     net/networkclient.cpp
     replication/snapshot.cpp
     replication/presentationcontroller.cpp

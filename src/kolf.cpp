@@ -24,6 +24,7 @@
 #include "objects.h"
 #include "obstacles.h"
 #include "online/onlinematchview.h"
+#include "ui/homeview.h"
 #include "online/onlinewidget.h"
 #include "scoreboard.h"
 #include "session/sessioncontroller.h"
@@ -46,6 +47,7 @@
 #include <KToggleAction>
 
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QDir>
 #include <QFile>
 #include <QGridLayout>
@@ -101,6 +103,13 @@ KolfWindow::KolfWindow()
 	applicationStack->addWidget(dummy);
 	setCentralWidget(applicationStack);
 	layout = new QGridLayout(dummy);
+	homeView = new Kolf::Ui::HomeView(dummy);
+	homeView->hide();
+	connect(homeView, &Kolf::Ui::HomeView::playRequested, this, &KolfWindow::newGame);
+	connect(homeView, &Kolf::Ui::HomeView::onlineRequested, this, &KolfWindow::showOnline);
+	connect(homeView, &Kolf::Ui::HomeView::editorRequested, this, &KolfWindow::editNewCourse);
+	connect(homeView, &Kolf::Ui::HomeView::tutorialRequested, this, &KolfWindow::tutorial);
+	connect(homeView, &Kolf::Ui::HomeView::continueRequested, this, &KolfWindow::continueGame);
 
 	resize(420, 480);
 }
@@ -125,6 +134,10 @@ void KolfWindow::setupActions()
 		if (onlineMatchController) onlineMatchController->requestResync();
 	});
 	endAction = KGameStandardAction::end(this, &KolfWindow::closeGame, actionCollection());
+	homeAction = actionCollection()->addAction(QStringLiteral("mainmenu"));
+	homeAction->setIcon(QIcon::fromTheme(QStringLiteral("go-home")));
+	homeAction->setText(i18nc("@action", "&Main Menu"));
+	connect(homeAction, &QAction::triggered, this, &KolfWindow::returnHome);
 	KGameStandardAction::quit(this, &KolfWindow::close, actionCollection());
 
 	saveAction = actionCollection()->addAction(KStandardAction::Save, QStringLiteral("game_save"), this, &KolfWindow::save);
@@ -546,10 +559,6 @@ void KolfWindow::startNewGame()
 	}
 
 	players.clear();
-	delete scoreboard;
-	scoreboard = new ScoreBoard(dummy);
-	layout->addWidget(scoreboard, 1, 0);
-	scoreboard->show();
 
 	if (loadedGame.isNull())
 	{
@@ -582,7 +591,21 @@ void KolfWindow::startNewGame()
 
 		players.clear();
 		KolfGame::scoresFromSaved(&config, players);
+		if (!isTutorial)
+			Kolf::Ui::HomeView::rememberSavedGame(loadedGame);
 	}
+
+	launchGame(firstHole);
+	delete dialog;
+}
+
+void KolfWindow::launchGame(int firstHole)
+{
+	homeView->hide();
+	delete scoreboard;
+	scoreboard = new ScoreBoard(dummy);
+	layout->addWidget(scoreboard, 1, 0);
+	scoreboard->show();
 
 	for (PlayerList::Iterator it = players.begin(); it != players.end(); ++it)
 		scoreboard->newPlayer((*it).name());
@@ -601,6 +624,7 @@ void KolfWindow::startNewGame()
 	connect(game, &KolfGame::saveGame, this, &KolfWindow::saveGame);
 	connect(game, &KolfGame::saveGameAs, this, &KolfWindow::saveGameAs);
 	connect(game, &KolfGame::holesDone, this, &KolfWindow::gameOver);
+	connect(game, &KolfGame::leaveRequested, this, &KolfWindow::returnHome);
 	connect(game, &KolfGame::checkEditing, this, &KolfWindow::checkEditing);
 	connect(game, &KolfGame::editingStarted, this, &KolfWindow::editingStarted);
 	connect(game, &KolfGame::editingEnded, this, &KolfWindow::editingEnded);
@@ -663,7 +687,55 @@ void KolfWindow::startNewGame()
 	// so game can do stuff that needs to be done
 	// after things above are connected
 	game->startFirstHole(firstHole);
-	delete dialog;
+}
+
+void KolfWindow::editNewCourse()
+{
+	if (game) {
+		if (game->askSave(true))
+			return;
+		game->pause();
+	}
+	isTutorial = false;
+	loadedGame = QString();
+	filename = QString();
+	competition = false;
+	players.clear();
+	players.append(Player());
+	players.last().ball()->setColor(Qt::white);
+	players.last().setName(i18n("Course Designer"));
+	players.last().setId(1);
+	launchGame(1);
+	if (!editingAction->isChecked())
+		editingAction->trigger();
+}
+
+void KolfWindow::continueGame(const QString &savedGame)
+{
+	if (savedGame.isEmpty() || !QFileInfo(savedGame).isFile())
+		return;
+	if (game) {
+		if (game->askSave(true))
+			return;
+		game->pause();
+	}
+	filename = QString();
+	loadedGame = savedGame;
+	isTutorial = false;
+	startNewGame();
+}
+
+void KolfWindow::returnHome()
+{
+	if (onlineModeActive)
+		return;
+	if (game && !editingAction->isChecked() && KMessageBox::warningContinueCancel(this,
+		i18n("Leave this game and return to the main menu? Progress since your last save will be lost."),
+		i18nc("@title:window", "Return to Main Menu?"),
+		KGuiItem(i18nc("@action:button", "Return to Main Menu"), QStringLiteral("go-home")),
+		KStandardGuiItem::cancel(), QStringLiteral("confirmReturnToMainMenu")) != KMessageBox::Continue)
+		return;
+	closeGame();
 }
 
 void KolfWindow::newGame()
@@ -702,6 +774,8 @@ void KolfWindow::closeGame()
 	editingEnded();
 	delete game;
 	game = nullptr;
+	delete scoreboard;
+	scoreboard = nullptr;
 	loadedGame = QString();
 
 	editingAction->setChecked(false);
@@ -725,6 +799,9 @@ void KolfWindow::closeGame()
 	titleChanged(QString());
 	updateModified(false);
 
+	homeView->refresh();
+	homeView->show();
+	homeView->raise();
 	QTimer::singleShot(100, this, &KolfWindow::createSpacer);
 }
 
@@ -746,6 +823,9 @@ void KolfWindow::createSpacer()
 	spacer->show();
 	spacer->startFirstHole(1);
 	spacer->hidePutter();
+	homeView->setAnchor(spacer);
+	if (!game)
+		homeView->raise();
 }
 
 void KolfWindow::gameOver()
@@ -918,6 +998,8 @@ void KolfWindow::saveGame()
 	game->saveScores(&config);
 
 	configGroup.sync();
+	if (!isTutorial)
+		Kolf::Ui::HomeView::rememberSavedGame(loadedGame);
 }
 
 void KolfWindow::loadGame()
