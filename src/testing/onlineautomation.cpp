@@ -235,6 +235,8 @@ QJsonObject OnlineAutomation::sessionConfig(const QJsonObject &matchConfig) cons
 
 void OnlineAutomation::attach(SessionController *controller, const QJsonObject &sessionConfig)
 {
+    const auto size = m_config.value(QStringLiteral("windowSize")).toArray();
+    if (size.size() == 2) m_widget->window()->resize(size[0].toInt(), size[1].toInt());
     m_session = controller;
     m_sessionConfig = sessionConfig;
     m_uiLogDirectory = sessionConfig.value(QStringLiteral("logDirectory")).toString();
@@ -258,6 +260,10 @@ void OnlineAutomation::recordUi(const QJsonObject &proposalUi)
     const auto encoded = QJsonDocument(snapshot).toJson(QJsonDocument::Compact);
     if (encoded == m_lastUiSnapshot) return;
     m_lastUiSnapshot = encoded;
+    const auto image = QDir(m_uiLogDirectory).filePath(snapshot.value(QStringLiteral("proposalActive")).toBool()
+        ? QStringLiteral("request.png") : QStringLiteral("hud.png"));
+    if (snapshot.value(QStringLiteral("proposalActive")).toBool() || (m_session->isReady() && m_session->phase() == QLatin1String("AwaitingShot")))
+        QTimer::singleShot(0, m_widget, [widget = m_widget, image] { widget->window()->grab().save(image); });
     QFile output(QDir(m_uiLogDirectory).filePath(QStringLiteral("ui-state.jsonl")));
     if (output.open(QIODevice::WriteOnly | QIODevice::Append)) { output.write(encoded); output.write("\n"); }
 }

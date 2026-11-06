@@ -115,6 +115,7 @@ try {
       displayName: client === 0 ? 'Owner' : `Member ${client + 1}`,
       color: ['#3daee9ff', '#f67400ff', '#27ae60ff'][client],
       courseId: 'test', joinCodeFile, expectedMembers: clientCount,
+      windowSize: process.env.KOLF_TEST_4K ? [1920, 1080] : [1024, 640],
       lobbyRules: scenario === 'lobby-rules' ? { hostControls: true, allowVoting: false } : undefined,
       customCourse: scenario === 'custom-course' ? customCourse : undefined,
       forceCourseDownload: scenario === 'custom-course' && client > 0,
@@ -267,14 +268,14 @@ try {
     const rematch = runs[0].find(run => run.evidence.result.skippedHoles.length === 0);
     assert(initial && rematch, 'combined match and ordinary rematch both reached Results');
     assert(initial.ui.some(state => state.role === 'host' && state.controlsEnabled
-      && state.hostOptionsVisible && !state.guestStatusVisible && state.composerVisible
+      && state.hudVisible && state.matchMenuVisible && state.rulesVisible
       && state.resetMenuVisible && state.goMenuActionVisible && state.goMenuVisible),
-    'owner saw match controls, Go menu, and proposal composer');
+    'host saw HUD, Match menu, rules and navigation');
     const initialGuest = runs[1].find(run => run.evidence.result.matchId === initial.evidence.result.matchId);
     assert(initialGuest?.ui.some(state => state.role === 'guest' && state.controlsEnabled
-      && !state.hostOptionsVisible && state.guestStatusVisible && state.composerVisible
+      && state.hudVisible && state.matchMenuVisible && !state.rulesVisible && state.requestsEnabled
       && !state.resetMenuVisible && !state.goMenuActionVisible && !state.goMenuVisible),
-    'guest saw status and proposal composer, not host controls');
+    'guest saw HUD and request menu without host rules');
     for (const run of [initial, rematch]) {
       const peer = runs[1].find(other => other.evidence.result.matchId === run.evidence.result.matchId);
       assert(peer, 'guest recorded Results for the same match');
@@ -337,7 +338,7 @@ try {
     const logs = Array.from({ length: clientCount }, (_, client) => events(sessionDirectories(client)[0]));
     const ui = Array.from({ length: clientCount }, (_, client) => uiStates(sessionDirectories(client)[0]));
     assert(ui[0].some(state => state.proposalActive && state.proposalTextVisible
-      && state.voteRowVisible && state.approveVisible && state.rejectVisible && !state.composerVisible),
+      && state.voteRowVisible && state.approveVisible && state.rejectVisible && state.toastVisible),
     'owner saw proposal details, voting, and decision controls');
     assert(ui[1].some(state => state.proposalActive && state.proposalTextVisible
       && state.voteRowVisible && !state.approveVisible && !state.rejectVisible && state.withdrawVisible),
