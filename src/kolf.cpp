@@ -24,6 +24,7 @@
 #include "objects.h"
 #include "obstacles.h"
 #include "online/onlinematchview.h"
+#include "ui/gamehud.h"
 #include "ui/homeview.h"
 #include "ui/settingsdialog.h"
 #include "online/onlinewidget.h"
@@ -101,6 +102,14 @@ KolfWindow::KolfWindow()
 	applicationStack->addWidget(dummy);
 	setCentralWidget(applicationStack);
 	layout = new QGridLayout(dummy);
+	gameHud = new Kolf::Ui::GameHud(dummy);
+	layout->addWidget(gameHud, 0, 0);
+	gameHud->hide();
+	connect(gameHud, &Kolf::Ui::GameHud::hintDismissed, this, [] {
+		KConfigGroup settings(KSharedConfig::openConfig(), QStringLiteral("Settings"));
+		settings.writeEntry("firstShotHintShown", true);
+		settings.sync();
+	});
 	homeView = new Kolf::Ui::HomeView(dummy);
 	homeView->hide();
 	connect(homeView, &Kolf::Ui::HomeView::playRequested, this, &KolfWindow::newGame);
@@ -601,7 +610,7 @@ void KolfWindow::launchGame(int firstHole)
 	homeView->hide();
 	delete scoreboard;
 	scoreboard = new ScoreBoard(dummy);
-	layout->addWidget(scoreboard, 1, 0);
+	layout->addWidget(scoreboard, 2, 0);
 	scoreboard->show();
 
 	for (PlayerList::Iterator it = players.begin(); it != players.end(); ++it)
@@ -622,6 +631,18 @@ void KolfWindow::launchGame(int firstHole)
 	connect(game, &KolfGame::saveGameAs, this, &KolfWindow::saveGameAs);
 	connect(game, &KolfGame::holesDone, this, &KolfWindow::gameOver);
 	connect(game, &KolfGame::leaveRequested, this, &KolfWindow::returnHome);
+	connect(game, &KolfGame::newPlayersTurn, this, &KolfWindow::updateHud);
+	connect(game, &KolfGame::scoreChanged, this, &KolfWindow::updateHud);
+	connect(game, &KolfGame::parChanged, this, &KolfWindow::updateHud);
+	connect(game, &KolfGame::largestHole, this, &KolfWindow::updateHud);
+	connect(game, qOverload<int>(&KolfGame::currentHole), this, &KolfWindow::updateHud);
+	connect(game, &KolfGame::inPlayStart, this, [this] {
+		if (!gameHud->findChild<QWidget *>(QStringLiteral("hudHint"))->isVisible()) return;
+		gameHud->clearHint();
+		KConfigGroup settings(KSharedConfig::openConfig(), QStringLiteral("Settings"));
+		settings.writeEntry("firstShotHintShown", true);
+		settings.sync();
+	});
 	connect(game, &KolfGame::checkEditing, this, &KolfWindow::checkEditing);
 	connect(game, &KolfGame::editingStarted, this, &KolfWindow::editingStarted);
 	connect(game, &KolfGame::editingEnded, this, &KolfWindow::editingEnded);
@@ -659,7 +680,7 @@ void KolfWindow::launchGame(int firstHole)
 	game->setShowGuideLine(showGuideLineAction->isChecked());
 	game->setSound(soundAction->isChecked());
 
-	layout->addWidget(game, 0, 0);//, Qt::AlignCenter);
+	layout->addWidget(game, 1, 0);//, Qt::AlignCenter);
 
 	game->show();
 	game->setFocus();
@@ -684,6 +705,31 @@ void KolfWindow::launchGame(int firstHole)
 	// so game can do stuff that needs to be done
 	// after things above are connected
 	game->startFirstHole(firstHole);
+	gameHud->clearHint();
+	const KConfigGroup settings(KSharedConfig::openConfig(), QStringLiteral("Settings"));
+	if (!settings.readEntry("firstShotHintShown", false))
+		gameHud->setHint(useAdvancedPuttingAction->isChecked()
+			? i18n("Aim with the mouse or the Left and Right arrows. Press once to start, again to set power, and a third time as the meter swings through the middle.")
+			: i18n("Aim with the mouse or the Left and Right arrows. Hold the mouse button or the Down arrow to build power, then release to putt."));
+	gameHud->show();
+	updateHud();
+}
+
+void KolfWindow::updateHud()
+{
+	if (!game || !gameHud)
+		return;
+	const int hole = game->currentHole();
+	if (editingAction->isChecked()) {
+		gameHud->setEditing(hole, game->holeCount());
+		return;
+	}
+	gameHud->setHole(hole, game->holeCount(), game->holePar());
+	if (!game->hasCurrentPlayer()) {
+		gameHud->setMessage(QString());
+		return;
+	}
+	gameHud->setTurn(game->currentPlayerName(), game->currentPlayerColor(), game->currentPlayerStrokes() + 1);
 }
 
 void KolfWindow::editNewCourse()
@@ -771,6 +817,7 @@ void KolfWindow::closeGame()
 	editingEnded();
 	delete game;
 	game = nullptr;
+	gameHud->hide();
 	delete scoreboard;
 	scoreboard = nullptr;
 	loadedGame = QString();
@@ -814,7 +861,7 @@ void KolfWindow::createSpacer()
 	delete spacer;
 	spacer = new KolfGame(m_itemFactory, &spacerPlayers, QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("intro")), dummy);
 	spacer->setSound(false);
-	layout->addWidget(spacer, 0, 0);//, Qt::AlignCenter);
+	layout->addWidget(spacer, 1, 0);//, Qt::AlignCenter);
 	spacer->ignoreEvents(true);
 
 	spacer->show();
@@ -1022,30 +1069,45 @@ void KolfWindow::loadGame()
 // called by main for command line files
 void KolfWindow::openUrl(const QUrl &url)
 {
-	QTemporaryFile tempFile;
-	tempFile.open();
-	KIO::FileCopyJob *job = KIO::file_copy(url, QUrl::fromLocalFile(tempFile.fileName()), -1, KIO::Overwrite);
-	KJobWidgets::setWindow(job, this);
-	job->exec();
-	if (!job->error())
-	{
-		isTutorial = false;
-		QMimeDatabase db;
-        QString mimeType = db.mimeTypeForFile(tempFile.fileName()).name();
-		if (mimeType == QLatin1String("application/x-kourse"))
-			filename = tempFile.fileName();
-		else if (mimeType == QLatin1String("application/x-kolf"))
-			loadedGame = tempFile.fileName();
-		else
-		{
+	QString path;
+	if (url.isLocalFile()) {
+		path = url.toLocalFile();
+	} else {
+		auto *download = new QTemporaryFile(QDir::tempPath() + QStringLiteral("/kolf-XXXXXX.") + QFileInfo(url.path()).suffix(), this);
+		if (!download->open()) {
 			closeGame();
 			return;
 		}
-
-		QTimer::singleShot(10, this, &KolfWindow::startNewGame);
+		path = download->fileName();
+		download->close();
+		KIO::FileCopyJob *job = KIO::file_copy(url, QUrl::fromLocalFile(path), -1, KIO::Overwrite);
+		KJobWidgets::setWindow(job, this);
+		if (!job->exec()) {
+			closeGame();
+			return;
+		}
 	}
-	else
+
+	isTutorial = false;
+	const QString mimeType = QMimeDatabase().mimeTypeForFile(path).name();
+	bool savedGame = mimeType == QLatin1String("application/x-kolf");
+	bool course = mimeType == QLatin1String("application/x-kourse");
+	if (!savedGame && !course) {
+		QFile file(path);
+		const QByteArray head = file.open(QIODevice::ReadOnly) ? file.read(64 * 1024) : QByteArray();
+		savedGame = head.contains("[0 Saved Game]");
+		course = !savedGame && head.contains("-hole@");
+	}
+	if (course)
+		filename = path;
+	else if (savedGame)
+		loadedGame = path;
+	else {
 		closeGame();
+		return;
+	}
+
+	QTimer::singleShot(10, this, &KolfWindow::startNewGame);
 }
 
 void KolfWindow::newPlayersTurn(Player *player)
@@ -1080,13 +1142,14 @@ void KolfWindow::editingStarted()
 
 	scoreboard->hide();
 
-	layout->addWidget(editor, 1, 0);
+	layout->addWidget(editor, 2, 0);
 	editor->show();
 
 	clearHoleAction->setEnabled(true);
 	newHoleAction->setEnabled(true);
 	setCourseEditingActionsVisible(true);
 	setHoleOtherEnabled(false);
+	updateHud();
 
 	game->setFocus();
 }
@@ -1103,6 +1166,7 @@ void KolfWindow::editingEnded()
 	newHoleAction->setEnabled(false);
 	setCourseEditingActionsVisible(false);
 	setHoleOtherEnabled(true);
+	updateHud();
 
 	if (game)
 		game->setFocus();

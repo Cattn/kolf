@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+#pragma once
+
+#include <QColor>
+#include <QFrame>
+
+class QLabel;
+class QToolButton;
+
+namespace Kolf::Ui {
+class GameHud : public QFrame {
+    Q_OBJECT
+public:
+    explicit GameHud(QWidget *parent = nullptr);
+    void setHole(int hole, int holes, int par);
+    void setTurn(const QString &name, const QColor &color, int stroke, bool yourTurn = true);
+    void setMessage(const QString &message);
+    void setEditing(int hole, int holes);
+    void setHint(const QString &hint);
+    void clearHint();
+
+Q_SIGNALS:
+    void hintDismissed();
+
+private:
+    QLabel *m_hole;
+    QLabel *m_swatch;
+    QLabel *m_turn;
+    QWidget *m_hintRow;
+    QLabel *m_hint;
+    QToolButton *m_dismissHint;
+};
+}

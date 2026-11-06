@@ -24,6 +24,7 @@ private:
 
     QPointer<QWidget> m_mainWindow;
     QString m_outputDirectory;
+    QString m_scriptDirectory;
     QJsonArray m_steps;
     QFile m_log;
     int m_index = 0;

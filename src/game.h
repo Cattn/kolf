@@ -264,6 +264,12 @@ public:
 	bool askSave(bool);
 	bool isEditing() const { return editing; }
 	int currentHole() { return curHole; }
+	int holePar() const { return holeInfo.par(); }
+	int holeCount() const { return highestHole; }
+	bool hasCurrentPlayer() const { return players && curPlayer != players->end(); }
+	QString currentPlayerName() const { return hasCurrentPlayer() ? (*curPlayer).name() : QString(); }
+	QColor currentPlayerColor() const { return hasCurrentPlayer() ? (*curPlayer).ball()->color() : QColor(); }
+	int currentPlayerStrokes() const { return hasCurrentPlayer() && curHole >= 1 && curHole <= int((*curPlayer).numHoles()) ? (*curPlayer).score(curHole) : 0; }
 	void setStrict(bool yes) { strict = yes; }
 	// returns true when you shouldn't do anything
 	bool isPaused() const { return paused; }

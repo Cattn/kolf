@@ -17,6 +17,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include "ui/hazardprompt.h"
 #include "game.h"
 #include "itemfactory.h"
 #include "kcomboboxdialog.h"
@@ -1482,13 +1483,9 @@ void KolfGame::shotDone()
 		{
 			ball->setPlaceOnGround(false);
 
-			QStringList options;
-			const QString placeOutside = i18nc("@item harzard action", "Drop Outside of Hazard");
-			const QString rehit = i18nc("@item harzard action", "Rehit From Last Location");
-			options << placeOutside << rehit;
-			const QString choice = KComboBoxDialog::getItem(i18n("What would you like to do for your next shot?"), i18nc("@title:window", "%1 in a Hazard", (*it).name()), options, placeOutside, QStringLiteral("hazardOptions"));
+			const auto choice = Kolf::Ui::HazardPrompt::ask(this, ball->mapToScene(QPointF()), (*it).name());
 
-			if (choice == placeOutside)
+			if (choice == Kolf::Ui::HazardPrompt::Drop)
 			{
 				(*it).ball()->setDoDetect(false);
 
@@ -1516,7 +1513,7 @@ void KolfGame::shotDone()
 					ball->setPos(pos);
 				}
 			}
-			else if (choice == rehit)
+			else if (choice == Kolf::Ui::HazardPrompt::Rehit)
 			{
 				for (BallStateList::Iterator it = ballStateList.begin(); it != ballStateList.end(); ++it)
 				{

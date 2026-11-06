@@ -39,7 +39,7 @@ class ScoreBoard;
 namespace Kolf::Online { class OnlineMatchView; class OnlineWidget; }
 namespace Kolf::Session { class SessionController; }
 namespace Kolf::Testing { class OnlineAutomation; }
-namespace Kolf::Ui { class HomeView; }
+namespace Kolf::Ui { class GameHud; class HomeView; }
 
 class KolfWindow : public KXmlGuiWindow
 {
@@ -49,7 +49,7 @@ public:
 	KolfWindow();
 	~KolfWindow() override;
 
-	void openUrl(const QUrl &url);
+	Q_INVOKABLE void openUrl(const QUrl &url);
 #ifdef KOLF_TEST_AUTOMATION
 	void startOnlineAutomation(const QJsonObject &config);
 #endif
@@ -64,6 +64,7 @@ protected:
 protected Q_SLOTS:
 	void startNewGame();
 	void launchGame(int firstHole);
+	void updateHud();
 	void setCourseEditingActionsVisible(bool visible);
 	void loadGame();
 	void tutorial();
@@ -163,6 +164,7 @@ private:
 	Kolf::Online::OnlineWidget *onlineWidget = nullptr;
 	Kolf::Online::OnlineMatchView *onlineMatchView = nullptr;
 	Kolf::Ui::HomeView *homeView = nullptr;
+	Kolf::Ui::GameHud *gameHud = nullptr;
 	QAction *homeAction = nullptr;
 	QAction *onlineResyncAction = nullptr;
 	Kolf::Session::SessionController *onlineMatchController = nullptr;

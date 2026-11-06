@@ -1,0 +1,16 @@
+{
+  "description": "Game HUD, first-shot hint, and the hazard prompt after a shot into water.",
+  "steps": [
+    { "wait": 1500, "resize": [900, 760] },
+    { "open": "{scriptDir}/../multiplayer/fixtures/water.kolf", "wait": 1500 },
+    { "clickText": "OK", "wait": 2000 },
+    { "expectVisible": "gameHud" },
+    { "expectVisible": "hudHint", "screenshot": "01-hud-with-hint.png" },
+    { "shot": { "direction": 0, "power": 2.0 }, "wait": 3500 },
+    { "screenshot": "02-hazard-prompt.png", "of": "modal" },
+    { "expectHidden": "hudHint" },
+    { "clickText": "Drop Outside (D)", "wait": 1500 },
+    { "screenshot": "03-after-drop.png" },
+    { "quit": true }
+  ]
+}

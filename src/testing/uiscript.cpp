@@ -22,6 +22,9 @@
 #include <QMenu>
 #include <QStandardPaths>
 #include <QTimer>
+#include <QUrl>
+
+#include "game.h"
 
 using namespace Kolf::Testing;
 
@@ -35,7 +38,8 @@ UiScript::UiScript(const QString &scriptPath, QWidget *mainWindow, QObject *pare
         script = QJsonDocument::fromJson(file.readAll()).object();
     m_steps = script.value(QStringLiteral("steps")).toArray();
     m_outputDirectory = qEnvironmentVariable("KOLF_UI_TEST_OUTPUT", script.value(QStringLiteral("outputDirectory")).toString());
-    if (m_outputDirectory.isEmpty()) m_outputDirectory = QFileInfo(scriptPath).absolutePath();
+    m_scriptDirectory = QFileInfo(scriptPath).absolutePath();
+    if (m_outputDirectory.isEmpty()) m_outputDirectory = m_scriptDirectory;
     QDir().mkpath(m_outputDirectory);
     m_log.setFileName(QDir(m_outputDirectory).filePath(QStringLiteral("ui-script.jsonl")));
     m_log.open(QIODevice::WriteOnly | QIODevice::Truncate);
@@ -99,7 +103,8 @@ bool UiScript::runStep(const QJsonObject &step, QString &error)
         const auto courses = QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("courses"),
             QStandardPaths::LocateDirectory);
         return text.replace(QStringLiteral("{output}"), QDir(m_outputDirectory).absolutePath())
-            .replace(QStringLiteral("{courses}"), courses);
+            .replace(QStringLiteral("{courses}"), courses)
+            .replace(QStringLiteral("{scriptDir}"), m_scriptDirectory);
     };
     if (step.contains(QStringLiteral("writeFile"))) {
         QFile file(QDir(m_outputDirectory).filePath(step.value(QStringLiteral("writeFile")).toString()));
@@ -177,6 +182,25 @@ bool UiScript::runStep(const QJsonObject &step, QString &error)
         }
         if (!match) { error = QStringLiteral("no settings page named %1").arg(name); return false; }
         dialog->setCurrentPage(match);
+    }
+    if (step.contains(QStringLiteral("open"))) {
+        const auto url = QUrl::fromLocalFile(QFileInfo(expand(step.value(QStringLiteral("open")).toString())).absoluteFilePath());
+        if (!QFileInfo::exists(url.toLocalFile())) { error = QStringLiteral("cannot open %1").arg(url.toLocalFile()); return false; }
+        QTimer::singleShot(0, m_mainWindow, [window = m_mainWindow, url] {
+            if (window) QMetaObject::invokeMethod(window, "openUrl", Q_ARG(QUrl, url));
+        });
+    }
+    if (step.contains(QStringLiteral("shot"))) {
+        const auto shot = step.value(QStringLiteral("shot")).toObject();
+        KolfGame *game = nullptr;
+        for (auto *candidate : m_mainWindow->findChildren<KolfGame *>())
+            if (candidate->isVisible() && !candidate->isPaused()) game = candidate;
+        if (!game) { error = QStringLiteral("no active game for a shot"); return false; }
+        const Kolf::Session::ShotIntent intent{shot.value(QStringLiteral("direction")).toDouble(),
+            shot.value(QStringLiteral("power")).toDouble(1.0), false};
+        QTimer::singleShot(0, game, [game = QPointer<KolfGame>(game), intent] {
+            if (game) game->applyAcceptedShot(intent);
+        });
     }
     if (step.contains(QStringLiteral("resize"))) {
         const auto size = step.value(QStringLiteral("resize")).toArray();
