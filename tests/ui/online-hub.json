@@ -1,0 +1,12 @@
+{
+  "description": "Online hub without a remembered server: server box shown, cards disabled, Back returns Home.",
+  "steps": [
+    { "wait": 1500 },
+    { "click": "homeOnline", "wait": 1200 },
+    { "expectVisible": "onlineHub" },
+    { "expectVisible": "onlineServerControls", "screenshot": "01-hub-no-server.png" },
+    { "click": "onlineBack", "wait": 800 },
+    { "expectVisible": "homeView" },
+    { "quit": true }
+  ]
+}

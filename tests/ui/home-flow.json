@@ -16,7 +16,7 @@
     { "expectVisible": "homeView", "screenshot": "06-home-again.png" },
     { "click": "homeOnline", "wait": 1000 },
     { "expectHidden": "homeView", "screenshot": "06b-online.png" },
-    { "clickText": "Cancel", "in": "window", "wait": 1000 },
+    { "click": "onlineBack", "wait": 1000 },
     { "expectVisible": "homeView" },
     { "click": "homeEditor", "wait": 2500 },
     { "expectHidden": "homeView", "screenshot": "07-course-editor.png" },

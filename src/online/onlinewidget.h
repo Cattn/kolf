@@ -8,6 +8,7 @@
 #include <QWidget>
 
 class QComboBox;
+class QGroupBox;
 class QLabel;
 class QLineEdit;
 class QListWidget;
@@ -48,6 +49,8 @@ private:
     void showResults(const QJsonObject &state);
     void announceRematch(const QJsonObject &state);
     void savePreferences();
+    void updateProfileChip();
+    static QString normalizeJoinCode(const QString &input);
     void beginConnection();
     void setConnectionState(ConnectionState state, const QString &message = {});
 
@@ -57,7 +60,10 @@ private:
     QLabel *m_connectStatus;
     QLabel *m_serverLabel;
     QComboBox *m_recentServers;
-    QWidget *m_serverControls;
+    QGroupBox *m_serverControls;
+    QGroupBox *m_hostCard;
+    QGroupBox *m_joinCard;
+    QLabel *m_profileChip;
     QPushButton *m_connectButton;
     QPushButton *m_changeServerButton;
     QPushButton *m_createButton;
