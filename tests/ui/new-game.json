@@ -1,0 +1,19 @@
+{
+  "description": "Local game setup page: players, course picker with thumbnail, Back, and Start.",
+  "steps": [
+    { "wait": 1500 },
+    { "click": "homePlay", "wait": 1500 },
+    { "expectVisible": "newGameView", "screenshot": "01-setup.png" },
+    { "click": "setupAddPlayer", "wait": 300 },
+    { "click": "setupAddPlayer", "wait": 300 },
+    { "click": "setupNextCourse", "wait": 1500 },
+    { "click": "setupNextCourse", "wait": 1500, "screenshot": "02-setup-four-players-next-course.png" },
+    { "click": "setupBack", "wait": 800 },
+    { "expectVisible": "homeView" },
+    { "click": "homePlay", "wait": 1500 },
+    { "screenshot": "03-setup-remembers-nothing-until-start.png" },
+    { "click": "setupStart", "wait": 2500 },
+    { "expectVisible": "gameHud", "screenshot": "04-game.png" },
+    { "quit": true }
+  ]
+}

@@ -26,6 +26,7 @@
 #include "online/onlinematchview.h"
 #include "ui/gamehud.h"
 #include "ui/homeview.h"
+#include "ui/newgameview.h"
 #include "ui/resultsview.h"
 #include "results/summary.h"
 #include "ui/settingsdialog.h"
@@ -557,34 +558,15 @@ bool KolfWindow::queryClose()
 
 void KolfWindow::startNewGame()
 {
-        NewGameDialog *dialog = nullptr;
 	int firstHole = 1;
 
 	if (loadedGame.isNull())
 	{
-		dialog = new NewGameDialog(filename.isNull());
-                if (dialog->exec() != QDialog::Accepted) {
-                    delete dialog;
-                    return;
-               }
+		showSetup(filename);
+		return;
 	}
 
 	players.clear();
-
-	if (loadedGame.isNull())
-	{
-		for (int newId = 1; newId <= dialog->players()->count(); ++newId)
-		{
-			players.append(Player());
-			players.last().ball()->setColor(dialog->players()->at(newId-1)->color());
-			players.last().setName(dialog->players()->at(newId-1)->name());
-			players.last().setId(newId);
-		}
-
-		competition = dialog->competition();
-		filename = filename.isNull()? dialog->course() : filename;
-	}
-	else
 	{
 		KConfig config(loadedGame);
 		KConfigGroup configGroup(config.group(QStringLiteral("0 Saved Game")));
@@ -607,7 +589,49 @@ void KolfWindow::startNewGame()
 	}
 
 	launchGame(firstHole);
-	delete dialog;
+}
+
+void KolfWindow::showSetup(const QString &lockedCourse)
+{
+	if (!setupView) {
+		setupView = new Kolf::Ui::NewGameView(m_itemFactory, applicationStack);
+		applicationStack->addWidget(setupView);
+		connect(setupView, &Kolf::Ui::NewGameView::backRequested, this, [this] {
+			filename = QString();
+			applicationStack->setCurrentWidget(dummy);
+		});
+		connect(setupView, &Kolf::Ui::NewGameView::highScoresRequested, this, [this](const QString &course) {
+			if (course.isEmpty())
+				return;
+			CourseInfo courseInfo;
+			KolfGame::courseInfo(courseInfo, course);
+			auto *scoreDialog = new KGameHighScoreDialog(KGameHighScoreDialog::Name | KGameHighScoreDialog::Custom1 | KGameHighScoreDialog::Score, this);
+			scoreDialog->setAttribute(Qt::WA_DeleteOnClose);
+			scoreDialog->addField(KGameHighScoreDialog::Custom1, i18n("Par"), QStringLiteral("Par"));
+			scoreDialog->setConfigGroup(qMakePair(QByteArray(courseInfo.untranslatedName.toUtf8() + " Highscores"), i18n("High Scores for %1", courseInfo.name)));
+			scoreDialog->setComment(i18n("High Scores for %1", courseInfo.name));
+			scoreDialog->show();
+		});
+		connect(setupView, &Kolf::Ui::NewGameView::startRequested, this,
+			[this](const QList<Kolf::Ui::LocalPlayer> &chosen, const QString &course, bool strict) {
+				applicationStack->setCurrentWidget(dummy);
+				isTutorial = false;
+				loadedGame = QString();
+				filename = course;
+				competition = strict;
+				players.clear();
+				int id = 1;
+				for (const auto &entry : chosen) {
+					players.append(Player());
+					players.last().setName(entry.name);
+					players.last().ball()->setColor(entry.color);
+					players.last().setId(id++);
+				}
+				launchGame(1);
+			});
+	}
+	setupView->prepare(lockedCourse);
+	applicationStack->setCurrentWidget(setupView);
 }
 
 void KolfWindow::launchGame(int firstHole)

@@ -3,7 +3,7 @@
   "steps": [
     { "wait": 1500 },
     { "click": "homePlay", "wait": 1200 },
-    { "clickText": "OK", "wait": 2500 },
+    { "click": "setupStart", "wait": 2500 },
     { "openMenu": "game", "wait": 500 },
     { "screenshot": "menu-game.png", "of": "game", "closeMenu": "game" },
     { "openMenu": "hole", "wait": 500 },

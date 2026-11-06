@@ -39,7 +39,7 @@ class ScoreBoard;
 namespace Kolf::Online { class OnlineMatchView; class OnlineWidget; }
 namespace Kolf::Session { class SessionController; }
 namespace Kolf::Testing { class OnlineAutomation; }
-namespace Kolf::Ui { class GameHud; class HomeView; class ResultsView; }
+namespace Kolf::Ui { class GameHud; class HomeView; class NewGameView; class ResultsView; }
 
 class KolfWindow : public KXmlGuiWindow
 {
@@ -64,6 +64,7 @@ protected:
 protected Q_SLOTS:
 	void startNewGame();
 	void launchGame(int firstHole);
+	void showSetup(const QString &lockedCourse);
 	void writeSavedGame(const QString &path);
 	void autoSaveGame();
 	void showLocalResults();
@@ -170,6 +171,7 @@ private:
 	Kolf::Ui::HomeView *homeView = nullptr;
 	Kolf::Ui::GameHud *gameHud = nullptr;
 	QWidget *resultsPage = nullptr;
+	Kolf::Ui::NewGameView *setupView = nullptr;
 	Kolf::Ui::ResultsView *localResults = nullptr;
 	QList<QPair<QString, QColor>> lastPlayers;
 	QString lastCourse;
