@@ -216,7 +216,7 @@ MSVC 2022, fixture `static.kolf`.
 | Three-member/four-player owner identity | Server test with roster `[a, b, a]` plus the native `host-proposal-four-player` run. The visible panel check is dropped because Phase 1 replaces the panel | **passed** |
 | Disconnect recovery during host actions | Superseded by Phase 2 reconnect/resume, which has its own native fault tests. Current behaviour (honest interruption) is unchanged | dropped |
 | Match-controls panel polish and the preference toggle | Dropped because Phase 1 replaces the panel with the Match menu and request notifications | dropped |
-| Offline normal/advanced shot plus save/close/reload | Still needs a person; see *One bounded offline regression* below | **not run** |
+| Offline normal/advanced shot plus save/close/reload | User run on Windows, Really Easy, source `74edb2e`: normal and advanced shots, Save Game, close, relaunch, Load Game. Hole, turn, and scorecard matched. Each close left no `kolf.exe` process | **passed** |
 
 ## One Slope Practise visual pass
 
