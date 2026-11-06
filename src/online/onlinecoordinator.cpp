@@ -333,25 +333,8 @@ void OnlineCoordinator::prepareCourse()
     const auto course = m_state.value(QStringLiteral("match")).toObject().value(QStringLiteral("course")).toObject();
     const auto courseId = course.value(QStringLiteral("courseId")).toString();
     if (course.value(QStringLiteral("source")) == QLatin1String("uploaded")) {
-        m_downloadHash = course.value(QStringLiteral("sha256")).toString();
-        m_downloadSize = course.value(QStringLiteral("byteSize")).toInt(-1);
-        if (courseCachePath(m_downloadHash).isEmpty() || m_downloadSize < 1 || m_downloadSize > MaximumCourseBytes) {
-            failPreparation(tr("The custom course descriptor is invalid.")); return;
-        }
-        const auto path = courseCachePath(m_downloadHash);
-        QFile cached(path);
-        if (!qEnvironmentVariableIsSet("KOLF_ONLINE_TEST_FORCE_DOWNLOAD")
-            && cached.open(QIODevice::ReadOnly) && cached.size() == m_downloadSize) {
-            const auto bytes = cached.readAll();
-            QString error;
-            if (rawCourseHash(bytes) == m_downloadHash && validateCourseBytes(bytes, error)) {
-                m_downloadHash.clear(); sendCourseReady(path, rawCourseHash(bytes)); return;
-            }
-        }
-        m_downloadBytes.clear(); m_downloadNextIndex = 0;
-        m_downloadTimer.start(30000);
-        requestNextDownloadChunk();
-        Q_EMIT statusChanged(tr("Downloading and verifying the custom course…"));
+        downloadCourse(course.value(QStringLiteral("sha256")).toString(), course.value(QStringLiteral("byteSize")).toInt(-1),
+            tr("Downloading and verifying the custom course…"));
         return;
     }
     QString fileName;
@@ -366,14 +349,44 @@ void OnlineCoordinator::prepareCourse()
     static const QRegularExpression resource(QStringLiteral("^[A-Za-z0-9_.-]+$"));
     const auto path = !testCourse.isEmpty() && courseId == QLatin1String("test") ? testCourse
         : QStandardPaths::locate(QStandardPaths::GenericDataLocation, QStringLiteral("kolf/courses/%1").arg(fileName));
+    const auto expectedHash = course.value(QStringLiteral("expectedHash")).toString();
     QFile file(path);
-    if (fileName.isEmpty() || !resource.match(fileName).hasMatch() || fileName == QLatin1String("..")
-        || path.isEmpty() || !file.open(QIODevice::ReadOnly) || file.size() > MaximumCourseBytes) {
-        failPreparation(tr("The selected online course could not be opened locally."));
+    if (!fileName.isEmpty() && resource.match(fileName).hasMatch() && fileName != QLatin1String("..")
+        && !path.isEmpty() && file.open(QIODevice::ReadOnly) && file.size() <= MaximumCourseBytes) {
+        const auto hash = Session::onlineCourseHash(file.readAll());
+        if (hash == expectedHash && !qEnvironmentVariableIsSet("KOLF_ONLINE_TEST_FORCE_DOWNLOAD")) {
+            sendCourseReady(path, hash);
+            return;
+        }
+    }
+    downloadCourse(expectedHash, course.value(QStringLiteral("byteSize")).toInt(-1),
+        tr("Your copy of %1 differs from the server's. Downloading the server's copy…")
+            .arg(course.value(QStringLiteral("displayName")).toString().left(60)));
+}
+
+void OnlineCoordinator::downloadCourse(const QString &hash, int byteSize, const QString &status)
+{
+    m_downloadHash = hash;
+    m_downloadSize = byteSize;
+    if (courseCachePath(m_downloadHash).isEmpty() || m_downloadSize < 1 || m_downloadSize > MaximumCourseBytes) {
+        m_downloadHash.clear();
+        failPreparation(tr("The selected online course could not be opened locally, and the server did not describe a copy to download."));
         return;
     }
-    const auto hash = Session::onlineCourseHash(file.readAll());
-    sendCourseReady(path, hash);
+    const auto path = courseCachePath(m_downloadHash);
+    QFile cached(path);
+    if (!qEnvironmentVariableIsSet("KOLF_ONLINE_TEST_FORCE_DOWNLOAD")
+        && cached.open(QIODevice::ReadOnly) && cached.size() == m_downloadSize) {
+        const auto bytes = cached.readAll();
+        QString error;
+        if (rawCourseHash(bytes) == m_downloadHash && validateCourseBytes(bytes, error)) {
+            m_downloadHash.clear(); sendCourseReady(path, rawCourseHash(bytes)); return;
+        }
+    }
+    m_downloadBytes.clear(); m_downloadNextIndex = 0;
+    m_downloadTimer.start(30000);
+    requestNextDownloadChunk();
+    Q_EMIT statusChanged(status);
 }
 
 void OnlineCoordinator::sendCourseReady(const QString &path, const QString &hash)
@@ -425,7 +438,7 @@ void OnlineCoordinator::requestNextDownloadChunk()
     if (m_downloadBytes.size() == m_downloadSize) {
         QString error;
         if (rawCourseHash(m_downloadBytes) != m_downloadHash || !validateCourseBytes(m_downloadBytes, error)) {
-            failPreparation(error.isEmpty() ? tr("Custom course hash mismatch.") : error); return;
+            failPreparation(error.isEmpty() ? tr("The downloaded course did not match the server's hash.") : error); return;
         }
         const auto path = cacheCourse(m_downloadBytes, m_downloadHash);
         if (path.isEmpty()) { failPreparation(tr("Could not cache the downloaded course.")); return; }

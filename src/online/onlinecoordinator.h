@@ -54,6 +54,7 @@ private:
     void sendCourseReady(const QString &path, const QString &hash);
     void sendNextUploadChunk();
     void requestNextDownloadChunk();
+    void downloadCourse(const QString &hash, int byteSize, const QString &status);
     QString cacheCourse(const QByteArray &bytes, const QString &sha256);
     void send(const QString &type, const QJsonObject &payload, bool matchScoped = false);
 

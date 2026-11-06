@@ -4,6 +4,7 @@ import { validators } from '../protocol/codecs.ts';
 import { LobbyError } from './errors.ts';
 import { RequestCache } from './request-cache.ts';
 import { CourseTransfer } from './course-transfer.ts';
+import { shippedCourseChunk } from './course-catalog.ts';
 import { resultStatistics, type PlayerStatistics } from './result-stats.ts';
 
 export type LobbyPhase = 'Open' | 'Preparing' | 'Playing' | 'Results' | 'Closed';
@@ -361,9 +362,12 @@ export class LobbySession {
   downloadCourseChunk(actor: MemberId, matchId: MatchId, sha256: string, index: number) {
     this.requireMember(actor);
     const course = this.selectedMatchCourse(matchId);
-    if (course.source !== 'uploaded' || course.expectedHash !== sha256)
+    if (course.expectedHash !== sha256)
       throw new LobbyError('CourseUnavailable', 'requested course is not selected for this match');
-    return this.transfers.get(sha256, index);
+    if (course.source === 'uploaded') return this.transfers.get(sha256, index);
+    const chunk = shippedCourseChunk(sha256, index);
+    if (!chunk) throw new LobbyError('CourseUnavailable', 'shipped course chunk is unavailable');
+    return chunk;
   }
 
   setReady(actor: MemberId, requestId: RequestId, lobbyRevision: number, ready: boolean) {

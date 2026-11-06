@@ -78,9 +78,22 @@ export function readCourseManifest(root: string): CatalogFile[] {
   return files;
 }
 
+export function normalizedCourseBytes(content: Buffer): Buffer {
+  return Buffer.from(content.toString('utf8').replaceAll('\r\n', '\n').replaceAll('\r', '\n'), 'utf8');
+}
+
 export function courseHash(content: Buffer): string {
-  const normalized = content.toString('utf8').replaceAll('\r\n', '\n').replaceAll('\r', '\n');
-  return createHash('sha256').update(normalized).digest('hex');
+  return createHash('sha256').update(normalizedCourseBytes(content)).digest('hex');
+}
+
+const shippedBytes = new Map<string, Buffer>();
+
+export function shippedCourseChunk(sha256: string, index: number) {
+  const bytes = shippedBytes.get(sha256);
+  if (!bytes || !Number.isSafeInteger(index) || index < 0 || index >= Math.ceil(bytes.length / COURSE_CHUNK_BYTES))
+    return undefined;
+  return { sha256, index, byteSize: bytes.length,
+    data: bytes.subarray(index * COURSE_CHUNK_BYTES, (index + 1) * COURSE_CHUNK_BYTES).toString('base64') };
 }
 
 export function loadCourseCatalog(root: string, files: CatalogFile[] = readCourseManifest(root)): CourseCatalogEntry[] {
@@ -91,9 +104,11 @@ export function loadCourseCatalog(root: string, files: CatalogFile[] = readCours
     if (!fromRoot || fromRoot.startsWith('..') || isAbsolute(fromRoot)) throw Error(`catalog path escapes root: ${file.fileName}`);
     const content = readFileSync(path);
     const metadata = parseCourseBytes(content);
-    const expectedHash = courseHash(content);
+    const normalized = normalizedCourseBytes(content);
+    const expectedHash = createHash('sha256').update(normalized).digest('hex');
+    shippedBytes.set(expectedHash, normalized);
     return { courseId: file.courseId, source: 'shipped', displayName: file.displayName ?? metadata.displayName,
-      author: metadata.author, holes: metadata.holes, totalPar: metadata.par, byteSize: content.length,
+      author: metadata.author, holes: metadata.holes, totalPar: metadata.par, byteSize: normalized.length,
       sha256: expectedHash, resourceName: file.fileName, expectedHash, par: metadata.holePars };
   });
 }
