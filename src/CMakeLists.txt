@@ -45,6 +45,7 @@ target_sources(kolfprivate PRIVATE
     online/onlinewidget.cpp
     online/playerprofileeditor.cpp
     ui/homeview.cpp
+    ui/settingsdialog.cpp
     net/networkclient.cpp
     replication/snapshot.cpp
     replication/presentationcontroller.cpp

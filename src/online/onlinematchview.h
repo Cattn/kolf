@@ -22,6 +22,7 @@ public:
     Session::SessionController *startMatch(const QJsonObject &config, Net::NetworkClient *network);
     void finishMatch();
     bool confirmHostActions() const;
+    void setConfirmHostActions(bool confirm);
     QJsonObject uiSnapshot() const;
 
 Q_SIGNALS:

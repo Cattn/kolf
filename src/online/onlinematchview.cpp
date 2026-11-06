@@ -278,6 +278,12 @@ bool OnlineMatchView::confirmHostActions() const
     return m_confirmHostActions->isChecked();
 }
 
+void OnlineMatchView::setConfirmHostActions(bool confirm)
+{
+    const QSignalBlocker blocker(m_confirmHostActions);
+    m_confirmHostActions->setChecked(confirm);
+}
+
 void OnlineMatchView::showNotice(const QString &notice)
 {
     m_notice->setText(notice);

@@ -3,6 +3,9 @@
 
 #include <KXmlGuiWindow>
 #include <KActionCollection>
+#include <KPageDialog>
+#include <KPageView>
+#include <KPageWidgetModel>
 #include <KConfigGroup>
 #include <KSharedConfig>
 
@@ -16,6 +19,7 @@
 #include <QJsonObject>
 #include <QKeyEvent>
 #include <QKeySequence>
+#include <QMenu>
 #include <QStandardPaths>
 #include <QTimer>
 
@@ -149,6 +153,30 @@ bool UiScript::runStep(const QJsonObject &step, QString &error)
             QKeyEvent release(QEvent::KeyRelease, combination.key(), combination.keyboardModifiers());
             QCoreApplication::sendEvent(receiver, &release);
         });
+    }
+    if (step.contains(QStringLiteral("openMenu"))) {
+        const auto name = step.value(QStringLiteral("openMenu")).toString();
+        auto *menu = m_mainWindow ? m_mainWindow->findChild<QMenu *>(name) : nullptr;
+        if (!menu) { error = QStringLiteral("no menu named %1").arg(name); return false; }
+        QTimer::singleShot(0, menu, [menu, window = m_mainWindow] {
+            if (window) menu->popup(window->mapToGlobal(QPoint(40, 40)));
+        });
+    }
+    if (step.contains(QStringLiteral("closeMenu"))) {
+        auto *menu = m_mainWindow ? m_mainWindow->findChild<QMenu *>(step.value(QStringLiteral("closeMenu")).toString()) : nullptr;
+        if (menu) menu->hide();
+    }
+    if (step.contains(QStringLiteral("page"))) {
+        const auto name = step.value(QStringLiteral("page")).toString();
+        auto *dialog = qobject_cast<KPageDialog *>(QApplication::activeModalWidget());
+        auto *model = dialog ? qobject_cast<KPageWidgetModel *>(dialog->findChild<KPageView *>()->model()) : nullptr;
+        KPageWidgetItem *match = nullptr;
+        for (int row = 0; model && row < model->rowCount() && !match; ++row) {
+            auto *item = model->item(model->index(row, 0));
+            if (item && item->name() == name) match = item;
+        }
+        if (!match) { error = QStringLiteral("no settings page named %1").arg(name); return false; }
+        dialog->setCurrentPage(match);
     }
     if (step.contains(QStringLiteral("resize"))) {
         const auto size = step.value(QStringLiteral("resize")).toArray();

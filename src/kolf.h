@@ -64,6 +64,7 @@ protected:
 protected Q_SLOTS:
 	void startNewGame();
 	void launchGame(int firstHole);
+	void setCourseEditingActionsVisible(bool visible);
 	void loadGame();
 	void tutorial();
 	void showOnline();
@@ -98,6 +99,7 @@ protected Q_SLOTS:
 	void soundChanged(bool);
 	void showHighScores();
 	void enableAllMessages();
+	void showSettings();
 	void createSpacer();
 
 	void emptySlot() {}

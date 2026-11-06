@@ -25,6 +25,7 @@
 #include "obstacles.h"
 #include "online/onlinematchview.h"
 #include "ui/homeview.h"
+#include "ui/settingsdialog.h"
 #include "online/onlinewidget.h"
 #include "scoreboard.h"
 #include "session/sessioncontroller.h"
@@ -64,11 +65,8 @@
 
 static QAction *goMenuAction(QMenuBar *bar)
 {
-	for (auto *action : bar->actions())
-		if (action->objectName() == QLatin1String("go_course")
-			|| (action->menu() && action->menu()->objectName() == QLatin1String("go_course")))
-			return action;
-	return nullptr;
+	auto *menu = bar->findChild<QMenu *>(QStringLiteral("go_course"));
+	return menu ? menu->menuAction() : nullptr;
 }
 
 KolfWindow::KolfWindow()
@@ -111,6 +109,7 @@ KolfWindow::KolfWindow()
 	connect(homeView, &Kolf::Ui::HomeView::tutorialRequested, this, &KolfWindow::tutorial);
 	connect(homeView, &Kolf::Ui::HomeView::continueRequested, this, &KolfWindow::continueGame);
 
+	setCourseEditingActionsVisible(false);
 	resize(420, 480);
 }
 
@@ -124,7 +123,7 @@ void KolfWindow::setupActions()
 	newAction = KGameStandardAction::gameNew(this, &KolfWindow::newGame, actionCollection());
 	onlineAction = actionCollection()->addAction(QStringLiteral("online"));
 	onlineAction->setIcon(QIcon::fromTheme(QStringLiteral("network-connect")));
-	onlineAction->setText(i18nc("@action", "&Online…"));
+	onlineAction->setText(i18nc("@action", "Play &Online…"));
 	connect(onlineAction, &QAction::triggered, this, &KolfWindow::showOnline);
 	onlineResyncAction = actionCollection()->addAction(QStringLiteral("online_resync"));
 	onlineResyncAction->setIcon(QIcon::fromTheme(QStringLiteral("view-refresh")));
@@ -140,9 +139,9 @@ void KolfWindow::setupActions()
 	connect(homeAction, &QAction::triggered, this, &KolfWindow::returnHome);
 	KGameStandardAction::quit(this, &KolfWindow::close, actionCollection());
 
-	saveAction = actionCollection()->addAction(KStandardAction::Save, QStringLiteral("game_save"), this, &KolfWindow::save);
+	saveAction = actionCollection()->addAction(KStandardAction::Save, QStringLiteral("course_save"), this, &KolfWindow::save);
 	saveAction->setText(i18nc("@action", "Save &Course"));
-	saveAsAction = actionCollection()->addAction(KStandardAction::SaveAs, QStringLiteral("game_save_as"), this, &KolfWindow::saveAs);
+	saveAsAction = actionCollection()->addAction(KStandardAction::SaveAs, QStringLiteral("course_save_as"), this, &KolfWindow::saveAs);
 	saveAsAction->setText(i18nc("@action", "Save &Course As…"));
 
 	saveGameAction = actionCollection()->addAction(QStringLiteral("savegame"));
@@ -156,22 +155,22 @@ void KolfWindow::setupActions()
 	highScoreAction = KGameStandardAction::highscores(this, &KolfWindow::showHighScores, actionCollection());
 
 	// Hole
-	editingAction = new KToggleAction(QIcon::fromTheme( QStringLiteral( "document-properties") ), i18nc("@option:check", "&Edit"), this);
+	editingAction = new KToggleAction(QIcon::fromTheme( QStringLiteral( "document-properties") ), i18nc("@option:check", "&Edit Course"), this);
 	actionCollection()->addAction(QStringLiteral("editing"), editingAction);
 	connect(editingAction, &QAction::triggered, this, &KolfWindow::emptySlot);
 	KActionCollection::setDefaultShortcut(editingAction, Qt::CTRL|Qt::Key_E);
 	newHoleAction = actionCollection()->addAction(QStringLiteral("newhole"));
 	newHoleAction->setIcon(QIcon::fromTheme( QStringLiteral( "document-new" )));
-	newHoleAction->setText(i18nc("@action", "&New"));
+	newHoleAction->setText(i18nc("@action", "&New Hole"));
 	connect(newHoleAction, &QAction::triggered, this, &KolfWindow::emptySlot);
 	KActionCollection::setDefaultShortcut(newHoleAction, Qt::CTRL|Qt::SHIFT|Qt::Key_N);
 	clearHoleAction = actionCollection()->addAction(QStringLiteral("clearhole"));
 	clearHoleAction->setIcon(QIcon::fromTheme( QStringLiteral( "edit-clear-locationbar-ltr" )));
-	clearHoleAction->setText(KStandardGuiItem::clear().text());
+	clearHoleAction->setText(i18nc("@action", "&Clear Hole"));
 	connect(clearHoleAction, &QAction::triggered, this, &KolfWindow::emptySlot);
 	KActionCollection::setDefaultShortcut(clearHoleAction, Qt::CTRL|Qt::Key_Delete);
 	resetHoleAction = actionCollection()->addAction(QStringLiteral("resethole"));
-	resetHoleAction->setText(i18nc("@action", "&Reset"));
+	resetHoleAction->setText(i18nc("@action", "&Reset Hole"));
 	connect(resetHoleAction, &QAction::triggered, this, &KolfWindow::emptySlot);
 	KActionCollection::setDefaultShortcut(resetHoleAction, Qt::CTRL|Qt::Key_R);
 	undoShotAction = KStandardAction::undo(this, &KolfWindow::emptySlot, this);
@@ -184,7 +183,7 @@ void KolfWindow::setupActions()
 	//replayShotAction = new QAction(i18nc("@action", "&Replay Shot"), 0, this, SLOT(emptySlot()), actionCollection(), "replay");
 
 	// Go
-	holeAction = new KSelectAction(i18nc("@title:menu", "Switch to Hole"), this);
+	holeAction = new KSelectAction(i18nc("@title:menu", "&Hole Number"), this);
 	actionCollection()->addAction(QStringLiteral("switchhole"), holeAction);
 	connect(holeAction, &QAction::triggered, this, &KolfWindow::emptySlot);
 	nextAction = actionCollection()->addAction(QStringLiteral("nexthole"));
@@ -238,9 +237,7 @@ void KolfWindow::setupActions()
 	connect(showGuideLineAction, &QAction::toggled, this, &KolfWindow::showGuideLineChanged);
 	showGuideLineAction->setChecked(configGroup.readEntry("showGuideLine", true));
 
-	auto *act = new KToggleAction(i18nc("@option:check", "Enable All Dialog Boxes"), this);
-	actionCollection()->addAction(QStringLiteral("enableAll"), act);
-	connect(act, &QAction::triggered, this, &KolfWindow::enableAllMessages);
+	KStandardAction::preferences(this, &KolfWindow::showSettings, actionCollection());
 
 	soundAction = new KToggleAction(QIcon::fromTheme(QStringLiteral("speaker")),
 	                                i18nc("@option:check", "Play Sounds"), this);
@@ -253,7 +250,7 @@ void KolfWindow::setupActions()
 	aboutAction->setText(i18nc("@action", "&About Course"));
 	connect(aboutAction, &QAction::triggered, this, &KolfWindow::emptySlot);
 	tutorialAction = actionCollection()->addAction(QStringLiteral("tutorial"));
-	tutorialAction->setText(i18nc("@action", "&Tutorial"));
+	tutorialAction->setText(i18nc("@action", "&How to Play"));
 	connect(tutorialAction, &QAction::triggered, this, &KolfWindow::tutorial);
 
 	setupGUI();
@@ -1088,6 +1085,7 @@ void KolfWindow::editingStarted()
 
 	clearHoleAction->setEnabled(true);
 	newHoleAction->setEnabled(true);
+	setCourseEditingActionsVisible(true);
 	setHoleOtherEnabled(false);
 
 	game->setFocus();
@@ -1103,6 +1101,7 @@ void KolfWindow::editingEnded()
 
 	clearHoleAction->setEnabled(false);
 	newHoleAction->setEnabled(false);
+	setCourseEditingActionsVisible(false);
 	setHoleOtherEnabled(true);
 
 	if (game)
@@ -1214,6 +1213,53 @@ void KolfWindow::soundChanged(bool yes)
 void KolfWindow::enableAllMessages()
 {
 	KMessageBox::enableAllMessages();
+}
+
+void KolfWindow::setCourseEditingActionsVisible(bool visible)
+{
+	for (QAction *action : {newHoleAction, clearHoleAction, saveAction, saveAsAction})
+		action->setVisible(visible);
+}
+
+void KolfWindow::showSettings()
+{
+	KConfigGroup online(KSharedConfig::openConfig(), QStringLiteral("Online"));
+	Kolf::Ui::Preferences current;
+	current.advancedPutting = useAdvancedPuttingAction->isChecked();
+	current.useMouse = useMouseAction->isChecked();
+	current.confirmLeaveGame = KMessageBox::shouldBeShownContinue(QStringLiteral("confirmReturnToMainMenu"));
+	current.showInfo = showInfoAction->isChecked();
+	current.showGuideLine = showGuideLineAction->isChecked();
+	current.sound = soundAction->isChecked();
+	current.confirmHostActions = online.readEntry("confirmHostActions", true);
+	current.onlineName = online.readEntry("displayName", QStringLiteral("Player"));
+	current.onlineColorMode = online.readEntry("colorMode", QStringLiteral("auto"));
+	current.onlineCustomColor = online.readEntry("customColor", QStringLiteral("#0072b2ff"));
+
+	QPointer<Kolf::Ui::SettingsDialog> dialog = new Kolf::Ui::SettingsDialog(current, this);
+	connect(dialog, &Kolf::Ui::SettingsDialog::resetMessagesRequested, this, &KolfWindow::enableAllMessages);
+	if (dialog->exec() == QDialog::Accepted && dialog) {
+		const auto chosen = dialog->preferences();
+		useAdvancedPuttingAction->setChecked(chosen.advancedPutting);
+		useMouseAction->setChecked(chosen.useMouse);
+		showInfoAction->setChecked(chosen.showInfo);
+		showGuideLineAction->setChecked(chosen.showGuideLine);
+		soundAction->setChecked(chosen.sound);
+		if (chosen.confirmLeaveGame)
+			KMessageBox::enableMessage(QStringLiteral("confirmReturnToMainMenu"));
+		else
+			KMessageBox::saveDontShowAgainContinue(QStringLiteral("confirmReturnToMainMenu"));
+		online.writeEntry("confirmHostActions", chosen.confirmHostActions);
+		online.writeEntry("displayName", chosen.onlineName);
+		online.writeEntry("colorMode", chosen.onlineColorMode);
+		online.writeEntry("customColor", chosen.onlineCustomColor);
+		online.sync();
+		if (onlineWidget)
+			onlineWidget->setProfile(chosen.onlineName, chosen.onlineColorMode, chosen.onlineCustomColor);
+		if (onlineMatchView)
+			onlineMatchView->setConfirmHostActions(chosen.confirmHostActions);
+	}
+	delete dialog;
 }
 
 void KolfWindow::setCurrentHole(int hole)
