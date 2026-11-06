@@ -2,6 +2,7 @@
 #include "settingsdialog.h"
 
 #include "online/playerprofileeditor.h"
+#include "online/serversettings.h"
 
 #include <KLocalizedString>
 
@@ -104,6 +105,9 @@ SettingsDialog::SettingsDialog(const Preferences &preferences, QWidget *parent)
     onlineLayout->addStretch();
     addSettingsPage(this, online, i18n("Online"), i18n("Playing with friends over the internet"), QStringLiteral("network-connect"));
 
+    m_servers = new Online::ServerSettingsPage(preferences.servers, this);
+    addSettingsPage(this, m_servers, i18n("Servers"), i18n("Where online games are hosted"), QStringLiteral("network-server"));
+
     (preferences.advancedPutting ? m_advancedPutting : m_simplePutting)->setChecked(true);
     m_useMouse->setChecked(preferences.useMouse);
     m_confirmLeave->setChecked(preferences.confirmLeaveGame);
@@ -147,5 +151,6 @@ Preferences SettingsDialog::preferences() const
     result.onlineName = m_profile->playerName();
     result.onlineColorMode = m_profile->colorMode();
     result.onlineCustomColor = m_profile->customColor();
+    result.servers = m_servers->serverList();
     return result;
 }

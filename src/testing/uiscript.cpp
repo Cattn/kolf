@@ -18,6 +18,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QKeyEvent>
+#include <QLineEdit>
 #include <QKeySequence>
 #include <QMenu>
 #include <QStandardPaths>
@@ -142,6 +143,13 @@ bool UiScript::runStep(const QJsonObject &step, QString &error)
             error = QStringLiteral("button %1 is missing, hidden, or disabled").arg(name); return false;
         }
         QTimer::singleShot(0, button, &QAbstractButton::click);
+    }
+    if (step.contains(QStringLiteral("type"))) {
+        auto *edit = qobject_cast<QLineEdit *>(target(step.value(QStringLiteral("into")).toString(QStringLiteral("focus"))));
+        if (!edit || !edit->isVisible() || !edit->isEnabled()) { error = QStringLiteral("no editable field to type into"); return false; }
+        edit->setFocus();
+        edit->selectAll();
+        edit->insert(step.value(QStringLiteral("type")).toString());
     }
     if (step.contains(QStringLiteral("clickText"))) {
         const auto text = step.value(QStringLiteral("clickText")).toString();

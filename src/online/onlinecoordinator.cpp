@@ -277,7 +277,7 @@ void OnlineCoordinator::receive(const QJsonObject &message)
         const auto logDirectory = QDir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation))
             .filePath(QStringLiteral("online/%1").arg(m_matchId));
         Q_EMIT statusChanged(tr("Every member verified the course. Loading the match scene…"));
-        Q_EMIT matchPrepared({{QStringLiteral("protocolVersion"), 3}, {QStringLiteral("endpoint"), m_endpoint},
+        Q_EMIT matchPrepared({{QStringLiteral("protocolVersion"), Session::onlineProtocolVersion}, {QStringLiteral("endpoint"), m_endpoint},
             {QStringLiteral("lobbyId"), m_lobbyId}, {QStringLiteral("matchId"), m_matchId},
             {QStringLiteral("course"), m_coursePath}, {QStringLiteral("roster"), roster},
             {QStringLiteral("courseSource"), match.value(QStringLiteral("course")).toObject().value(QStringLiteral("source"))},

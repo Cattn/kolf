@@ -1417,6 +1417,7 @@ void KolfWindow::showSettings()
 	current.onlineName = online.readEntry("displayName", QStringLiteral("Player"));
 	current.onlineColorMode = online.readEntry("colorMode", QStringLiteral("auto"));
 	current.onlineCustomColor = online.readEntry("customColor", QStringLiteral("#0072b2ff"));
+	current.servers = Kolf::Online::ServerList::load(online);
 
 	QPointer<Kolf::Ui::SettingsDialog> dialog = new Kolf::Ui::SettingsDialog(current, this);
 	connect(dialog, &Kolf::Ui::SettingsDialog::resetMessagesRequested, this, &KolfWindow::enableAllMessages);
@@ -1435,9 +1436,12 @@ void KolfWindow::showSettings()
 		online.writeEntry("displayName", chosen.onlineName);
 		online.writeEntry("colorMode", chosen.onlineColorMode);
 		online.writeEntry("customColor", chosen.onlineCustomColor);
+		chosen.servers.save(online);
 		online.sync();
-		if (onlineWidget)
+		if (onlineWidget) {
 			onlineWidget->setProfile(chosen.onlineName, chosen.onlineColorMode, chosen.onlineCustomColor);
+			onlineWidget->serversChanged();
+		}
 		if (onlineMatchView)
 			onlineMatchView->setConfirmHostActions(chosen.confirmHostActions);
 	}

@@ -129,6 +129,7 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
     m_recentServers = new QComboBox(m_serverControls);
     m_recentServers->setObjectName(QStringLiteral("onlineServerList"));
     m_recentServers->setAccessibleName(i18n("Saved servers"));
+    m_recentServers->setSizeAdjustPolicy(QComboBox::AdjustToContents);
     serverLayout->addRow(i18nc("@label", "Saved:"), m_recentServers);
     m_endpoint = new QLineEdit(m_serverControls);
     m_endpoint->setObjectName(QStringLiteral("onlineAddress"));
@@ -384,6 +385,15 @@ void OnlineWidget::reloadServers()
         m_recentServers->addItem(server.name, server.url);
     }
     m_defaultServer = list.defaultUrl();
+}
+
+void OnlineWidget::serversChanged()
+{
+    reloadServers();
+    if (m_connectionState != ConnectionState::Connected && m_connectionState != ConnectionState::Connecting
+        && m_sessionServer.isEmpty())
+        m_endpoint->setText(m_defaultServer);
+    setConnectionState(m_connectionState);
 }
 
 void OnlineWidget::enterOnline()

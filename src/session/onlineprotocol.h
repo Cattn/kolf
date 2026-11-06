@@ -6,6 +6,8 @@
 #include <QString>
 
 namespace Kolf::Session {
+constexpr int onlineProtocolVersion = 3;
+
 struct OnlineEnvelope {
     QString type;
     QString requestId;

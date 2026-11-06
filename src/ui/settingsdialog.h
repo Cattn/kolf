@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
 
+#include "online/serverlist.h"
+
 #include <KPageDialog>
 
 class QCheckBox;
 class QRadioButton;
-namespace Kolf::Online { class PlayerProfileEditor; }
+namespace Kolf::Online { class PlayerProfileEditor; class ServerSettingsPage; }
 
 namespace Kolf::Ui {
 struct Preferences {
@@ -19,6 +21,7 @@ struct Preferences {
     QString onlineName;
     QString onlineColorMode;
     QString onlineCustomColor;
+    Online::ServerList servers;
 };
 
 class SettingsDialog : public KPageDialog {
@@ -41,5 +44,6 @@ private:
     QCheckBox *m_sound;
     QCheckBox *m_confirmHostActions;
     Online::PlayerProfileEditor *m_profile;
+    Online::ServerSettingsPage *m_servers;
 };
 }

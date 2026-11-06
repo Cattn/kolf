@@ -33,6 +33,7 @@ public:
     Net::NetworkClient *networkClient() { return m_coordinator.networkClient(); }
     OnlineCoordinator &coordinator() { return m_coordinator; }
     void setEndpointAddress(const QString &endpoint);
+    void serversChanged();
     void setProfile(const QString &name, const QString &colorMode, const QString &customColor);
     QString profileName() const;
     QString profileColorMode() const;

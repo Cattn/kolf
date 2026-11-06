@@ -40,7 +40,7 @@ bool decodeOnlineEnvelope(const QByteArray &raw, OnlineEnvelope &envelope, QStri
     }
     const auto object = document.object();
     const auto version = object.value(QStringLiteral("protocolVersion"));
-    if (!version.isDouble() || version.toDouble() != 3.0) {
+    if (!version.isDouble() || version.toDouble() != onlineProtocolVersion) {
         errorCode = QStringLiteral("UnsupportedProtocol");
         return false;
     }
@@ -65,7 +65,7 @@ bool decodeOnlineEnvelope(const QByteArray &raw, OnlineEnvelope &envelope, QStri
 QJsonObject onlineEnvelope(const QString &type, const QJsonObject &payload, const QString &requestId,
                        const QString &lobbyId, const QString &matchId)
 {
-    QJsonObject message{{QStringLiteral("protocolVersion"), 3}, {QStringLiteral("type"), type},
+    QJsonObject message{{QStringLiteral("protocolVersion"), onlineProtocolVersion}, {QStringLiteral("type"), type},
                         {QStringLiteral("payload"), payload}};
     if (!requestId.isEmpty()) message[QStringLiteral("requestId")] = requestId;
     if (!lobbyId.isEmpty()) message[QStringLiteral("lobbyId")] = lobbyId;
