@@ -317,6 +317,14 @@ try {
     assert(!rematch.evidence.visibleText.includes('(skipped)'), 'rematch Results do not inherit the partial label');
     assert(rematch.log.every(event => event.state?.holeGeneration <= 2 || !event.state),
       'rematch did not replay scripted host actions');
+    const rematchGuest = runs[1].find(run => run.evidence.result.matchId === rematch.evidence.result.matchId);
+    for (const [role, run] of [['host', rematch], ['guest', rematchGuest]] as const) {
+      assert(run && run.ui.length > 0, `${role} recorded rematch UI state`);
+      assert.equal(run.ui[0].controlsEnabled, false, `${role} rematch started with Host Controls off`);
+      assert.equal(run.ui[0].votingEnabled, true, `${role} rematch started with Allow Voting on`);
+      assert.equal(run.ui[0].proposalActive, false, `${role} rematch started without a proposal`);
+      assert(run.ui.every(state => !state.controlsEnabled), `${role} rematch did not inherit enabled Host Controls`);
+    }
   }
   if (scenario.startsWith('host-proposal-')) {
     const logs = Array.from({ length: clientCount }, (_, client) => events(sessionDirectories(client)[0]));

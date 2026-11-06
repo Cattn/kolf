@@ -201,6 +201,23 @@ describes the earlier source. Rolling-ball attempts, disconnect recovery,
 visible three-member/four-player owner identity, expiry and withdrawal in a
 visible match, and the bounded offline save/reload check also remain **not run**.
 
+### Phase 0 resolution of the open items above (6 November 2026)
+
+The open items were settled by automation, or dropped where Phase 1 replaces
+the UI involved. Source: `multi-proto` after `5fc70d3`, Windows, Craft
+MSVC 2022, fixture `static.kolf`.
+
+| Item | Resolution | Result |
+| --- | --- | --- |
+| Rolling-ball attempts | Server test *host actions are unavailable while a shot is pending, synchronizing, or rolling*. Every action family is rejected with "match is busy" and nothing else is delivered | **passed** |
+| Expiry, withdrawal, and busy phase | Existing server test *proposal expiry, voting disable, busy state, and stale revision…* with a fake clock | **passed** |
+| Random and other Go destinations, final-hole Skip | Server tests (*random Go…*, *owner skip… can finish the last hole*) plus the native `host-go` and `host-skip` runs. The visible Results label is dropped because Phase 1 replaces Results | **passed** |
+| Rematch defaults | New `host-combined` assertions: both clients start the rematch with Host Controls off, Allow Voting on, no proposal, and controls never re-enabled | **passed** |
+| Three-member/four-player owner identity | Server test with roster `[a, b, a]` plus the native `host-proposal-four-player` run. The visible panel check is dropped because Phase 1 replaces the panel | **passed** |
+| Disconnect recovery during host actions | Superseded by Phase 2 reconnect/resume, which has its own native fault tests. Current behaviour (honest interruption) is unchanged | dropped |
+| Match-controls panel polish and the preference toggle | Dropped because Phase 1 replaces the panel with the Match menu and request notifications | dropped |
+| Offline normal/advanced shot plus save/close/reload | Still needs a person; see *One bounded offline regression* below | **not run** |
+
 ## One Slope Practise visual pass
 
 Select **Slope Practise** in the lobby. Before starting, turn on **Hole > Show

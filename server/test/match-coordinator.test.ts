@@ -538,3 +538,55 @@ test('a later hole uses its own client-verified scene manifest', () => {
   assert.equal(applied.interruptedReason, undefined);
   assert(applied.deliveries.every(delivery => delivery.message.type === 'InputReady'));
 });
+
+test('host actions are unavailable while a shot is pending, synchronizing, or rolling', () => {
+  const members = ['member_a', 'member_b'];
+  const coordinator = new MatchCoordinator(lobbyState(members));
+  let syncId = open(coordinator, members, state(2, 1));
+  coordinator.receive('member_a', scoped('SetHostControls', {
+    commandId: 'enable_busy', stateRevision: 1, syncId, enabled: true,
+  }));
+  const actions = [
+    { action: 'resetHole' }, { action: 'undoShot' }, { action: 'skipHole' },
+    { action: 'goNext' }, { action: 'goRandom' }, { action: 'goToHole', targetHole: 3 },
+  ];
+  const expectBusy = (stage: string, stateRevision: number) => {
+    for (const request of actions) {
+      const progress = coordinator.receive('member_a', scoped('HostAction', {
+        ...request, commandId: `${stage}_${request.action}`, stateRevision, syncId, holeGeneration: 1,
+      }));
+      assert.equal(progress.deliveries.length, 1, `${stage} ${request.action} delivers only a rejection`);
+      assert.equal(progress.deliveries[0].message.type, 'HostControlRejected');
+      assert.equal(progress.deliveries[0].message.payload.reason, 'match is busy', `${stage} ${request.action}`);
+    }
+  };
+
+  coordinator.receive('member_b', scoped('SubmitShot', { commandId: 'rolling_shot', playerId: 'player_1',
+    holeGeneration: 1, turnId: 1, puttingMode: 'normal', directionRadians: 0, launchMagnitude: 1 }));
+  expectBusy('pending', 1);
+
+  coordinator.receive('member_a', scoped('ShotAccepted', { commandId: 'rolling_shot' }));
+  const simulating = coordinator.receive('member_a', scoped('CommitTransition', {
+    state: { ...state(2, 1), stateRevision: 2, phase: 'Simulating' },
+  }));
+  syncId = simulating.deliveries.find(d => d.message.type === 'TransitionCommitted')!.message.payload.syncId as number;
+  expectBusy('barrier', 2);
+
+  for (const member of members) coordinator.receive(member, scoped('StateApplied', {
+    stateRevision: 2, syncId, manifestHash: compatibilityId,
+  }));
+  expectBusy('rolling', 2);
+
+  const settled = coordinator.receive('member_a', scoped('CommitTransition', {
+    state: { ...state(2), stateRevision: 3, turnId: 2, scores: [[0], [1]] },
+  }));
+  syncId = settled.deliveries.find(d => d.message.type === 'TransitionCommitted')!.message.payload.syncId as number;
+  for (const member of members) coordinator.receive(member, scoped('StateApplied', {
+    stateRevision: 3, syncId, manifestHash: compatibilityId,
+  }));
+  const reset = coordinator.receive('member_a', scoped('HostAction', {
+    commandId: 'settled_reset', action: 'resetHole', stateRevision: 3, syncId, holeGeneration: 1,
+  }));
+  assert.equal(reset.deliveries.filter(d => d.message.type === 'AdmitHostAction').length, 1,
+    'the same action is admitted once the shot settles');
+});
