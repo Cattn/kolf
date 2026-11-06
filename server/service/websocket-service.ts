@@ -16,12 +16,14 @@ import { defaultServerInfo } from './server-info.ts';
 import type { ServerInfo } from './server-info.ts';
 import { AddressCounter, AttemptThrottle, clientAddress, DEFAULT_ABUSE_LIMITS, parseTrustedProxies, TokenBucket } from './abuse-guard.ts';
 import type { AbuseLimits } from './abuse-guard.ts';
+import { logDeliveries, requestType, silentLogger } from './logger.ts';
+import type { Logger } from './logger.ts';
 import type { IncomingMessage } from 'node:http';
 import type { BlockList } from 'node:net';
 
 interface Options {
   host?: string; port?: number; catalog: CourseCatalogEntry[]; limits?: Partial<ServiceLimits>; info?: ServerInfo;
-  abuse?: Partial<AbuseLimits>; trustedProxies?: string; now?: () => number;
+  abuse?: Partial<AbuseLimits>; trustedProxies?: string; now?: () => number; log?: Logger; debugLog?: boolean;
 }
 
 /** Thin WebSocket transport for the bounded v3 room registry. */
@@ -41,15 +43,20 @@ export class LobbyWebSocketService {
   private readonly trustedProxies: BlockList;
   private readonly addresses: AddressCounter;
   private readonly joinFailures: AttemptThrottle;
+  private readonly log: Logger;
+  private readonly debugLog: boolean;
 
   constructor(options: Options) {
     const info = options.info ?? defaultServerInfo();
     this.now = options.now ?? (() => Date.now());
+    this.log = options.log ?? silentLogger;
+    this.debugLog = options.debugLog ?? false;
     this.abuse = { ...DEFAULT_ABUSE_LIMITS, ...options.abuse };
     this.trustedProxies = parseTrustedProxies(options.trustedProxies);
     this.addresses = new AddressCounter(this.abuse.maximumConnectionsPerAddress);
     this.joinFailures = new AttemptThrottle(this.abuse.joinFailuresPerWindow, this.abuse.joinFailureWindowMs, this.now);
     this.controller = new LobbyProtocolController(options.catalog, undefined, this.now, options.limits, info);
+    this.controller.log = this.log; this.controller.debugLog = this.debugLog;
     this.server = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES, perMessageDeflate: false });
     this.server.on('connection', (socket: WebSocket, request: IncomingMessage) => this.accept(socket, request));
     this.http = createServer((request, response) => handleHttpRequest(request, response, {
@@ -70,7 +77,7 @@ export class LobbyWebSocketService {
       this.http.once('error', reject);
     });
     this.http.listen(options.port ?? 0, options.host ?? '127.0.0.1');
-    this.matchTimer = setInterval(() => { this.deliver(this.controller.tick()); this.joinFailures.prune(); }, 250);
+    this.matchTimer = setInterval(() => { this.deliver(this.observed(this.controller.tick())); this.joinFailures.prune(); }, 250);
     this.frameTimer = setInterval(() => this.flushVisual(), 30);
   }
 
@@ -121,6 +128,7 @@ export class LobbyWebSocketService {
   private accept(socket: WebSocket, request: IncomingMessage) {
     const address = clientAddress(request, this.trustedProxies);
     if (!this.addresses.acquire(address)) {
+      this.log('connection.rejected', { code: 'TooManyConnections', address: this.debugLog ? address : undefined });
       this.reject(socket, 'TooManyConnections', 'too many connections from this address');
       socket.close(1013, 'too many connections'); return;
     }
@@ -129,6 +137,7 @@ export class LobbyWebSocketService {
     catch (error) {
       this.addresses.release(address);
       if (!(error instanceof LobbyError) || error.code !== 'ServiceFull') throw error;
+      this.log('connection.rejected', { code: error.code });
       this.reject(socket, error.code, error.message);
       socket.close(1013, 'service full'); return;
     }
@@ -143,14 +152,25 @@ export class LobbyWebSocketService {
     socket.on('pong', () => { live = true; });
     socket.on('message', (data, binary) => {
       if (binary) { socket.close(1003, 'text JSON required'); return; }
-      if (!bucket.take()) { socket.close(1008, 'rate limit'); return; }
+      if (!bucket.take()) {
+        if (socket.readyState === WebSocket.OPEN) this.log('connection.closed', { code: 'RateLimited' });
+        socket.close(1008, 'rate limit'); return;
+      }
       const text = data.toString();
       const joinRequestId = this.joinRequestId(text);
       if (joinRequestId !== undefined && this.joinFailures.blocked(address)) {
+        this.log('request.rejected', { type: 'JoinLobby', code: 'TooManyAttempts' });
         this.reject(socket, 'TooManyAttempts', 'too many join attempts; wait a minute and try again', joinRequestId || undefined);
         return;
       }
-      const deliveries = this.controller.receive(connectionId, text);
+      let deliveries: Delivery[];
+      try { deliveries = this.controller.receive(connectionId, text); }
+      catch (error) {
+        this.log('error', { where: 'receive', type: requestType(text), message: error instanceof Error ? error.message.slice(0, 200) : 'unknown' });
+        socket.close(1011, 'internal error'); return;
+      }
+      logDeliveries(this.log, deliveries.filter(delivery => delivery.connectionId === connectionId
+        || (delivery.message.type !== 'RequestRejected' && delivery.message.type !== 'UnsupportedProtocol')), requestType(text), this.debugLog);
       if (joinRequestId !== undefined && deliveries.some(delivery => delivery.connectionId === connectionId
         && delivery.message.type === 'RequestRejected' && delivery.message.payload.code === 'LobbyNotFound'))
         this.joinFailures.record(address);
@@ -163,8 +183,13 @@ export class LobbyWebSocketService {
       clearInterval(heartbeat);
       this.addresses.release(address);
       this.sockets.delete(connectionId); this.pendingVisual.delete(connectionId);
-      if (!this.stopping) this.deliver(this.controller.disconnect(connectionId));
+      if (!this.stopping) this.deliver(this.observed(this.controller.disconnect(connectionId)));
     });
+  }
+
+  private observed(deliveries: Delivery[]): Delivery[] {
+    logDeliveries(this.log, deliveries, undefined, this.debugLog);
+    return deliveries;
   }
 
   private joinRequestId(text: string): string | undefined {

@@ -3,6 +3,7 @@ import { basename, dirname, resolve } from 'node:path';
 import { loadCourseCatalog } from './service/course-catalog.ts';
 import { LobbyWebSocketService } from './service/websocket-service.ts';
 import { serverInfoFromEnvironment } from './service/server-info.ts';
+import { jsonLogger } from './service/logger.ts';
 
 const host = process.env.KOLF_BIND ?? '0.0.0.0';
 const port = Number(process.env.KOLF_PORT ?? 3011);
@@ -20,11 +21,14 @@ const limits = Object.fromEntries(Object.entries({
   maximumLobbies: limit('KOLF_MAX_LOBBIES'), maximumConnections: limit('KOLF_MAX_CONNECTIONS'),
 }).filter(([, value]) => value !== undefined));
 const info = serverInfoFromEnvironment();
+const log = jsonLogger();
+const debugLog = process.env.KOLF_LOG_DEBUG === '1';
 const catalog = testCourse
   ? loadCourseCatalog(dirname(resolve(testCourse)), [{ courseId: 'test', displayName: 'Automation fixture', fileName: basename(testCourse) }])
   : loadCourseCatalog(courseRoot);
-const service = new LobbyWebSocketService({ host, port, catalog, limits, info, trustedProxies: process.env.KOLF_TRUST_PROXY });
+const service = new LobbyWebSocketService({ host, port, catalog, limits, info, trustedProxies: process.env.KOLF_TRUST_PROXY, log, debugLog });
 await service.ready();
+log('service.started', { port, protocolVersion: 3, serverName: info.serverName, serverVersion: info.serverVersion, courses: catalog.length });
 console.log(JSON.stringify({ event: 'listening', endpoint: service.endpoint(), protocolVersion: 3,
   serverName: info.serverName, serverVersion: info.serverVersion,
   courses: catalog.map(course => ({ courseId: course.courseId, displayName: course.displayName,
@@ -33,13 +37,13 @@ console.log(JSON.stringify({ event: 'listening', endpoint: service.endpoint(), p
 const drainSeconds = Number(process.env.KOLF_DRAIN_SECONDS ?? 600);
 if (!Number.isFinite(drainSeconds) || drainSeconds < 0) throw Error('KOLF_DRAIN_SECONDS must be a non-negative number');
 let draining = false;
-const stopNow = async () => { await service.close(); };
+const stopNow = async () => { await service.close(); log('service.stopped'); };
 const drain = async () => {
   if (draining) { await stopNow(); return; }
   draining = true;
-  console.log(JSON.stringify({ event: 'draining', seconds: drainSeconds }));
+  log('service.draining', { seconds: drainSeconds });
   await service.drain(drainSeconds * 1000);
-  console.log(JSON.stringify({ event: 'stopped' }));
+  log('service.stopped');
 };
 process.on('SIGINT', stopNow);
 process.on('SIGTERM', drain);

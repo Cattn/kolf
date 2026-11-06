@@ -34,6 +34,15 @@ or not the lobby exists). Optional environment variables:
 | `KOLF_MAX_LOBBIES`, `KOLF_MAX_CONNECTIONS` | Override the limits (defaults 32 and 64) |
 | `KOLF_TRUST_PROXY` | Comma-separated proxy addresses or CIDR ranges whose `X-Forwarded-For` is trusted (for example `127.0.0.1` behind nginx) |
 
+| `KOLF_DRAIN_SECONDS` | How long running matches may continue after SIGTERM (default 600); a second SIGTERM or SIGINT stops at once |
+| `KOLF_LOG_DEBUG` | `1` adds client addresses and client-written reasons to logs (off by default) |
+
+The service logs JSON lines to stdout: `service.started/draining/stopped`,
+`lobby.created/closed` (with server reasons), `match.started/finished/interrupted`
+(with duration and player count), `request.rejected` (request type and code),
+`connection.rejected/closed`, and `error`. Logs contain random lobby and match
+IDs only: no display names, join codes, or addresses unless `KOLF_LOG_DEBUG=1`.
+
 Public-server limits: 8 connections per client address, a message rate of
 40 per second with bursts of 80 (flooding disconnects), 10 wrong join codes per
 address per minute, Open lobbies close after 30 minutes without activity,

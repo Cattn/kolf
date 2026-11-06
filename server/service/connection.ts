@@ -11,6 +11,8 @@ import type { Departure, ServiceLimits } from './lobby-registry.ts';
 import { MatchCoordinator } from './match-session.ts';
 import { defaultServerInfo, helloFields } from './server-info.ts';
 import type { ServerInfo } from './server-info.ts';
+import { safeReason, silentLogger } from './logger.ts';
+import type { Logger } from './logger.ts';
 import type { MatchProgress } from './match-session.ts';
 
 export interface Delivery { connectionId: ConnectionId; message: Envelope; visual?: boolean }
@@ -40,6 +42,8 @@ export class LobbyProtocolController {
 
   get connectionCount() { return this.connections.size; }
   get draining() { return this.drainDeadline !== undefined; }
+  log: Logger = silentLogger;
+  debugLog = false;
   private drainDeadline?: number;
 
   beginDrain(deadline: number): Delivery[] {
@@ -248,6 +252,7 @@ export class LobbyProtocolController {
   private departureDeliveries(departure: Departure | undefined, requestId?: string): Delivery[] {
     if (!departure) return [];
     if (departure.matchId) this.matches.delete(departure.matchId);
+    if (departure.closed) this.log('lobby.closed', { lobbyId: departure.lobbyId, reason: safeReason(departure.reason, this.debugLog) });
     const deliveries: Delivery[] = [];
     if (departure.activeMatchInterrupted && departure.state) {
       const payload = { state: publicState(departure.state), result: departure.state.latestResult } as JsonObject;
