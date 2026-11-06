@@ -32,6 +32,13 @@ or not the lobby exists). Optional environment variables:
 | `KOLF_PUBLIC_URL` | Public `https://` address used for invite links |
 | `KOLF_LATEST_CLIENT_VERSION`, `KOLF_LATEST_CLIENT_URL` | Advertise a client update (both required) |
 | `KOLF_MAX_LOBBIES`, `KOLF_MAX_CONNECTIONS` | Override the limits (defaults 32 and 64) |
+| `KOLF_TRUST_PROXY` | Comma-separated proxy addresses or CIDR ranges whose `X-Forwarded-For` is trusted (for example `127.0.0.1` behind nginx) |
+
+Public-server limits: 8 connections per client address, a message rate of
+40 per second with bursts of 80 (flooding disconnects), 10 wrong join codes per
+address per minute, Open lobbies close after 30 minutes without activity,
+matches are interrupted after 3 hours, and display names may not contain
+control, format, or separator characters.
 
 ## Windows build and local play
 

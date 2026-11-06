@@ -28,12 +28,14 @@ export class LobbyProtocolController {
   private readonly connections = new Set<ConnectionId>();
   private readonly matches = new Map<MatchId, MatchCoordinator>();
   private readonly ids: IdFactory;
+  private readonly now: () => number;
+  private readonly matchStartedAt = new Map<MatchId, number>();
 
   readonly info: ServerInfo;
 
   constructor(catalog: CourseCatalogEntry[], ids: IdFactory = cryptoIds, now = () => Date.now(),
     limits: Partial<ServiceLimits> = {}, info: ServerInfo = defaultServerInfo()) {
-    this.ids = ids; this.service = new LobbyRegistry(catalog, ids, now, limits); this.info = info;
+    this.ids = ids; this.now = now; this.service = new LobbyRegistry(catalog, ids, now, limits); this.info = info;
   }
 
   get connectionCount() { return this.connections.size; }
@@ -140,6 +142,7 @@ export class LobbyProtocolController {
               }
               if (result.allReady) {
                 const match = new MatchCoordinator(lobby.state()); this.matches.set(message.matchId!, match);
+                this.matchStartedAt.set(message.matchId!, this.now());
                 return [...this.broadcast(lobby.state(), 'PreparationReady', {}, requestId),
                   ...this.applyMatchProgress(lobby, match, match.start())];
               }
@@ -170,12 +173,20 @@ export class LobbyProtocolController {
   tick(): Delivery[] {
     const deliveries: Delivery[] = [];
     this.service.expireUploads();
+    for (const departure of this.service.expireIdleLobbies()) deliveries.push(...this.departureDeliveries(departure));
+    for (const matchId of [...this.matchStartedAt.keys()]) if (!this.matches.has(matchId)) this.matchStartedAt.delete(matchId);
     for (const match of [...this.matches.values()]) {
       let lobby;
       try { lobby = this.service.activeLobby(match.lobbyIdentity); }
       catch (error) {
         if (error instanceof LobbyError && error.code === 'LobbyNotFound') { this.matches.delete(match.matchId); continue; }
         throw error;
+      }
+      const startedAt = this.matchStartedAt.get(match.matchId);
+      if (startedAt !== undefined && this.now() - startedAt > this.service.limits.maximumMatchMs
+        && (lobby.phase === 'Preparing' || lobby.phase === 'Playing')) {
+        deliveries.push(...this.interrupt(lobby.lobbyId, match.matchId, 'The match reached the 3-hour limit.'));
+        continue;
       }
       deliveries.push(...this.applyMatchProgress(lobby, match, match.tick()));
     }

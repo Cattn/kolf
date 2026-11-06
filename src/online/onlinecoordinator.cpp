@@ -196,6 +196,8 @@ void OnlineCoordinator::receive(const QJsonObject &message)
             : code == QLatin1String("ServiceFull") ? tr("The server is full. Try again later or choose another server.")
             : code == QLatin1String("LobbyNotFound") ? tr("That join code was not found. Check the code and try again.")
             : code == QLatin1String("LobbyFull") ? tr("That lobby is full.")
+            : code == QLatin1String("TooManyAttempts") ? tr("Too many join attempts with the wrong code. Wait a minute and try again.")
+            : code == QLatin1String("TooManyConnections") ? tr("Too many Kolf windows are connected from your network. Close one and try again.")
             : payload.value(QStringLiteral("message")).toString(tr("The online request was rejected."));
         if (!m_downloadHash.isEmpty()) failPreparation(message);
         else {

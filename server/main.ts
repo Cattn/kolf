@@ -23,7 +23,7 @@ const info = serverInfoFromEnvironment();
 const catalog = testCourse
   ? loadCourseCatalog(dirname(resolve(testCourse)), [{ courseId: 'test', displayName: 'Automation fixture', fileName: basename(testCourse) }])
   : loadCourseCatalog(courseRoot);
-const service = new LobbyWebSocketService({ host, port, catalog, limits, info });
+const service = new LobbyWebSocketService({ host, port, catalog, limits, info, trustedProxies: process.env.KOLF_TRUST_PROXY });
 await service.ready();
 console.log(JSON.stringify({ event: 'listening', endpoint: service.endpoint(), protocolVersion: 3,
   serverName: info.serverName, serverVersion: info.serverVersion,

@@ -54,8 +54,9 @@ const revision = (value: unknown): value is number => Number.isSafeInteger(value
 const color = (value: unknown): value is string => typeof value === 'string' && /^#[0-9a-fA-F]{8}$/.test(value);
 const colorChoice = (p: JsonObject) => (p.colorMode === 'auto' && p.customColor === undefined)
   || (p.colorMode === 'custom' && color(p.customColor));
+const ZERO_WIDTH_JOINER = String.fromCharCode(0x200d);
 const displayName = (value: unknown): value is string => typeof value === 'string' && value === value.trim()
-  && [...value].length >= 1 && [...value].length <= 32 && !/[\u0000-\u001f\u007f]/u.test(value);
+  && [...value].length >= 1 && [...value].length <= 32 && !/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(value.replaceAll(ZERO_WIDTH_JOINER, ''));
 const reason = (value: unknown): value is string => typeof value === 'string' && value === value.trim()
   && value.length >= 1 && value.length <= 160;
 const playerIds = (value: unknown): value is string[] => Array.isArray(value) && value.length >= 1 && value.length <= 8

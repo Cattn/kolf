@@ -15,6 +15,8 @@ export interface ServiceLimits {
   maximumRequestCacheEntries: number;
   maximumMessageBytes: number;
   maximumRetainedOutboundBytes: number;
+  lobbyIdleMs: number;
+  maximumMatchMs: number;
 }
 export const DEFAULT_SERVICE_LIMITS: ServiceLimits = {
   maximumConnections: 64,
@@ -24,6 +26,8 @@ export const DEFAULT_SERVICE_LIMITS: ServiceLimits = {
   maximumRequestCacheEntries: 256,
   maximumMessageBytes: 512 * 1024,
   maximumRetainedOutboundBytes: 1024 * 1024,
+  lobbyIdleMs: 30 * 60 * 1000,
+  maximumMatchMs: 3 * 60 * 60 * 1000,
 };
 
 export interface Departure {
@@ -41,6 +45,7 @@ export class LobbyRegistry {
   private readonly lobbiesById = new Map<string, LobbySession>();
   private readonly lobbyIdByJoinCode = new Map<string, string>();
   private readonly membershipByConnection = new Map<ConnectionId, Membership>();
+  private readonly lastActivity = new Map<string, number>();
   private readonly requests: RequestCache;
   readonly catalog: CourseCatalogEntry[];
   readonly limits: ServiceLimits;
@@ -78,6 +83,7 @@ export class LobbyRegistry {
         maximumRequests: this.limits.maximumRequestCacheEntries,
       });
       this.lobbiesById.set(lobbyId, lobby); this.lobbyIdByJoinCode.set(joinCode, lobbyId);
+      this.lastActivity.set(lobbyId, this.now());
       this.membershipByConnection.set(connectionId, { lobbyId, memberId });
       return { memberId, state: lobby.state() };
     });
@@ -93,6 +99,7 @@ export class LobbyRegistry {
         playerId: this.ids.player(), ownerMemberId: memberId, order: lobby.playerCount, ...player,
       });
       this.membershipByConnection.set(connectionId, { lobbyId: lobby.lobbyId, memberId });
+      this.lastActivity.set(lobby.lobbyId, this.now());
       return { memberId, state };
     });
   }
@@ -101,6 +108,7 @@ export class LobbyRegistry {
     const membership = this.membershipByConnection.get(connectionId);
     const lobby = membership ? this.lobbiesById.get(membership.lobbyId) : undefined;
     if (!membership || !lobby || lobby.phase === 'Closed') throw new LobbyError('NotMember', 'connection is not in a lobby');
+    this.lastActivity.set(lobby.lobbyId, this.now());
     return { lobby, memberId: membership.memberId };
   }
 
@@ -137,8 +145,22 @@ export class LobbyRegistry {
     return { lobbyId: lobby.lobbyId, matchId, recipients, state: terminalState, closed: true, activeMatchInterrupted, reason };
   }
 
+  expireIdleLobbies(): Departure[] {
+    const departures: Departure[] = [];
+    const cutoff = this.now() - this.limits.lobbyIdleMs;
+    for (const lobby of [...this.lobbiesById.values()]) {
+      if (lobby.phase !== 'Open' || (this.lastActivity.get(lobby.lobbyId) ?? 0) > cutoff) continue;
+      const recipients = lobby.state().members.map(member => member.connectionId);
+      lobby.close(); this.removeLobby(lobby);
+      departures.push({ lobbyId: lobby.lobbyId, recipients, closed: true, activeMatchInterrupted: false,
+        reason: 'The lobby closed after 30 minutes without activity.' });
+    }
+    return departures;
+  }
+
   private removeLobby(lobby: LobbySession) {
     this.lobbiesById.delete(lobby.lobbyId); this.lobbyIdByJoinCode.delete(lobby.joinCode);
+    this.lastActivity.delete(lobby.lobbyId);
     for (const [connectionId, membership] of this.membershipByConnection)
       if (membership.lobbyId === lobby.lobbyId) this.membershipByConnection.delete(connectionId);
   }
