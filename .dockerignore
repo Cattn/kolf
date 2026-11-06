@@ -1,0 +1,6 @@
+*
+!server
+!courses
+server/node_modules
+server/local-session
+server/test

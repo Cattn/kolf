@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Runs the Kolf online server behind the host's nginx (see deploy/nginx/kolf.pro.conf).
+services:
+  kolf-server:
+    image: kolf-server:${KOLF_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    env_file: kolf.env
+    ports:
+      - "127.0.0.1:3011:3011"
+    stop_grace_period: 11m
+    read_only: true
+    tmpfs:
+      - /tmp
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "7"

@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Alternative to Docker: run the server with the host's Node (22.18 or newer).
+# Adjust User, WorkingDirectory, and the node path, then:
+#   sudo cp deploy/systemd/kolf-server.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now kolf-server
+[Unit]
+Description=Kolf online server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/kolf-server/server
+EnvironmentFile=/home/ubuntu/kolf-server/deploy/kolf.env
+Environment=KOLF_BIND=127.0.0.1 KOLF_PORT=3011 NODE_ENV=production
+ExecStart=/home/ubuntu/.nvm/versions/node/v24.22.1/bin/node main.ts
+KillSignal=SIGTERM
+TimeoutStopSec=660
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
