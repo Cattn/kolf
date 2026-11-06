@@ -27,6 +27,8 @@ public Q_SLOTS:
     void updatePlayer(const QString &playerId, const QString &displayName, const QString &colorMode, const QString &customColor);
     void removePlayer(const QString &playerId);
     void setCourse(const QString &courseId);
+    void setLobbyRules(bool hostControls, bool allowVoting);
+    void leaveLobby();
     void uploadCourse(const QString &path);
     void startMatch();
     void returnToLobby(bool rematch = false);
@@ -40,6 +42,7 @@ Q_SIGNALS:
     void matchPrepared(const QJsonObject &config);
     void statusChanged(const QString &status);
     void failed(const QString &reason);
+    void courseUploadProgress(int percent);
 
 private:
     QString requestId();

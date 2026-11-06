@@ -154,12 +154,26 @@ void OnlineCoordinator::uploadCourse(const QString &path)
     send(QStringLiteral("CourseUploadBegin"), {{QStringLiteral("uploadId"), m_uploadId},
         {QStringLiteral("sha256"), hash}, {QStringLiteral("byteSize"), bytes.size()}});
     m_uploadTimer.start(30000);
+    Q_EMIT courseUploadProgress(0);
     Q_EMIT statusChanged(tr("Uploading custom course…"));
 }
 
 void OnlineCoordinator::startMatch()
 {
     send(QStringLiteral("StartMatch"), {{QStringLiteral("lobbyRevision"), m_state.value(QStringLiteral("lobbyRevision")).toInt()}});
+}
+
+void OnlineCoordinator::setLobbyRules(bool hostControls, bool allowVoting)
+{
+    send(QStringLiteral("SetLobbyRules"), {{QStringLiteral("hostControls"), hostControls},
+        {QStringLiteral("allowVoting"), allowVoting}});
+}
+
+void OnlineCoordinator::leaveLobby()
+{
+    send(QStringLiteral("LeaveLobby"), {});
+    m_state = {}; m_lobbyId.clear(); m_memberId.clear(); m_matchId.clear(); m_preparedMatchId.clear();
+    m_uploadTimer.stop(); m_uploadId.clear(); m_uploadBytes.clear();
 }
 
 void OnlineCoordinator::returnToLobby(bool rematch)
@@ -215,12 +229,14 @@ void OnlineCoordinator::receive(const QJsonObject &message)
     }
     if (type == QLatin1String("CourseChunkAccepted") && payload.value(QStringLiteral("uploadId")).toString() == m_uploadId) {
         m_uploadNextIndex = payload.value(QStringLiteral("nextIndex")).toInt(-1);
+        Q_EMIT courseUploadProgress(qBound(0, int(qint64(m_uploadNextIndex) * CourseChunkBytes * 100 / qMax(1, m_uploadBytes.size())), 100));
         m_uploadTimer.start(30000);
         const auto uploadId = m_uploadId;
         QTimer::singleShot(35, this, [this, uploadId] { if (m_uploadId == uploadId) sendNextUploadChunk(); });
         return;
     }
     if (type == QLatin1String("CourseUploaded")) {
+        Q_EMIT courseUploadProgress(100);
         m_uploadTimer.stop(); m_uploadId.clear(); m_uploadBytes.clear();
         Q_EMIT statusChanged(tr("Custom course is ready in the lobby."));
         return;
@@ -278,6 +294,8 @@ void OnlineCoordinator::receive(const QJsonObject &message)
             {QStringLiteral("courseSource"), match.value(QStringLiteral("course")).toObject().value(QStringLiteral("source"))},
             {QStringLiteral("localPlayerIds"), localPlayerIds},
             {QStringLiteral("localMemberId"), m_memberId},
+            {QStringLiteral("hostControls"), m_state.value(QStringLiteral("hostControls"))},
+            {QStringLiteral("allowVoting"), m_state.value(QStringLiteral("allowVoting"))},
             {QStringLiteral("role"), match.value(QStringLiteral("authorityMemberId")).toString() == m_memberId
                 ? QStringLiteral("authority") : QStringLiteral("guest")},
             {QStringLiteral("logDirectory"), logDirectory}});

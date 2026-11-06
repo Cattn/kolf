@@ -82,6 +82,8 @@ export interface LobbyState {
   phase: LobbyPhase;
   selectedCourseId: string;
   courses?: CourseCatalogEntry[];
+  hostControls: boolean;
+  allowVoting: boolean;
   members: Array<LobbyMember & { ready: boolean; connected: true }>;
   players: LobbyPlayer[];
   rematchRequestedMemberIds: MemberId[];
@@ -156,6 +158,8 @@ export class LobbySession {
   private result?: MatchResult;
   private selectedCourseId: string;
   private revision = 1;
+  private hostControls = false;
+  private allowVoting = true;
   private lifecycle: LobbyPhase = 'Open';
 
   constructor(options: LobbyOptions) {
@@ -196,6 +200,7 @@ export class LobbySession {
       lobbyId: this.lobbyId, joinCode: this.joinCode, ownerMemberId: this.ownerMemberId,
       lobbyRevision: this.revision, phase: this.lifecycle, selectedCourseId: this.selectedCourseId,
       courses: [...this.catalog.values()].map(cloneCourse),
+      hostControls: this.hostControls, allowVoting: this.allowVoting,
       members: [...this.members.values()].map(member => ({ ...member, connected: true as const,
         ready: this.readiness.get(member.memberId) === this.revision })),
       players: this.orderedPlayers().map(player => ({ ...player })),
@@ -298,6 +303,18 @@ export class LobbySession {
       this.requireOwner(actor); this.requirePhase('Open');
       if (!this.catalog.has(courseId)) throw new LobbyError('UnknownCourse', 'course is not in the server catalog');
       if (courseId !== this.selectedCourseId) { this.selectedCourseId = courseId; this.changed(); }
+      return this.state();
+    });
+  }
+
+  setLobbyRules(actor: MemberId, requestId: RequestId, hostControls: boolean, allowVoting: boolean) {
+    return this.mutate(actor, requestId, 'SetLobbyRules', { hostControls, allowVoting }, () => {
+      this.requireOwner(actor); this.requirePhase('Open');
+      if (typeof hostControls !== 'boolean' || typeof allowVoting !== 'boolean')
+        throw new LobbyError('InvalidRules', 'lobby rules must be boolean');
+      if (this.hostControls !== hostControls || this.allowVoting !== allowVoting) {
+        this.hostControls = hostControls; this.allowVoting = allowVoting; this.changed();
+      }
       return this.state();
     });
   }

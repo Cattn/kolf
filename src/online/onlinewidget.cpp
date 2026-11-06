@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "onlinewidget.h"
+#include "lobbyview.h"
 #include "color.h"
 #include "playerprofileeditor.h"
 #include "results/summary.h"
@@ -84,7 +85,7 @@ static bool editProfile(QWidget *parent, const QString &title, QString &name, QS
     return true;
 }
 
-OnlineWidget::OnlineWidget(QWidget *parent)
+OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
     : QWidget(parent)
     , m_coordinator(this)
 {
@@ -214,47 +215,13 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     });
     connect(m_joinCode, &QLineEdit::returnPressed, this, [this] { if (m_joinButton->isEnabled()) m_joinButton->click(); });
 
-    auto *lobbyPage = new QWidget(this);
-    auto *lobbyLayout = new QVBoxLayout(lobbyPage);
-    m_lobbySummary = new QLabel(lobbyPage); m_lobbySummary->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    auto *heading = new QHBoxLayout;
-    heading->addWidget(m_lobbySummary, 1);
-    auto *copyInvite = new QPushButton(i18nc("@action:button", "Copy Join Code"), lobbyPage);
-    heading->addWidget(copyInvite);
-    lobbyLayout->addLayout(heading);
-    auto *columns = new QHBoxLayout;
-    auto *rosterColumn = new QVBoxLayout;
-    rosterColumn->addWidget(new QLabel(i18n("People and players"), lobbyPage));
-    m_players = new QListWidget(lobbyPage); rosterColumn->addWidget(m_players, 1);
-    auto *playerButtons = new QHBoxLayout;
-    m_addPlayer = new QPushButton(i18nc("@action:button", "Add local player"), lobbyPage);
-    m_editPlayer = new QPushButton(i18nc("@action:button", "Edit player"), lobbyPage);
-    m_removePlayer = new QPushButton(i18nc("@action:button", "Remove player"), lobbyPage);
-    playerButtons->addWidget(m_addPlayer); playerButtons->addWidget(m_editPlayer); playerButtons->addWidget(m_removePlayer);
-    rosterColumn->addLayout(playerButtons);
-    columns->addLayout(rosterColumn, 2);
-    auto *setupColumn = new QVBoxLayout;
-    setupColumn->addWidget(new QLabel(i18n("Match setup"), lobbyPage));
-    auto *courseRow = new QFormLayout;
-    m_lobbyCourse = new QComboBox(lobbyPage);
-    m_customCourse = new QPushButton(i18nc("@action:button", "Custom Course…"), lobbyPage);
-    auto *courseChoices = new QVBoxLayout;
-    courseChoices->addWidget(m_lobbyCourse);
-    courseChoices->addWidget(m_customCourse);
-    courseRow->addRow(i18nc("@label", "Course:"), courseChoices); setupColumn->addLayout(courseRow);
-    m_lobbyStatus = new QLabel(lobbyPage); m_lobbyStatus->setWordWrap(true); setupColumn->addWidget(m_lobbyStatus);
-    m_colorWarning = new QLabel(lobbyPage); m_colorWarning->setWordWrap(true); setupColumn->addWidget(m_colorWarning);
-    setupColumn->addStretch();
-    columns->addLayout(setupColumn, 1);
-    lobbyLayout->addLayout(columns, 1);
-    auto *lobbyButtons = new QHBoxLayout;
-    auto *lobbyChangeServer = new QPushButton(i18nc("@action:button", "Change Server"), lobbyPage);
-    auto *lobbyLeave = new QPushButton(i18nc("@action:button", "Leave Online"), lobbyPage);
-    m_ready = new QPushButton(lobbyPage); m_start = new QPushButton(i18nc("@action:button", "Start"), lobbyPage);
-    lobbyButtons->addWidget(lobbyChangeServer); lobbyButtons->addWidget(lobbyLeave);
-    lobbyButtons->addStretch(); lobbyButtons->addWidget(m_ready); lobbyButtons->addWidget(m_start);
-    lobbyLayout->addLayout(lobbyButtons);
-    m_pages->addWidget(lobbyPage);
+    m_lobby = new LobbyView(factory, m_coordinator, this);
+    m_pages->addWidget(m_lobby);
+    connect(m_lobby, &LobbyView::leaveRequested, this, [this] {
+        m_state = {};
+        m_rematchRequested = m_rematchReadySent = false;
+        showEntry();
+    });
 
     auto *resultsPage = new QWidget(this);
     auto *resultsLayout = new QVBoxLayout(resultsPage);
@@ -270,9 +237,6 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     m_pages->addWidget(resultsPage);
 
     connect(m_connectButton, &QPushButton::clicked, this, &OnlineWidget::beginConnection);
-    connect(copyInvite, &QPushButton::clicked, this, [this] {
-        QGuiApplication::clipboard()->setText(m_state.value(QStringLiteral("joinCode")).toString());
-    });
     connect(m_changeServerButton, &QPushButton::clicked, this, [this] {
         if (m_connectionState == ConnectionState::Connected) changeServer();
         m_serverControls->setVisible(true);
@@ -316,52 +280,6 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         savePreferences(); m_coordinator.joinLobby(code, m_profile->playerName(),
             m_profile->colorMode(), m_profile->customColor());
     });
-    connect(lobbyChangeServer, &QPushButton::clicked, this, &OnlineWidget::changeServer);
-    connect(lobbyLeave, &QPushButton::clicked, this, &OnlineWidget::leaveRequested);
-    connect(m_ready, &QPushButton::clicked, this, [this] {
-        bool ready = false;
-        for (const auto &value : m_state.value(QStringLiteral("members")).toArray()) {
-            const auto member = value.toObject();
-            if (member.value(QStringLiteral("memberId")).toString() == m_coordinator.memberId()) ready = member.value(QStringLiteral("ready")).toBool();
-        }
-        m_coordinator.setReady(!ready);
-    });
-    connect(m_start, &QPushButton::clicked, &m_coordinator, &OnlineCoordinator::startMatch);
-    connect(m_addPlayer, &QPushButton::clicked, this, [this] {
-        QString name = i18n("Player %1", m_state.value(QStringLiteral("players")).toArray().size() + 1);
-        QString mode = QStringLiteral("auto"), customColor;
-        if (editProfile(this, i18nc("@title:window", "Add local player"), name, mode, customColor))
-            m_coordinator.addPlayer(name, mode, customColor);
-    });
-    connect(m_editPlayer, &QPushButton::clicked, this, [this] {
-        const auto *item = m_players->currentItem();
-        if (!item) return;
-        QString name = item->data(Qt::UserRole + 1).toString();
-        QString mode = item->data(Qt::UserRole + 2).toString();
-        QString customColor = item->data(Qt::UserRole + 5).toString();
-        if (editProfile(this, i18nc("@title:window", "Edit player"), name, mode, customColor))
-            m_coordinator.updatePlayer(item->data(Qt::UserRole).toString(), name, mode, customColor);
-    });
-    connect(m_removePlayer, &QPushButton::clicked, this, [this] {
-        if (const auto *item = m_players->currentItem()) m_coordinator.removePlayer(item->data(Qt::UserRole).toString());
-    });
-    connect(m_players, &QListWidget::currentItemChanged, this, [this](QListWidgetItem *item) {
-        const bool local = item && item->data(Qt::UserRole + 3).toString() == m_coordinator.memberId();
-        m_editPlayer->setEnabled(local); m_removePlayer->setEnabled(local && item->data(Qt::UserRole + 4).toInt() > 1);
-    });
-    connect(m_lobbyCourse, &QComboBox::activated, this, [this](int index) {
-        if (!m_state.isEmpty() && index >= 0) {
-            m_coordinator.setCourse(m_lobbyCourse->itemData(index).toString());
-            KConfigGroup config(KSharedConfig::openConfig(), QStringLiteral("Online"));
-            config.writeEntry("lastCourseId", m_lobbyCourse->itemData(index).toString());
-            config.sync();
-        }
-    });
-    connect(m_customCourse, &QPushButton::clicked, this, [this] {
-        const auto path = QFileDialog::getOpenFileName(this, i18nc("@title:window", "Choose a Kolf course"),
-            QString(), i18n("Kolf courses (*.kolf);;All files (*)"));
-        if (!path.isEmpty()) m_coordinator.uploadCourse(path);
-    });
     connect(rematchButton, &QPushButton::clicked, this, [this] {
         m_rematchRequested = true; m_rematchReadySent = false;
         m_coordinator.returnToLobby(true);
@@ -380,11 +298,10 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     connect(&m_coordinator, &OnlineCoordinator::serviceChanged, this, [this](const QJsonObject &hello) {
         m_connectTimeout->stop();
         setConnectionState(ConnectionState::Connected);
-        m_createCourse->clear(); m_lobbyCourse->clear();
+        m_createCourse->clear();
         for (const auto &value : hello.value(QStringLiteral("courses")).toArray()) {
             const auto course = value.toObject();
             addCourse(m_createCourse, course);
-            addCourse(m_lobbyCourse, course);
         }
         const int lastCourse = m_createCourse->findData(KConfigGroup(KSharedConfig::openConfig(), QStringLiteral("Online"))
             .readEntry("lastCourseId", QString()));
@@ -431,7 +348,7 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         Q_EMIT matchRequested(config);
     });
     connect(&m_coordinator, &OnlineCoordinator::statusChanged, this, [this](const QString &status) {
-        m_lobbyStatus->setText(status);
+        m_lobby->setStatus(status);
         Q_EMIT statusChanged(status);
     });
     connect(&m_coordinator, &OnlineCoordinator::failed, this, [this](const QString &reason) {
@@ -441,7 +358,7 @@ OnlineWidget::OnlineWidget(QWidget *parent)
         }
         m_entryRequestPending = false;
         m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
-        m_entryStatus->setText(reason); m_lobbyStatus->setText(reason);
+        m_entryStatus->setText(reason); m_lobby->setStatus(reason);
         Q_EMIT statusChanged(reason);
     });
 }
@@ -507,7 +424,6 @@ void OnlineWidget::changeServer()
     m_state = {};
     m_joinCode->clear();
     m_createCourse->clear();
-    m_lobbyCourse->clear();
     m_entryRequestPending = false;
     m_rematchRequested = m_rematchReadySent = false;
     m_createButton->setEnabled(true);
@@ -612,7 +528,6 @@ void OnlineWidget::showEntry()
 
 void OnlineWidget::showLobby(const QJsonObject &state)
 {
-    const auto previousCourseId = m_state.value(QStringLiteral("selectedCourseId")).toString();
     m_state = state;
     setConnectionState(state.value(QStringLiteral("phase")) == QLatin1String("Playing")
         ? ConnectionState::InMatch : ConnectionState::InLobby);
@@ -623,104 +538,17 @@ void OnlineWidget::showLobby(const QJsonObject &state)
         return;
     }
     if (!m_matchActive) m_pages->setCurrentIndex(1);
-    m_lobbySummary->setText(i18n("Join code: %1", state.value(QStringLiteral("joinCode")).toString()));
-    m_players->clear();
-    QSet<QString> manualColors;
-    bool duplicateManualColor = false;
-    for (const auto &value : state.value(QStringLiteral("players")).toArray()) {
-        const auto player = value.toObject();
-        if (player.value(QStringLiteral("colorMode")) != QLatin1String("custom")) continue;
-        const auto selected = player.value(QStringLiteral("customColor")).toString().toLower();
-        if (manualColors.contains(selected)) duplicateManualColor = true;
-        manualColors.insert(selected);
-    }
-    m_colorWarning->setText(duplicateManualColor
-        ? i18n("Some players selected the same color. Names will still identify them.") : QString());
-    bool localReady = false, allReady = true;
-    const auto members = state.value(QStringLiteral("members")).toArray();
-    for (const auto &value : members) {
-        const auto member = value.toObject();
-        const bool ready = member.value(QStringLiteral("ready")).toBool();
-        allReady = allReady && ready;
-        if (member.value(QStringLiteral("memberId")).toString() == m_coordinator.memberId()) localReady = ready;
-        const bool memberOwner = member.value(QStringLiteral("memberId")).toString() == state.value(QStringLiteral("ownerMemberId")).toString();
-        auto *headingItem = new QListWidgetItem(i18n("%1%2 — %3", member.value(QStringLiteral("displayName")).toString(),
-            memberOwner ? i18n(" (owner)") : QString(), ready ? i18n("Ready") : i18n("Not ready")), m_players);
-        headingItem->setFlags(Qt::ItemIsEnabled);
-        QFont font = headingItem->font(); font.setBold(true); headingItem->setFont(font);
-        for (const auto &playerValue : state.value(QStringLiteral("players")).toArray()) {
-            const auto player = playerValue.toObject();
-            if (player.value(QStringLiteral("ownerMemberId")).toString() != member.value(QStringLiteral("memberId")).toString()) continue;
-            const auto resolved = player.value(QStringLiteral("resolvedColor")).toString();
-            auto *item = new QListWidgetItem(i18n("    %1 — %2 (%3)", player.value(QStringLiteral("displayName")).toString(),
-                player.value(QStringLiteral("colorMode")) == QLatin1String("auto") ? i18n("Auto") : i18n("Custom"), resolved), m_players);
-            const QColor color = colorFromRgba(resolved);
-            if (color.isValid()) {
-                QPixmap swatch(16, 16); swatch.fill(color); item->setIcon(QIcon(swatch));
-            }
-            item->setData(Qt::UserRole, player.value(QStringLiteral("playerId")));
-            item->setData(Qt::UserRole + 1, player.value(QStringLiteral("displayName")));
-            item->setData(Qt::UserRole + 2, player.value(QStringLiteral("colorMode")));
-            item->setData(Qt::UserRole + 3, member.value(QStringLiteral("memberId")));
-            item->setData(Qt::UserRole + 5, player.value(QStringLiteral("customColor")));
-        }
-    }
-    const auto players = state.value(QStringLiteral("players")).toArray();
-    int localPlayers = 0;
-    for (const auto &value : players) {
-        const auto player = value.toObject();
-        if (player.value(QStringLiteral("ownerMemberId")).toString() == m_coordinator.memberId()) ++localPlayers;
-    }
-    for (int i = 0; i < m_players->count(); ++i) m_players->item(i)->setData(Qt::UserRole + 4, localPlayers);
+    m_lobby->setState(state);
     const bool open = state.value(QStringLiteral("phase")) == QLatin1String("Open");
-    const bool owner = state.value(QStringLiteral("ownerMemberId")).toString() == m_coordinator.memberId();
-    m_ready->setText(localReady ? i18nc("@action:button", "Unready") : i18nc("@action:button", "Ready"));
-    m_ready->setEnabled(open);
-    m_start->setEnabled(open && owner && members.size() >= 2 && players.size() >= 2 && players.size() <= 8 && allReady);
     if (m_rematchRequested && open) {
-        if (!localReady && !m_rematchReadySent) {
-            m_rematchReadySent = true; m_coordinator.setReady(true);
-        } else if (localReady) m_rematchRequested = false;
-    } else if (!open && state.value(QStringLiteral("phase")) != QLatin1String("Results")) {
-        m_rematchRequested = false;
-    }
-    m_addPlayer->setEnabled(open && players.size() < 8);
-    m_editPlayer->setEnabled(false); m_removePlayer->setEnabled(false);
-    const auto courseId = state.value(QStringLiteral("selectedCourseId")).toString();
-    const auto courses = state.value(QStringLiteral("courses")).toArray();
-    bool catalogChanged = m_lobbyCourse->count() != courses.size();
-    for (int i = 0; !catalogChanged && i < courses.size(); ++i) {
-        if (m_lobbyCourse->itemData(i).toString() != courses.at(i).toObject().value(QStringLiteral("courseId")).toString())
-            catalogChanged = true;
-    }
-    if (catalogChanged) {
-        const QSignalBlocker blocker(m_lobbyCourse);
-        m_lobbyCourse->clear();
-        for (const auto &value : courses) addCourse(m_lobbyCourse, value.toObject());
-    }
-    const auto index = m_lobbyCourse->findData(courseId);
-    if (index >= 0 && index != m_lobbyCourse->currentIndex()) {
-        const QSignalBlocker blocker(m_lobbyCourse);
-        m_lobbyCourse->setCurrentIndex(index);
-    }
-    m_lobbyCourse->setEnabled(open && owner);
-    m_customCourse->setEnabled(open && owner);
-    if (open) m_lobbyStatus->setText(players.size() < 2 || members.size() < 2
-        ? i18n("At least two players and two members are required. Add a player or invite another member.")
-        : allReady ? i18n("All members are ready. The owner can start.")
-        : i18n("Ready every member on this revision, then the owner can start."));
-    if (open) {
-        if (!state.value(QStringLiteral("rematchRequestedMemberIds")).toArray().isEmpty())
-            announceRematch(state);
-        else if (index >= 0 && !previousCourseId.isEmpty() && courseId != previousCourseId)
-            Q_EMIT statusChanged(i18n("Course selected: %1", m_lobbyCourse->itemText(index)));
-        else if (members.size() < 2 || players.size() < 2)
-            Q_EMIT statusChanged(i18n("Lobby ready. Invite another member or add a player."));
-        else if (allReady)
-            Q_EMIT statusChanged(i18n("All members are ready. The owner can start."));
-        else
-            Q_EMIT statusChanged(i18n("Lobby ready. Waiting for members to be ready."));
-    }
+        for (const auto &value : state.value(QStringLiteral("members")).toArray()) {
+            const auto member = value.toObject();
+            if (member.value(QStringLiteral("memberId")).toString() != m_coordinator.memberId()) continue;
+            if (member.value(QStringLiteral("ready")).toBool()) m_rematchRequested = false;
+            else if (!m_rematchReadySent) { m_rematchReadySent = true; m_coordinator.setReady(true); }
+        }
+    } else if (!open) m_rematchRequested = false;
+    if (open && !state.value(QStringLiteral("rematchRequestedMemberIds")).toArray().isEmpty()) announceRematch(state);
 }
 
 void OnlineWidget::showResults(const QJsonObject &state)

@@ -46,6 +46,28 @@ function ready(h: ReturnType<typeof setup>) {
   return revision;
 }
 
+test('lobby rules are owner-only, revisioned, idempotent, and frozen during preparation', () => {
+  const h = setup(), revision = ready(h);
+  assert.equal(h.lobby.state().hostControls, false);
+  assert.equal(h.lobby.state().allowVoting, true);
+  assert.throws(() => h.lobby.setLobbyRules(h.guest, 'guest_rules', true, false),
+    (error: unknown) => error instanceof LobbyError && error.code === 'NotOwner');
+  const changed = h.lobby.setLobbyRules(h.owner, 'rules', true, false);
+  assert.equal(changed.lobbyRevision, revision + 1);
+  assert(changed.members.every(member => !member.ready));
+  assert.equal(changed.hostControls, true);
+  assert.equal(changed.allowVoting, false);
+  assert.equal(h.lobby.setLobbyRules(h.owner, 'rules', true, false).lobbyRevision, revision + 1);
+  assert.equal(h.lobby.setLobbyRules(h.owner, 'same_rules', true, false).lobbyRevision, revision + 1);
+  assert.throws(() => h.lobby.setLobbyRules(h.owner, 'rules', false, false),
+    (error: unknown) => error instanceof LobbyError && error.code === 'RequestConflict');
+  assert.throws(() => h.lobby.start(h.owner, 'stale_start', revision),
+    (error: unknown) => error instanceof LobbyError && error.code === 'StaleLobbyRevision');
+  h.lobby.start(h.owner, 'start_rules', ready(h));
+  assert.throws(() => h.lobby.setLobbyRules(h.owner, 'frozen_rules', false, true),
+    (error: unknown) => error instanceof LobbyError && error.code === 'WrongPhase');
+});
+
 test('owner publishes a verified custom course while rejected uploads preserve selection', () => {
   const h = setup();
   const bytes = readFileSync(fileURLToPath(new URL('../../tests/multiplayer/fixtures/static.kolf', import.meta.url)));

@@ -78,6 +78,8 @@ export class MatchCoordinator {
     if (!state.match?.compatibilityId || state.match.roster.length < 2 || state.match.roster.length > 8)
       throw Error('match preparation is incomplete');
     this.match = state.match; this.lobbyId = state.lobbyId; this.now = now;
+    this.hostControlsEnabled = state.hostControls;
+    this.allowVoting = state.allowVoting;
     for (const member of state.members) this.memberNames.set(member.memberId, member.displayName);
     this.acceptedShots = this.match.roster.map(() => 0);
     this.hazardChoices = this.match.roster.map(() => 0);

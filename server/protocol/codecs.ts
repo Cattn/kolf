@@ -15,6 +15,7 @@ export type ClientMessage =
   | Envelope<'RemovePlayer', { playerId: string }>
   | Envelope<'ReorderPlayers', { playerIds: string[] }>
   | Envelope<'SetCourse', { courseId: string }>
+  | Envelope<'SetLobbyRules', { hostControls: boolean; allowVoting: boolean }>
   | Envelope<'CourseUploadBegin', { uploadId: string; sha256: string; byteSize: number }>
   | Envelope<'CourseUploadChunk', { uploadId: string; index: number; data: string }>
   | Envelope<'CourseUploadFinish', { uploadId: string }>
@@ -133,6 +134,12 @@ export function decodeClientMessage(raw: string): ClientMessage {
       return message as ClientMessage;
     case 'SetCourse':
       requireLobby(message); rejectExtraScope(message, true, false); assertCourse(p.courseId);
+      return message as ClientMessage;
+    case 'SetLobbyRules':
+      requireLobby(message); rejectExtraScope(message, true, false);
+      if (typeof p.hostControls !== 'boolean' || typeof p.allowVoting !== 'boolean'
+        || Object.keys(p).some(key => key !== 'hostControls' && key !== 'allowVoting'))
+        throw new ProtocolError('InvalidPayload', 'invalid lobby rules');
       return message as ClientMessage;
     case 'CourseUploadBegin':
       requireLobby(message); rejectExtraScope(message, true, false);

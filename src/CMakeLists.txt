@@ -42,6 +42,7 @@ target_sources(kolfprivate PRIVATE
     session/sessioncontroller.cpp
     online/onlinecoordinator.cpp
     online/onlinematchview.cpp
+    online/lobbyview.cpp
     online/onlinewidget.cpp
     online/playerprofileeditor.cpp
     ui/gamehud.cpp

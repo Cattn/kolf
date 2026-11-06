@@ -40,6 +40,9 @@ private:
     bool m_mutationPending = false;
     bool m_startRequested = false;
     bool m_customCourseSent = false;
+    bool m_rulesSent = false;
+    bool m_lobbyCaptured = false;
+    bool m_lobbyCapturePending = false;
     int m_completedMatches = 0;
     int m_addedPlayers = 0;
     QSet<QString> m_returnedMatches;

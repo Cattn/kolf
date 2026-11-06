@@ -28,6 +28,8 @@ SessionController::SessionController(const QJsonObject &config, Net::NetworkClie
     , m_role(config[QStringLiteral("role")] == QLatin1String("authority") ? Role::Authority : Role::Guest)
     , m_network(network)
     , m_gameHost(gameHost) {
+    m_hostControlsEnabled = config.value(QStringLiteral("hostControls")).toBool();
+    m_allowVoting = config.value(QStringLiteral("allowVoting")).toBool(true);
     for (const auto &value : config[QStringLiteral("localPlayerIds")].toArray())
         if (!value.toString().isEmpty()) m_localPlayerIds.insert(value.toString());
     connect(m_network, &Net::NetworkClient::received, this, [this](const QJsonObject &message) {

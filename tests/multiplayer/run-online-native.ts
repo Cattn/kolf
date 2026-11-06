@@ -10,11 +10,11 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
-assert(['two-rematch', 'four-player', 'four-player-hazard', 'custom-course',
+assert(['two-rematch', 'four-player', 'four-player-hazard', 'lobby-rules', 'custom-course',
   'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-skip', 'host-go',
   'host-proposal-approve', 'host-proposal-reject', 'host-proposal-four-player', 'host-combined'].includes(scenario),
   'Unknown native scenario');
-const variableRoster = scenario.startsWith('four-player') || scenario === 'host-proposal-four-player';
+const variableRoster = scenario.startsWith('four-player') || scenario === 'host-proposal-four-player' || scenario === 'lobby-rules';
 const hazardScenario = scenario === 'four-player-hazard';
 const slopeScenario = scenario.startsWith('slope-');
 const slopeOutOfBounds = scenario === 'slope-out-of-bounds';
@@ -115,6 +115,7 @@ try {
       displayName: client === 0 ? 'Owner' : `Member ${client + 1}`,
       color: ['#3daee9ff', '#f67400ff', '#27ae60ff'][client],
       courseId: 'test', joinCodeFile, expectedMembers: clientCount,
+      lobbyRules: scenario === 'lobby-rules' ? { hostControls: true, allowVoting: false } : undefined,
       customCourse: scenario === 'custom-course' ? customCourse : undefined,
       forceCourseDownload: scenario === 'custom-course' && client > 0,
       expectedPlayers: variableRoster ? 4 : 2, matches: matchCount, logDirectory,
@@ -171,6 +172,12 @@ try {
 
   for (let client = 0; client < clientCount; ++client) {
     const directories = sessionDirectories(client);
+    if (scenario === 'lobby-rules') {
+      const lobby = JSON.parse(readFileSync(resolve(directory, `client-${client}`, 'lobby.json'), 'utf8'));
+      assert.equal(lobby.members.length, 3); assert.equal(lobby.players.length, 4);
+      assert.equal(lobby.hostControls, true); assert.equal(lobby.allowVoting, false);
+      assert(existsSync(resolve(directory, `client-${client}`, 'lobby.png')));
+    }
     assert.equal(directories.length, matchCount, `client ${client} recorded every match`);
     for (const sessionDirectory of directories) {
       const log = events(sessionDirectory);

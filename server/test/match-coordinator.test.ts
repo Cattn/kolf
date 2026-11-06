@@ -18,6 +18,7 @@ function lobbyState(owners: string[]): LobbyState {
   return {
     lobbyId: 'lobby_1', joinCode: 'ABCDEFGH', ownerMemberId: owners[0], lobbyRevision: 4,
     phase: 'Preparing', selectedCourseId: 'classic', members, rematchRequestedMemberIds: [],
+    hostControls: false, allowVoting: true,
     players: roster.map(player => ({ ...player, order: player.engineIndex })),
     match: { matchId: 'match_1', authorityMemberId: owners[0], compatibilityId,
       course: { courseId: 'classic', displayName: 'Classic', expectedHash: courseHash, holes: 3 }, roster },
@@ -50,6 +51,21 @@ function open(coordinator: MatchCoordinator, members: string[], snapshot: Return
   assert.equal(progress.becamePlaying, true);
   return syncId;
 }
+
+test('matches inherit lobby host controls and request rules before the first action', () => {
+  const lobby = lobbyState(['member_a', 'member_b']);
+  lobby.hostControls = true; lobby.allowVoting = false;
+  const coordinator = new MatchCoordinator(lobby);
+  const syncId = open(coordinator, ['member_a', 'member_b'], state(2));
+  const denied = coordinator.receive('member_b', scoped('ProposeHostAction', {
+    commandId: 'request_disabled', stateRevision: 1, syncId, holeGeneration: 1, action: 'resetHole',
+  }));
+  assert.equal(denied.deliveries[0].message.type, 'HostProposalRejected');
+  const accepted = coordinator.receive('member_a', scoped('HostAction', {
+    commandId: 'reset_from_lobby_rules', stateRevision: 1, syncId, holeGeneration: 1, action: 'resetHole',
+  }));
+  assert(accepted.deliveries.some(delivery => delivery.message.type === 'AdmitHostAction'));
+});
 
 test('three members coordinate four players with multi-slot ownership and frame fan-out', () => {
   const owners = ['member_a', 'member_b', 'member_a', 'member_c'];

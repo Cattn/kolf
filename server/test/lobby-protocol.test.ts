@@ -25,6 +25,34 @@ const send = (controller: LobbyProtocolController, connectionId: string, message
   controller.receive(connectionId, JSON.stringify(message));
 const stateOf = (deliveries: ReturnType<typeof send>) => deliveries[0].message.payload.state as any;
 
+test('rules are broadcast to three people with four players and invalidate guest readiness', () => {
+  const controller = new LobbyProtocolController(catalog, ids());
+  const owner = controller.connect(), bob = controller.connect(), carol = controller.connect();
+  const created = stateOf(send(controller, owner, envelope('CreateLobby', {
+    displayName: 'Alice', colorMode: 'auto', courseId: 'classic',
+  }, { requestId: 'create_rules' })));
+  const lobbyId = created.lobbyId as string;
+  for (const [client, name] of [[bob, 'Bob'], [carol, 'Carol']])
+    send(controller, client, envelope('JoinLobby', { joinCode: created.joinCode, displayName: name, colorMode: 'auto' },
+      { requestId: `join_${name}`, lobbyId: undefined }));
+  const added = stateOf(send(controller, owner, envelope('AddPlayer', { displayName: 'Alice 2', colorMode: 'auto' },
+    { requestId: 'add_rules', lobbyId })));
+  assert.equal(added.players.length, 4);
+  for (const client of [owner, bob, carol]) send(controller, client, envelope('SetReady',
+    { lobbyRevision: added.lobbyRevision, ready: true }, { requestId: `ready_${client}`, lobbyId }));
+  const denied = send(controller, bob, envelope('SetLobbyRules', { hostControls: true, allowVoting: false },
+    { requestId: 'guest_rules', lobbyId }));
+  assert.equal(denied[0].message.payload.code, 'NotOwner');
+  const changed = send(controller, owner, envelope('SetLobbyRules', { hostControls: true, allowVoting: false },
+    { requestId: 'rules', lobbyId }));
+  assert.equal(changed.length, 3);
+  for (const delivery of changed) {
+    const state = delivery.message.payload.state as any;
+    assert.equal(state.hostControls, true); assert.equal(state.allowVoting, false);
+    assert(state.members.every((member: any) => !member.ready));
+  }
+});
+
 test('owner can change the course after creating a lobby', () => {
   const controller = new LobbyProtocolController([
     catalog[0], { courseId: 'easy', displayName: 'Easy', expectedHash: courseHash, par: [2] },

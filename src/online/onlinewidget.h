@@ -17,12 +17,14 @@ class QStackedWidget;
 class QTimer;
 namespace Kolf::Online { class PlayerProfileEditor; }
 namespace Kolf::Ui { class ResultsView; }
+namespace Kolf { class ItemFactory; }
 
 namespace Kolf::Online {
+class LobbyView;
 class OnlineWidget : public QWidget {
     Q_OBJECT
 public:
-    explicit OnlineWidget(QWidget *parent = nullptr);
+    OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent = nullptr);
     ~OnlineWidget() override;
     void leaveOnline();
     void enterOnline();
@@ -73,17 +75,7 @@ private:
     QLineEdit *m_joinCode;
     QComboBox *m_createCourse;
     QLabel *m_entryStatus;
-    QLabel *m_lobbySummary;
-    QLabel *m_lobbyStatus;
-    QLabel *m_colorWarning;
-    QListWidget *m_players;
-    QComboBox *m_lobbyCourse;
-    QPushButton *m_customCourse;
-    QPushButton *m_ready;
-    QPushButton *m_start;
-    QPushButton *m_addPlayer;
-    QPushButton *m_editPlayer;
-    QPushButton *m_removePlayer;
+    LobbyView *m_lobby;
     Kolf::Ui::ResultsView *m_result;
     QJsonObject m_state;
     bool m_matchActive = false;

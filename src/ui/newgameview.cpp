@@ -12,6 +12,7 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QCryptographicHash>
 #include <QPainterPath>
 #include <QSignalBlocker>
 #include <algorithm>
@@ -300,13 +301,16 @@ void NewGameView::updateCourse()
     QStringList lines{i18ncp("@info", "1 hole", "%1 holes", info.holes) + QStringLiteral(" · ") + i18nc("@info", "par %1", info.par)};
     if (!info.author.isEmpty()) lines << i18nc("@info author attribution", "by %1", info.author);
     m_courseDetails->setText(lines.join(QLatin1Char('\n')));
-    m_thumbnail->setPixmap(thumbnail(file));
+    m_thumbnail->setPixmap(thumbnail(m_factory, file));
 }
 
-QPixmap NewGameView::thumbnail(const QString &course)
+QPixmap NewGameView::thumbnail(const Kolf::ItemFactory &factory, const QString &course)
 {
-    const QString key = course + QLatin1Char('@') + QString::number(QFileInfo(course).lastModified().toSecsSinceEpoch());
-    if (m_thumbnails.contains(key)) return m_thumbnails.value(key);
+    QFile file(course);
+    if (!file.open(QIODevice::ReadOnly) || file.size() > 4 * 1024 * 1024) return {};
+    const QString key = QString::fromLatin1(QCryptographicHash::hash(file.readAll(), QCryptographicHash::Sha256).toHex());
+    static QHash<QString, QPixmap> thumbnails;
+    if (thumbnails.contains(key)) return thumbnails.value(key);
     PlayerList players;
     players.append(Player());
     players.last().setId(1);
@@ -315,7 +319,7 @@ QPixmap NewGameView::thumbnail(const QString &course)
     QPixmap pixmap(ThumbnailSize);
     pixmap.fill(Qt::transparent);
     {
-        KolfGame preview(m_factory, &players, course, nullptr);
+        KolfGame preview(factory, &players, course, nullptr);
         preview.setAttribute(Qt::WA_DontShowOnScreen);
         preview.setSound(false);
         preview.ignoreEvents(true);
@@ -338,7 +342,7 @@ QPixmap NewGameView::thumbnail(const QString &course)
     clip.addRoundedRect(QRectF(QPointF(), QSizeF(ThumbnailSize)), 8, 8);
     painter.setClipPath(clip);
     painter.drawPixmap(0, 0, pixmap.scaled(ThumbnailSize, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation));
-    m_thumbnails.insert(key, framed);
+    thumbnails.insert(key, framed);
     return framed;
 }
 

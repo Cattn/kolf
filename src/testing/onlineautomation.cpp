@@ -11,6 +11,7 @@
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QPushButton>
 #include <QTimer>
 
 using namespace Kolf::Testing;
@@ -131,6 +132,15 @@ void OnlineAutomation::advance(const QJsonObject &state)
     }
     if (members.size() != m_config.value(QStringLiteral("expectedMembers")).toInt()) return;
 
+    const auto rules = m_config.value(QStringLiteral("lobbyRules")).toObject();
+    if (!rules.isEmpty() && role == QLatin1String("owner") && !m_rulesSent) {
+        m_rulesSent = true;
+        coordinator.setLobbyRules(rules.value(QStringLiteral("hostControls")).toBool(), rules.value(QStringLiteral("allowVoting")).toBool());
+        return;
+    }
+    if (!rules.isEmpty() && (state.value(QStringLiteral("hostControls")) != rules.value(QStringLiteral("hostControls"))
+        || state.value(QStringLiteral("allowVoting")) != rules.value(QStringLiteral("allowVoting")))) return;
+
     const auto customCourse = m_config.value(QStringLiteral("customCourse")).toString();
     if (!customCourse.isEmpty()) {
         const auto selectedId = state.value(QStringLiteral("selectedCourseId")).toString();
@@ -145,11 +155,9 @@ void OnlineAutomation::advance(const QJsonObject &state)
 
     int localPlayers = 0;
     bool localReady = false;
-    bool allReady = true;
     for (const auto &value : members) {
         const auto member = value.toObject();
         const bool ready = member.value(QStringLiteral("ready")).toBool();
-        allReady = allReady && ready;
         if (member.value(QStringLiteral("memberId")).toString() == coordinator.memberId()) localReady = ready;
     }
     for (const auto &value : players)
@@ -167,15 +175,35 @@ void OnlineAutomation::advance(const QJsonObject &state)
         return;
     }
     if (players.size() != m_config.value(QStringLiteral("expectedPlayers")).toInt()) return;
-    if (!localReady && !m_mutationPending) {
-        m_mutationPending = true;
-        coordinator.setReady(true);
+    if (!m_lobbyCaptured) {
+        if (m_lobbyCapturePending) return;
+        m_lobbyCapturePending = true;
+        QTimer::singleShot(900, this, [this] {
+            m_lobbyCaptured = true;
+            const auto directory = m_config.value(QStringLiteral("logDirectory")).toString();
+            m_widget->window()->grab().save(QDir(directory).filePath(QStringLiteral("lobby.png")));
+            QFile evidence(QDir(directory).filePath(QStringLiteral("lobby.json")));
+            if (evidence.open(QIODevice::WriteOnly)) evidence.write(QJsonDocument(m_widget->coordinator().lobbyState()).toJson());
+            advance(m_widget->coordinator().lobbyState());
+        });
         return;
     }
-    if (role == QLatin1String("owner") && allReady && !m_mutationPending && !m_startRequested) {
+    if (!localReady && !m_mutationPending) {
+        if (role != QLatin1String("owner")) {
+            m_mutationPending = true;
+            if (auto *primary = m_widget->findChild<QPushButton *>(QStringLiteral("lobbyPrimary"))) primary->click();
+            return;
+        }
+    }
+    bool guestsReady = true;
+    for (const auto &value : members) {
+        const auto member = value.toObject();
+        if (member.value(QStringLiteral("memberId")).toString() != coordinator.memberId()) guestsReady = guestsReady && member.value(QStringLiteral("ready")).toBool();
+    }
+    if (role == QLatin1String("owner") && guestsReady && !m_mutationPending && !m_startRequested) {
         m_mutationPending = true;
         m_startRequested = true;
-        coordinator.startMatch();
+        if (auto *primary = m_widget->findChild<QPushButton *>(QStringLiteral("lobbyPrimary"))) primary->click();
     }
 }
 

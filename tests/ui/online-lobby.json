@@ -1,0 +1,24 @@
+{
+  "steps": [
+    { "wait": 1000 },
+    { "setConfig": { "group": "Online", "key": "lastSuccessfulEndpoint", "value": "ws://127.0.0.1:13111" } },
+    { "click": "homeOnline", "wait": 1200 },
+    { "click": "onlineHost", "wait": 1500 },
+    { "expectVisible": "onlineLobby" },
+    { "expectVisible": "lobbyThumbnail", "screenshot": "01-lobby.png" },
+    { "click": "lobbyAddPlayer", "wait": 400 },
+    { "clickText": "OK", "wait": 600 },
+    { "click": "lobbyHostControls", "wait": 500 },
+    { "click": "lobbyAllowVoting", "wait": 500 },
+    { "screenshot": "02-players-rules.png" },
+    { "resize": [1024, 640], "wait": 500 },
+    { "screenshot": "03-lobby-1024.png" },
+    { "click": "lobbyLeave", "wait": 400 },
+    { "clickText": "Cancel", "wait": 400 },
+    { "expectVisible": "onlineLobby" },
+    { "click": "lobbyLeave", "wait": 400 },
+    { "clickText": "Leave", "wait": 600 },
+    { "expectVisible": "onlineHub", "screenshot": "04-back-to-hub.png" },
+    { "quit": true }
+  ]
+}

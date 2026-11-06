@@ -45,6 +45,17 @@ test('aim updates require finite bounded values and match scope', () => {
     payload: { ...aim.payload, directionRadians: null } })), ProtocolError);
 });
 
+test('lobby rules require booleans and lobby-only scope', () => {
+  const rules = envelope('SetLobbyRules', { hostControls: true, allowVoting: false },
+    { requestId: 'rules_1', lobbyId: 'lobby_1' });
+  assert.equal(decodeClientMessage(JSON.stringify(rules)).type, 'SetLobbyRules');
+  for (const payload of [{ hostControls: 1, allowVoting: true }, { hostControls: false },
+    { hostControls: true, allowVoting: false, extra: true }])
+    assert.throws(() => decodeClientMessage(JSON.stringify({ ...rules, payload })), ProtocolError);
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...rules, lobbyId: undefined })), ProtocolError);
+  assert.throws(() => decodeClientMessage(JSON.stringify({ ...rules, matchId: 'match_1' })), ProtocolError);
+});
+
 test('host controls require typed match-scoped requests', () => {
   const scope = { requestId: 'request_host', lobbyId: 'lobby_1', matchId: 'match_1' };
   const toggle = envelope('SetHostControls', { commandId: 'toggle_1', stateRevision: 1,

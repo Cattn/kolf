@@ -1,0 +1,45 @@
+#pragma once
+
+#include <QJsonObject>
+#include <QWidget>
+
+class QCheckBox;
+class QComboBox;
+class QLabel;
+class QPushButton;
+class QVBoxLayout;
+namespace Kolf { class ItemFactory; }
+
+namespace Kolf::Online {
+class OnlineCoordinator;
+class LobbyView : public QWidget {
+    Q_OBJECT
+public:
+    LobbyView(const Kolf::ItemFactory &factory, OnlineCoordinator &coordinator, QWidget *parent = nullptr);
+    void setState(const QJsonObject &state);
+    void setStatus(const QString &status);
+
+Q_SIGNALS:
+    void leaveRequested();
+
+private:
+    void editPlayer(const QJsonObject &player = {});
+    void updateThumbnail(const QJsonObject &course);
+    const Kolf::ItemFactory &m_factory;
+    OnlineCoordinator &m_coordinator;
+    QJsonObject m_state;
+    QLabel *m_heading;
+    QLabel *m_peopleHeading;
+    QVBoxLayout *m_people;
+    QComboBox *m_course;
+    QLabel *m_thumbnail;
+    QLabel *m_courseDetails;
+    QLabel *m_courseStatus;
+    QLabel *m_status;
+    QPushButton *m_custom;
+    QPushButton *m_primary;
+    QCheckBox *m_hostControls;
+    QCheckBox *m_allowVoting;
+    QString m_thumbnailKey;
+};
+}

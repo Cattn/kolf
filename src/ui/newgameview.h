@@ -25,6 +25,7 @@ class NewGameView : public QWidget {
 public:
     NewGameView(const Kolf::ItemFactory &factory, QWidget *parent = nullptr);
     void prepare(const QString &lockedCourse = {});
+    static QPixmap thumbnail(const Kolf::ItemFactory &factory, const QString &course);
 
 Q_SIGNALS:
     void startRequested(const QList<Kolf::Ui::LocalPlayer> &players, const QString &course, bool strict);
@@ -44,7 +45,6 @@ private:
     void removeCourse();
     void start();
     QColor nextFreeColor() const;
-    QPixmap thumbnail(const QString &course);
 
     const Kolf::ItemFactory &m_factory;
     QVBoxLayout *m_playerRows;
@@ -61,7 +61,6 @@ private:
     QCheckBox *m_strict;
     QPushButton *m_start;
     QStringList m_extraCourses;
-    QHash<QString, QPixmap> m_thumbnails;
     bool m_locked = false;
 };
 }

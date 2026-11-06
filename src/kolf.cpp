@@ -275,7 +275,7 @@ void KolfWindow::setupActions()
 void KolfWindow::ensureOnlineWidget()
 {
 	if (!onlineWidget) {
-		onlineWidget = new Kolf::Online::OnlineWidget(applicationStack);
+		onlineWidget = new Kolf::Online::OnlineWidget(m_itemFactory, applicationStack);
 		applicationStack->addWidget(onlineWidget);
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::leaveRequested, this, &KolfWindow::leaveOnline);
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::matchRequested, this, &KolfWindow::startOnlineMatch);
