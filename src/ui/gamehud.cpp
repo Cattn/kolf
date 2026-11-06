@@ -50,13 +50,13 @@ GameHud::GameHud(QWidget *parent)
     strong.setBold(true);
     m_turn->setFont(strong);
     m_turn->setWordWrap(true);
+    m_turn->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     m_turn->setAccessibleName(i18n("Whose turn it is"));
     row->addWidget(m_turn);
     m_stroke = new QLabel(this);
     m_stroke->setObjectName(QStringLiteral("hudStroke"));
     row->addSpacing(12);
     row->addWidget(m_stroke);
-    row->addStretch();
     outer->addLayout(row);
 
     auto *hintCard = new QFrame(this);
