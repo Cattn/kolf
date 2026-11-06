@@ -1,6 +1,7 @@
 {
   "name": "kolf-server",
   "private": true,
+  "version": "26.08.1",
   "type": "module",
   "engines": { "node": ">=22.18" },
   "scripts": {

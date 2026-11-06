@@ -9,6 +9,8 @@ import type { CourseCatalogEntry, LobbyState } from './lobby.ts';
 import { LobbyRegistry } from './lobby-registry.ts';
 import type { Departure, ServiceLimits } from './lobby-registry.ts';
 import { MatchCoordinator } from './match-session.ts';
+import { defaultServerInfo, helloFields } from './server-info.ts';
+import type { ServerInfo } from './server-info.ts';
 import type { MatchProgress } from './match-session.ts';
 
 export interface Delivery { connectionId: ConnectionId; message: Envelope; visual?: boolean }
@@ -27,10 +29,14 @@ export class LobbyProtocolController {
   private readonly matches = new Map<MatchId, MatchCoordinator>();
   private readonly ids: IdFactory;
 
+  readonly info: ServerInfo;
+
   constructor(catalog: CourseCatalogEntry[], ids: IdFactory = cryptoIds, now = () => Date.now(),
-    limits: Partial<ServiceLimits> = {}) {
-    this.ids = ids; this.service = new LobbyRegistry(catalog, ids, now, limits);
+    limits: Partial<ServiceLimits> = {}, info: ServerInfo = defaultServerInfo()) {
+    this.ids = ids; this.service = new LobbyRegistry(catalog, ids, now, limits); this.info = info;
   }
+
+  get connectionCount() { return this.connections.size; }
 
   connect(): ConnectionId {
     if (this.connections.size >= this.service.limits.maximumConnections)
@@ -42,6 +48,7 @@ export class LobbyProtocolController {
     if (!this.connections.has(connectionId)) throw new LobbyError('UnknownConnection', 'connection is not active');
     return { connectionId, message: envelope('ServiceHello', {
       protocolVersion: PROTOCOL_VERSION,
+      ...helloFields(this.info),
       courses: this.service.catalog.map(({ expectedHash: _expectedHash, par: _par, ...course }) => course),
       limits: {
         maximumLobbies: this.service.limits.maximumLobbies,

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 import { WebSocket, WebSocketServer } from 'ws';
+import { createServer } from 'node:http';
+import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { hostname } from 'node:os';
 import { MAX_MESSAGE_BYTES } from '../protocol/envelope.ts';
@@ -9,13 +11,19 @@ import { LobbyError } from './errors.ts';
 import { LobbyProtocolController } from './connection.ts';
 import type { Delivery } from './connection.ts';
 import type { ServiceLimits } from './lobby-registry.ts';
+import { handleHttpRequest, WEBSOCKET_PATHS } from './http-routes.ts';
+import { defaultServerInfo } from './server-info.ts';
+import type { ServerInfo } from './server-info.ts';
 
-interface Options { host?: string; port?: number; catalog: CourseCatalogEntry[]; limits?: Partial<ServiceLimits> }
+interface Options { host?: string; port?: number; catalog: CourseCatalogEntry[]; limits?: Partial<ServiceLimits>; info?: ServerInfo }
 
 /** Thin WebSocket transport for the bounded v3 room registry. */
 export class LobbyWebSocketService {
   readonly controller: LobbyProtocolController;
+  private readonly http: Server;
   private readonly server: WebSocketServer;
+  private readonly startedAt = Date.now();
+  private readonly listening: Promise<void>;
   private readonly sockets = new Map<ConnectionId, WebSocket>();
   private readonly pendingVisual = new Map<ConnectionId, string>();
   private readonly matchTimer: NodeJS.Timeout;
@@ -23,26 +31,42 @@ export class LobbyWebSocketService {
   private stopping = false;
 
   constructor(options: Options) {
-    this.controller = new LobbyProtocolController(options.catalog, undefined, undefined, options.limits);
-    this.server = new WebSocketServer({
-      host: options.host ?? '127.0.0.1', port: options.port ?? 0,
-      maxPayload: MAX_MESSAGE_BYTES, perMessageDeflate: false,
-    });
+    const info = options.info ?? defaultServerInfo();
+    this.controller = new LobbyProtocolController(options.catalog, undefined, undefined, options.limits, info);
+    this.server = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES, perMessageDeflate: false });
     this.server.on('connection', socket => this.accept(socket));
+    this.http = createServer((request, response) => handleHttpRequest(request, response, {
+      info, startedAt: this.startedAt, now: () => Date.now(),
+      stats: () => ({ lobbies: this.controller.service.activeLobbyCount, connections: this.controller.connectionCount }),
+    }));
+    this.http.on('upgrade', (request, socket, head) => {
+      let path = '';
+      try { path = new URL(request.url ?? '/', 'http://localhost').pathname; } catch { path = ''; }
+      if (this.stopping || !WEBSOCKET_PATHS.has(path)) {
+        socket.end('HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');
+        return;
+      }
+      this.server.handleUpgrade(request, socket, head, websocket => this.server.emit('connection', websocket, request));
+    });
+    this.listening = new Promise((resolveReady, reject) => {
+      this.http.once('listening', resolveReady);
+      this.http.once('error', reject);
+    });
+    this.http.listen(options.port ?? 0, options.host ?? '127.0.0.1');
     this.matchTimer = setInterval(() => this.deliver(this.controller.tick()), 250);
     this.frameTimer = setInterval(() => this.flushVisual(), 30);
   }
 
   ready(): Promise<void> {
-    if (this.server.address()) return Promise.resolve();
-    return new Promise((resolveReady, reject) => {
-      this.server.once('listening', resolveReady);
-      this.server.once('error', reject);
-    });
+    return this.listening;
+  }
+
+  httpEndpoint(): string {
+    return this.endpoint().replace(/^ws:/, 'http:');
   }
 
   endpoint(): string {
-    const address = this.server.address() as AddressInfo | null;
+    const address = this.http.address() as AddressInfo | null;
     if (!address) throw Error('server is not listening');
     let host = address.address;
     if (host === '0.0.0.0' || host === '::') host = process.env.KOLF_ADVERTISE_HOST ?? hostname();
@@ -54,7 +78,9 @@ export class LobbyWebSocketService {
     this.stopping = true;
     clearInterval(this.matchTimer); clearInterval(this.frameTimer); this.pendingVisual.clear();
     for (const socket of this.sockets.values()) socket.close(1001, 'service shutdown');
-    await new Promise<void>((resolveClose, reject) => this.server.close(error => error ? reject(error) : resolveClose()));
+    await new Promise<void>(resolveClose => this.server.close(() => resolveClose()));
+    this.http.closeAllConnections();
+    await new Promise<void>((resolveClose, reject) => this.http.close(error => error ? reject(error) : resolveClose()));
   }
 
   private accept(socket: WebSocket) {

@@ -20,6 +20,19 @@ Start the development service with `npm start`. It binds to `KOLF_BIND`
 (default `0.0.0.0`) and `KOLF_PORT` (default `3011`). `KOLF_COURSE_ROOT` can
 override the shipped-course directory.
 
+The same port serves WebSocket upgrades on `/` and `/ws`, plus plain HTTP:
+`/healthz` (`ok`), `/status` (name, version, protocol, lobby and connection
+counts, uptime), and `/join/CODE` (an invite page that looks the same whether
+or not the lobby exists). Optional environment variables:
+
+| Variable | Effect |
+| --- | --- |
+| `KOLF_SERVER_NAME` | Name shown in clients and `/status` (default `Kolf server`) |
+| `KOLF_MOTD` | Message of the day in `ServiceHello`, plain text, at most 280 characters |
+| `KOLF_PUBLIC_URL` | Public `https://` address used for invite links |
+| `KOLF_LATEST_CLIENT_VERSION`, `KOLF_LATEST_CLIENT_URL` | Advertise a client update (both required) |
+| `KOLF_MAX_LOBBIES`, `KOLF_MAX_CONNECTIONS` | Override the limits (defaults 32 and 64) |
+
 ## Windows build and local play
 
 Build Kolf through Craft:
