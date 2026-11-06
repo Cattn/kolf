@@ -17,6 +17,7 @@ struct ServerAddress {
 
 bool isPrivateHost(const QString &host);
 ServerAddress normalizeServerAddress(const QString &text);
+bool isNewerClientVersion(const QString &candidate, const QString &current);
 
 struct ServerEntry {
     QString name;

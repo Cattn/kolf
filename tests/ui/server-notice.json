@@ -1,0 +1,11 @@
+{
+  "description": "Hub shows the server name, message of the day, and an update link from ServiceHello. Needs a local server on 127.0.0.1:13111 started with KOLF_SERVER_NAME, KOLF_MOTD, and KOLF_LATEST_CLIENT_VERSION/URL.",
+  "steps": [
+    { "wait": 1500 },
+    { "setConfig": { "group": "Online", "key": "servers", "value": "[{\"name\":\"Test LAN\",\"url\":\"ws://127.0.0.1:13111\"}]" } },
+    { "setConfig": { "group": "Online", "key": "defaultServer", "value": "ws://127.0.0.1:13111" } },
+    { "click": "homeOnline", "wait": 2500 },
+    { "expectVisible": "onlineServerNotice", "screenshot": "01-notice.png" },
+    { "quit": true }
+  ]
+}

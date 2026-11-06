@@ -129,6 +129,15 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
     m_connectStatus->setObjectName(QStringLiteral("onlineStatus"));
     m_connectStatus->setWordWrap(true);
     hubLayout->addWidget(m_connectStatus);
+    m_serverNotice = new QLabel(hub);
+    m_serverNotice->setObjectName(QStringLiteral("onlineServerNotice"));
+    m_serverNotice->setWordWrap(true);
+    m_serverNotice->setTextFormat(Qt::RichText);
+    m_serverNotice->setOpenExternalLinks(true);
+    m_serverNotice->setFrameShape(QFrame::StyledPanel);
+    m_serverNotice->setMargin(8);
+    m_serverNotice->hide();
+    hubLayout->addWidget(m_serverNotice);
 
     m_serverControls = new QGroupBox(i18n("Server"), hub);
     m_serverControls->setObjectName(QStringLiteral("onlineServerControls"));
@@ -298,7 +307,9 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
         const int lastCourse = m_createCourse->findData(KConfigGroup(KSharedConfig::openConfig(), QStringLiteral("Online"))
             .readEntry("lastCourseId", QString()));
         if (lastCourse >= 0) m_createCourse->setCurrentIndex(lastCourse);
+        m_serverDisplayName = hello.value(QStringLiteral("serverName")).toString().trimmed().left(60);
         showEntry();
+        showServerNotice(hello);
         Q_EMIT statusChanged(i18n("Connected to %1.", m_endpoint->text().trimmed()));
     });
     connect(&m_coordinator, &OnlineCoordinator::connectionClosed, this, [this] {
@@ -420,6 +431,23 @@ void OnlineWidget::switchToServer(const QString &url)
     else beginConnection();
 }
 
+void OnlineWidget::showServerNotice(const QJsonObject &hello)
+{
+    QStringList parts;
+    const QString motd = hello.value(QStringLiteral("motd")).toString().trimmed().left(280);
+    if (!motd.isEmpty()) parts << motd.toHtmlEscaped();
+    const auto latest = hello.value(QStringLiteral("latestClient")).toObject();
+    const QString latestVersion = latest.value(QStringLiteral("version")).toString().left(40);
+    const QUrl latestUrl(latest.value(QStringLiteral("url")).toString());
+    if (isNewerClientVersion(latestVersion, QCoreApplication::applicationVersion())
+        && (latestUrl.scheme() == QLatin1String("https") || latestUrl.scheme() == QLatin1String("http"))) {
+        parts << i18n("Kolf %1 is available. <a href=\"%2\">Download the update</a>",
+            latestVersion.toHtmlEscaped(), latestUrl.toString(QUrl::FullyEncoded).toHtmlEscaped());
+    }
+    m_serverNotice->setText(parts.join(QStringLiteral("<br>")));
+    m_serverNotice->setVisible(!parts.isEmpty());
+}
+
 void OnlineWidget::serversChanged()
 {
     reloadServers();
@@ -527,11 +555,17 @@ void OnlineWidget::setConnectionState(ConnectionState state, const QString &mess
         : state == ConnectionState::Connecting ? i18n("Connecting…")
         : state == ConnectionState::Disconnecting ? i18n("Disconnecting…")
         : state == ConnectionState::Failed ? i18n("Couldn't reach the server. Retry, or choose another server.")
-        : state == ConnectionState::Connected ? i18n("● Connected. Host a game or join one with a code.")
+        : state == ConnectionState::Connected ? (m_serverDisplayName.isEmpty()
+            ? i18n("● Connected. Host a game or join one with a code.")
+            : i18n("● Connected to %1. Host a game or join one with a code.", m_serverDisplayName))
         : address.isEmpty() ? i18n("Enter a server address to play online.") : i18n("Not connected.");
     if (plaintextRemote && (state == ConnectionState::Connected || state == ConnectionState::Connecting))
         status += QLatin1Char(' ') + i18n("This connection is not encrypted; use it only on a network you trust.");
     m_connectStatus->setText(status);
+    if (state != ConnectionState::Connected && state != ConnectionState::InLobby && state != ConnectionState::InMatch) {
+        m_serverNotice->hide();
+        m_serverDisplayName.clear();
+    }
     m_connectButton->setEnabled(!busy && !address.isEmpty());
     m_connectButton->setText(state == ConnectionState::Failed ? i18nc("@action:button", "Retry")
         : i18nc("@action:button", "Connect"));

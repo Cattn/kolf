@@ -88,6 +88,17 @@ private Q_SLOTS:
         QVERIFY(!isPrivateHost(QStringLiteral("kolf.pro")));
     }
 
+    void comparesClientVersions()
+    {
+        QVERIFY(isNewerClientVersion(QStringLiteral("26.08.1-cattn.2"), QStringLiteral("26.08.1")));
+        QVERIFY(isNewerClientVersion(QStringLiteral("26.08.2"), QStringLiteral("26.08.1-cattn.9")));
+        QVERIFY(isNewerClientVersion(QStringLiteral("26.12.0"), QStringLiteral("26.08.1")));
+        QVERIFY(!isNewerClientVersion(QStringLiteral("26.08.1"), QStringLiteral("26.08.1")));
+        QVERIFY(!isNewerClientVersion(QStringLiteral("26.08.1-cattn.1"), QStringLiteral("26.08.1-cattn.1")));
+        QVERIFY(!isNewerClientVersion(QStringLiteral("26.04.3"), QStringLiteral("26.08.1")));
+        QVERIFY(!isNewerClientVersion(QString(), QStringLiteral("26.08.1")));
+    }
+
     void freshInstallDefaultsToBuiltIn()
     {
         std::unique_ptr<KConfig> config(freshConfig());

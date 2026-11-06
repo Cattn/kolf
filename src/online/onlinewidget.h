@@ -63,6 +63,7 @@ private:
     void reloadServers();
     void rebuildServerMenu();
     void switchToServer(const QString &url);
+    void showServerNotice(const QJsonObject &hello);
     void setConnectionState(ConnectionState state, const QString &message = {});
 
     OnlineCoordinator m_coordinator;
@@ -75,6 +76,8 @@ private:
     QHash<QString, QString> m_servers;
     QString m_defaultServer;
     QString m_sessionServer;
+    QString m_serverDisplayName;
+    QLabel *m_serverNotice;
     bool m_connectAfterDisconnect = false;
     QGroupBox *m_serverControls;
     QGroupBox *m_hostCard;

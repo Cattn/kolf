@@ -5,6 +5,7 @@
 #include <KLocalizedString>
 
 #include <QHostAddress>
+#include <QRegularExpression>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -88,6 +89,24 @@ ServerAddress normalizeServerAddress(const QString &input)
         url.setPath(local ? QString() : QStringLiteral("/ws"));
     url.setHost(url.host().toLower());
     return {url, {}};
+}
+
+bool isNewerClientVersion(const QString &candidate, const QString &current)
+{
+    const auto numbers = [](const QString &version) {
+        QList<int> parts;
+        static const QRegularExpression digits(QStringLiteral("[0-9]+"));
+        auto it = digits.globalMatch(version);
+        while (it.hasNext()) parts.append(it.next().captured().toInt());
+        return parts;
+    };
+    const auto a = numbers(candidate), b = numbers(current);
+    if (a.isEmpty()) return false;
+    for (int i = 0; i < std::max(a.size(), b.size()); ++i) {
+        const int left = a.value(i, 0), right = b.value(i, 0);
+        if (left != right) return left > right;
+    }
+    return false;
 }
 
 ServerEntry ServerList::builtInServer()
