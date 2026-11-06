@@ -799,8 +799,22 @@ void KolfWindow::continueGame(const QString &savedGame)
 
 void KolfWindow::returnHome()
 {
-	if (onlineModeActive)
+	if (onlineModeActive) {
+		if (onlineMatchController && KMessageBox::warningTwoActions(this,
+			i18n("Leaving this online match will interrupt it for everyone. Return to the main menu?"),
+			i18nc("@title:window", "Leave Online Match?"),
+			KGuiItem(i18nc("@action:button", "Leave Match"), QStringLiteral("network-disconnect")),
+			KStandardGuiItem::cancel()) != KMessageBox::PrimaryAction)
+			return;
+		leaveOnline();
 		return;
+	}
+	if (applicationStack->currentWidget() != dummy) {
+		if (applicationStack->currentWidget() == setupView)
+			filename = QString();
+		applicationStack->setCurrentWidget(dummy);
+		return;
+	}
 	if (game && !editingAction->isChecked() && KMessageBox::warningContinueCancel(this,
 		i18n("Leave this game and return to the main menu? Progress since your last save will be lost."),
 		i18nc("@title:window", "Return to Main Menu?"),

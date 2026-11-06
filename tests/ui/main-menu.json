@@ -1,0 +1,15 @@
+{
+  "description": "Game > Main Menu returns Home from the setup page and from the Online hub.",
+  "steps": [
+    { "wait": 1500 },
+    { "click": "homePlay", "wait": 1200 },
+    { "expectVisible": "newGameView" },
+    { "action": "mainmenu", "wait": 800 },
+    { "expectVisible": "homeView", "expectHidden": "newGameView" },
+    { "click": "homeOnline", "wait": 1200 },
+    { "expectVisible": "onlineHub" },
+    { "action": "mainmenu", "wait": 1000 },
+    { "expectVisible": "homeView", "screenshot": "01-home-after-main-menu.png" },
+    { "quit": true }
+  ]
+}
