@@ -28,22 +28,15 @@
 #include <QJsonObject>
 #include <QUrl>
 class QGridLayout;
-class QHBoxLayout;
 class QJsonObject;
-class QCheckBox;
-class QComboBox;
-class QLabel;
-class QPushButton;
-class QSpinBox;
 class QStackedWidget;
-class QVBoxLayout;
 class QAction;
 class KSelectAction;
 class KToggleAction;
 
 class Editor;
 class ScoreBoard;
-namespace Kolf::Online { class OnlineWidget; }
+namespace Kolf::Online { class OnlineMatchView; class OnlineWidget; }
 namespace Kolf::Session { class SessionController; }
 namespace Kolf::Testing { class OnlineAutomation; }
 
@@ -76,7 +69,6 @@ protected Q_SLOTS:
 	void leaveOnline();
 	void startOnlineMatch(const QJsonObject &config);
 	void finishOnlineMatch();
-	void updateOnlineHazardActions(bool available);
 	void newGame();
 	void save();
 	void saveAs();
@@ -162,30 +154,7 @@ private:
 	QString title;
 	QString tempStatusBarText;
 	Kolf::Online::OnlineWidget *onlineWidget = nullptr;
-	QWidget *onlineGamePage = nullptr;
-	QVBoxLayout *onlineGameLayout = nullptr;
-	ScoreBoard *onlineScoreboard = nullptr;
-	QWidget *onlineHazardPanel = nullptr;
-	QWidget *onlineHostOptions = nullptr;
-	QWidget *onlineProposalComposer = nullptr;
-	QWidget *onlineProposalVotes = nullptr;
-	QCheckBox *onlineHostControls = nullptr;
-	QCheckBox *onlineAllowVoting = nullptr;
-	QCheckBox *onlineConfirmHostActions = nullptr;
-	QLabel *onlineGuestStatusLabel = nullptr;
-	QComboBox *onlineProposalAction = nullptr;
-	QSpinBox *onlineProposalTarget = nullptr;
-	QLabel *onlineProposalLabel = nullptr;
-	QPushButton *onlineProposeButton = nullptr;
-	QPushButton *onlineVoteYesButton = nullptr;
-	QPushButton *onlineVoteNoButton = nullptr;
-	QPushButton *onlineApproveButton = nullptr;
-	QPushButton *onlineRejectButton = nullptr;
-	QPushButton *onlineWithdrawButton = nullptr;
-	QJsonObject onlineProposal;
-	QLabel *onlineNoticeLabel = nullptr;
-	QPushButton *onlineDropButton = nullptr;
-	QPushButton *onlineRehitButton = nullptr;
+	Kolf::Online::OnlineMatchView *onlineMatchView = nullptr;
 	QAction *onlineResyncAction = nullptr;
 	Kolf::Session::SessionController *onlineMatchController = nullptr;
 #ifdef KOLF_TEST_AUTOMATION
