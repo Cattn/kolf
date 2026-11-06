@@ -36,6 +36,21 @@ Cache repository    : https://files.kde.org/craft/Qt6/...
 
 Do not assume `craft`, `cs`, or `cb` exist until this script has run in that same shell.
 
+### If Craft cannot find Python
+
+Set `CRAFT_PYTHON` to a real `python.exe` **before** running `craftenv.ps1`, in the same PowerShell invocation as the Craft command. On this workstation, the verified interpreter is `C:\Users\thecr\AppData\Local\Python\pythoncore-3.14-64\python.exe`:
+
+```powershell
+$craftPython = 'C:\Users\thecr\AppData\Local\Python\pythoncore-3.14-64\python.exe'
+if (-not (Test-Path -LiteralPath $craftPython -PathType Leaf)) { throw 'Find the installed Python executable and update $craftPython.' }
+& $craftPython --version
+$env:CRAFT_PYTHON = $craftPython
+& C:\CraftRoot\craft\craftenv.ps1
+craft --compile --install --qmerge kolf
+```
+
+If that path is absent, locate an installed Python interpreter (for example with `py -0p` or `Get-Command python -All`) and use its full executable path. A WindowsApps app execution alias is not a Python installation. Keep the override in the same shell; setting it in one agent command does not carry into the next. If initialization still reports an error, stop and inspect that error before running Craft.
+
 ## Allowed commands
 
 Only these Craft commands are allowed. Do not use any other `craft ...` invocation unless the user explicitly names that exact command.
