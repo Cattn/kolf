@@ -1,0 +1,11 @@
+{
+  "description": "A server restart notice stays on the hub after the server closes. Needs a local server on 127.0.0.1:13111 that drains (SIGTERM) a few seconds after the hub connects.",
+  "steps": [
+    { "wait": 1500 },
+    { "setConfig": { "group": "Online", "key": "servers", "value": "[{\"name\":\"Test LAN\",\"url\":\"ws://127.0.0.1:13111\"}]" } },
+    { "setConfig": { "group": "Online", "key": "defaultServer", "value": "ws://127.0.0.1:13111" } },
+    { "click": "homeOnline", "wait": 9000 },
+    { "expectVisible": "onlineServerNotice", "screenshot": "01-restart-notice.png" },
+    { "quit": true }
+  ]
+}

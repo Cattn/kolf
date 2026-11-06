@@ -39,6 +39,23 @@ export class LobbyProtocolController {
   }
 
   get connectionCount() { return this.connections.size; }
+  get draining() { return this.drainDeadline !== undefined; }
+  private drainDeadline?: number;
+
+  beginDrain(deadline: number): Delivery[] {
+    this.drainDeadline = deadline;
+    return [...this.connections].map(connectionId => ({ connectionId, message: this.restartNotice() }));
+  }
+
+  welcome(connectionId: ConnectionId): Delivery[] {
+    const hello = this.greeting(connectionId);
+    return this.draining ? [hello, { connectionId, message: this.restartNotice() }] : [hello];
+  }
+
+  private restartNotice(): Envelope {
+    return envelope('ServiceNotice', { kind: 'restarting', deadline: this.drainDeadline!,
+      message: `${this.info.serverName} is restarting for an update.` });
+  }
 
   connect(): ConnectionId {
     if (this.connections.size >= this.service.limits.maximumConnections)
@@ -73,6 +90,7 @@ export class LobbyProtocolController {
       const message = decodeClientMessage(raw); requestId = message.requestId;
       switch (message.type) {
         case 'CreateLobby': {
+          if (this.draining) return [this.error(connectionId, requestId, 'ServiceRestarting', 'the server is restarting and is not accepting new lobbies')];
           const profile = { displayName: message.payload.displayName };
           const player = { displayName: message.payload.displayName, colorMode: message.payload.colorMode,
             customColor: message.payload.customColor };
@@ -125,7 +143,9 @@ export class LobbyProtocolController {
                 { requestId, lobbyId: lobby.lobbyId, matchId: message.matchId }) }];
             }
             case 'SetReady': lobby.setReady(memberId, message.requestId!, message.payload.lobbyRevision, message.payload.ready); break;
-            case 'StartMatch': lobby.start(memberId, message.requestId!, message.payload.lobbyRevision); break;
+            case 'StartMatch':
+              if (this.draining) return [this.error(connectionId, requestId, 'ServiceRestarting', 'the server is restarting and is not starting new matches')];
+              lobby.start(memberId, message.requestId!, message.payload.lobbyRevision); break;
             case 'CourseReady': {
               let result;
               try {

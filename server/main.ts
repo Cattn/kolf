@@ -30,11 +30,16 @@ console.log(JSON.stringify({ event: 'listening', endpoint: service.endpoint(), p
   courses: catalog.map(course => ({ courseId: course.courseId, displayName: course.displayName,
     resourceName: course.resourceName, expectedHash: course.expectedHash })) }));
 
-let stopping = false;
-const stop = async () => {
-  if (stopping) return;
-  stopping = true;
-  await service.close();
+const drainSeconds = Number(process.env.KOLF_DRAIN_SECONDS ?? 600);
+if (!Number.isFinite(drainSeconds) || drainSeconds < 0) throw Error('KOLF_DRAIN_SECONDS must be a non-negative number');
+let draining = false;
+const stopNow = async () => { await service.close(); };
+const drain = async () => {
+  if (draining) { await stopNow(); return; }
+  draining = true;
+  console.log(JSON.stringify({ event: 'draining', seconds: drainSeconds }));
+  await service.drain(drainSeconds * 1000);
+  console.log(JSON.stringify({ event: 'stopped' }));
 };
-process.on('SIGINT', stop);
-process.on('SIGTERM', stop);
+process.on('SIGINT', stopNow);
+process.on('SIGTERM', drain);

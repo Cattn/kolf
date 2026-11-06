@@ -49,6 +49,7 @@ Q_SIGNALS:
     void matchEnded();
     void statusChanged(const QString &status);
     void manageServersRequested();
+    void serviceNotice(const QString &text);
 
 private:
     enum class ConnectionState { Disconnected, Connecting, Disconnecting, Connected, InLobby, InMatch, Failed };
@@ -78,6 +79,7 @@ private:
     QString m_sessionServer;
     QString m_serverDisplayName;
     QLabel *m_serverNotice;
+    QString m_restartNotice;
     bool m_connectAfterDisconnect = false;
     QGroupBox *m_serverControls;
     QGroupBox *m_hostCard;

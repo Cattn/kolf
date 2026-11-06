@@ -7,8 +7,10 @@
 #include "session/onlineprotocol.h"
 #include "rules_build_id.h"
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QLocale>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QStandardPaths>
@@ -189,6 +191,19 @@ void OnlineCoordinator::receive(const QJsonObject &message)
         Q_EMIT serviceChanged(m_serviceHello);
         return;
     }
+    if (type == QLatin1String("ServiceNotice")) {
+        if (payload.value(QStringLiteral("kind")).toString() == QLatin1String("restarting")) {
+            const auto deadline = QDateTime::fromMSecsSinceEpoch(qint64(payload.value(QStringLiteral("deadline")).toDouble()));
+            const QString server = m_serviceHello.value(QStringLiteral("serverName")).toString().trimmed().left(60);
+            QString text = server.isEmpty() ? tr("The server is restarting for an update.")
+                                            : tr("%1 is restarting for an update.").arg(server);
+            if (deadline.isValid() && deadline > QDateTime::currentDateTime())
+                text += QLatin1Char(' ') + tr("Matches in progress can finish until %1; new games can start after the restart.")
+                    .arg(QLocale().toString(deadline.time(), QLocale::ShortFormat));
+            Q_EMIT serviceNotice(text);
+        }
+        return;
+    }
     if (type == QLatin1String("UnsupportedProtocol") || type == QLatin1String("RequestRejected")) {
         const auto code = payload.value(QStringLiteral("code")).toString();
         const auto message = type == QLatin1String("UnsupportedProtocol")
@@ -196,6 +211,7 @@ void OnlineCoordinator::receive(const QJsonObject &message)
             : code == QLatin1String("ServiceFull") ? tr("The server is full. Try again later or choose another server.")
             : code == QLatin1String("LobbyNotFound") ? tr("That join code was not found. Check the code and try again.")
             : code == QLatin1String("LobbyFull") ? tr("That lobby is full.")
+            : code == QLatin1String("ServiceRestarting") ? tr("The server is restarting for an update. Try again in a few minutes.")
             : code == QLatin1String("TooManyAttempts") ? tr("Too many join attempts with the wrong code. Wait a minute and try again.")
             : code == QLatin1String("TooManyConnections") ? tr("Too many Kolf windows are connected from your network. Close one and try again.")
             : payload.value(QStringLiteral("message")).toString(tr("The online request was rejected."));

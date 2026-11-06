@@ -91,7 +91,20 @@ export class LobbyWebSocketService {
     return `ws://${formatted}:${address.port}`;
   }
 
+  async drain(graceMs: number): Promise<void> {
+    const deadline = this.now() + graceMs;
+    this.deliver(this.controller.beginDrain(deadline));
+    await new Promise<void>(resolveDrained => {
+      const check = setInterval(() => {
+        if (this.controller.service.activeMatchLobbyCount > 0 && this.now() < deadline) return;
+        clearInterval(check); resolveDrained();
+      }, 250);
+    });
+    await this.close();
+  }
+
   async close(): Promise<void> {
+    if (this.stopping) return;
     this.stopping = true;
     clearInterval(this.matchTimer); clearInterval(this.frameTimer); this.pendingVisual.clear();
     for (const socket of this.sockets.values()) socket.close(1001, 'service shutdown');
@@ -120,7 +133,7 @@ export class LobbyWebSocketService {
       socket.close(1013, 'service full'); return;
     }
     this.sockets.set(connectionId, socket);
-    this.deliver([this.controller.greeting(connectionId)]);
+    this.deliver(this.controller.welcome(connectionId));
     let live = true;
     const bucket = new TokenBucket(this.abuse.messageBurst, this.abuse.messagesPerSecond, this.now);
     const heartbeat = setInterval(() => {

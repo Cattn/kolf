@@ -30,6 +30,7 @@ public:
     bool confirmHostActions() const;
     void setConfirmHostActions(bool confirm);
     QJsonObject uiSnapshot() const;
+    void showNotice(const QString &notice);
 
 Q_SIGNALS:
     void changeServerRequested();
@@ -39,7 +40,6 @@ private:
     void updateProposalUi(const QJsonObject &state);
     void setHazardChoiceAvailable(bool available);
     void updateCountdown();
-    void showNotice(const QString &notice);
 
     Session::SessionController *m_controller = nullptr;
     QVBoxLayout *m_layout = nullptr;

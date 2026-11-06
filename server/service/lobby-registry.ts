@@ -65,6 +65,11 @@ export class LobbyRegistry {
 
   get activeLobbyCount() { return this.lobbiesById.size; }
   get membershipCount() { return this.membershipByConnection.size; }
+  get activeMatchLobbyCount() {
+    let count = 0;
+    for (const lobby of this.lobbiesById.values()) if (lobby.phase === 'Preparing' || lobby.phase === 'Playing') ++count;
+    return count;
+  }
 
   expireUploads() { for (const lobby of this.lobbiesById.values()) lobby.transfers.expire(); }
 

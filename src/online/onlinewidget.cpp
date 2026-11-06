@@ -308,6 +308,7 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
             .readEntry("lastCourseId", QString()));
         if (lastCourse >= 0) m_createCourse->setCurrentIndex(lastCourse);
         m_serverDisplayName = hello.value(QStringLiteral("serverName")).toString().trimmed().left(60);
+        m_restartNotice.clear();
         showEntry();
         showServerNotice(hello);
         Q_EMIT statusChanged(i18n("Connected to %1.", m_endpoint->text().trimmed()));
@@ -340,6 +341,15 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
             Q_EMIT statusChanged(message);
         }
         m_pages->setCurrentIndex(0);
+    });
+    connect(&m_coordinator, &OnlineCoordinator::serviceNotice, this, [this](const QString &text) {
+        m_restartNotice = text;
+        const QString existing = m_serverNotice->isVisible() ? m_serverNotice->text() : QString();
+        m_serverNotice->setText(QStringLiteral("<b>%1</b>").arg(text.toHtmlEscaped())
+            + (existing.isEmpty() ? QString() : QStringLiteral("<br>") + existing));
+        m_serverNotice->show();
+        m_lobby->setStatus(text);
+        Q_EMIT serviceNotice(text);
     });
     connect(&m_coordinator, &OnlineCoordinator::lobbyChanged, this, &OnlineWidget::showLobby);
     connect(&m_coordinator, &OnlineCoordinator::lobbyClosed, this, [this](const QString &reason) {
@@ -563,7 +573,8 @@ void OnlineWidget::setConnectionState(ConnectionState state, const QString &mess
         status += QLatin1Char(' ') + i18n("This connection is not encrypted; use it only on a network you trust.");
     m_connectStatus->setText(status);
     if (state != ConnectionState::Connected && state != ConnectionState::InLobby && state != ConnectionState::InMatch) {
-        m_serverNotice->hide();
+        m_serverNotice->setText(QStringLiteral("<b>%1</b>").arg(m_restartNotice.toHtmlEscaped()));
+        m_serverNotice->setVisible(!m_restartNotice.isEmpty());
         m_serverDisplayName.clear();
     }
     m_connectButton->setEnabled(!busy && !address.isEmpty());

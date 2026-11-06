@@ -42,6 +42,7 @@ Q_SIGNALS:
     void matchPrepared(const QJsonObject &config);
     void statusChanged(const QString &status);
     void failed(const QString &reason);
+    void serviceNotice(const QString &text);
     void courseUploadProgress(int percent);
 
 private:
