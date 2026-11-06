@@ -1,7 +1,8 @@
 {
   "steps": [
     { "wait": 1000 },
-    { "setConfig": { "group": "Online", "key": "lastSuccessfulEndpoint", "value": "ws://127.0.0.1:13111" } },
+    { "setConfig": { "group": "Online", "key": "servers", "value": "[{\"name\":\"Test LAN\",\"url\":\"ws://127.0.0.1:13111\"}]" } },
+    { "setConfig": { "group": "Online", "key": "defaultServer", "value": "ws://127.0.0.1:13111" } },
     { "click": "homeOnline", "wait": 1200 },
     { "click": "onlineHost", "wait": 1500 },
     { "expectVisible": "onlineLobby" },

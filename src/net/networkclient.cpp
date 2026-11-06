@@ -28,13 +28,14 @@ NetworkClient::NetworkClient(QObject *parent) : QObject(parent) {
     connect(&m_socket, &QWebSocket::binaryMessageReceived, this, [this] { Q_EMIT failed(QStringLiteral("Unexpected binary message")); close(); });
     connect(&m_socket, &QWebSocket::connected, this, [this] {
         m_lastReceived.restart();
+        m_opened = true;
         Q_EMIT connected();
         if (!m_initialMessage.isEmpty()) send(m_initialMessage);
     });
     connect(&m_socket, &QWebSocket::disconnected, this, [this] {
         const bool unexpected = !m_closed;
         m_watchdog.stop(); m_flush.stop(); m_frame.clear();
-        if (unexpected) Q_EMIT failed(QStringLiteral("Transport disconnected"));
+        if (unexpected && m_opened) Q_EMIT failed(tr("The connection to the server was lost."));
         Q_EMIT disconnected();
     });
     connect(&m_socket, &QWebSocket::errorOccurred, this, [this] {
@@ -44,7 +45,7 @@ NetworkClient::NetworkClient(QObject *parent) : QObject(parent) {
             case QAbstractSocket::HostNotFoundError: reason = tr("Server address could not be found."); break;
             case QAbstractSocket::ConnectionRefusedError: reason = tr("The server refused the connection."); break;
             case QAbstractSocket::SslHandshakeFailedError: reason = tr("Secure connection failed. Check the server certificate."); break;
-            default: reason = m_socket.errorString(); break;
+            default: reason = tr("Couldn't connect to the server (%1).").arg(m_socket.errorString()); break;
             }
             Q_EMIT failed(reason); close();
         }
@@ -60,7 +61,7 @@ NetworkClient::NetworkClient(QObject *parent) : QObject(parent) {
     });
     m_flush.start(30);
     connect(&m_watchdog, &QTimer::timeout, this, [this] {
-        if (m_lastReceived.elapsed() > 15000) { Q_EMIT failed(QStringLiteral("Transport heartbeat expired")); close(); }
+        if (m_lastReceived.elapsed() > 15000) { Q_EMIT failed(tr("The server stopped responding.")); close(); }
         else m_socket.ping();
     });
 }
@@ -69,7 +70,7 @@ void NetworkClient::open(const QUrl &url, const QJsonObject &initialMessage) {
         Q_EMIT failed(QStringLiteral("Transport is already connected"));
         return;
     }
-    m_closed = false; m_initialMessage = initialMessage;
+    m_closed = false; m_opened = false; m_initialMessage = initialMessage;
     m_frame.clear(); m_blocked.invalidate(); m_lastReceived.start(); m_flush.start(30); m_watchdog.start(5000);
     m_socket.open(url);
 }

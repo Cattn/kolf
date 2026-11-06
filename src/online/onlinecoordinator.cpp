@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "onlinecoordinator.h"
+#include "serverlist.h"
 #include "color.h"
 #include "coursefile.h"
 
@@ -42,17 +43,6 @@ OnlineCoordinator::OnlineCoordinator(QObject *parent)
     });
 }
 
-static QUrl parseServiceEndpoint(QString text)
-{
-    text = text.trimmed();
-    if (text.isEmpty()) return {};
-    if (!text.contains(QStringLiteral("://"))) {
-        if (!text.contains(QLatin1Char(':'))) text.append(QStringLiteral(":3011"));
-        text.prepend(QStringLiteral("ws://"));
-    }
-    return QUrl(text);
-}
-
 static QString canonicalColor(const QString &text)
 {
     const auto parsed = Kolf::Online::colorFromRgba(text.trimmed());
@@ -61,13 +51,12 @@ static QString canonicalColor(const QString &text)
 
 void OnlineCoordinator::connectToService(const QString &endpoint)
 {
-    const QUrl url = parseServiceEndpoint(endpoint);
-    if (!url.isValid() || (url.scheme() != QLatin1String("ws") && url.scheme() != QLatin1String("wss"))
-        || url.host().isEmpty() || !url.userName().isEmpty() || !url.password().isEmpty()
-        || url.hasQuery() || url.hasFragment()) {
-        Q_EMIT failed(tr("Enter a ws:// or wss:// server address without credentials or a query string."));
+    const auto address = normalizeServerAddress(endpoint);
+    if (!address.isValid()) {
+        Q_EMIT failed(address.error);
         return;
     }
+    const QUrl url = address.url;
     Q_EMIT statusChanged(tr("Connecting to %1…").arg(url.toDisplayString()));
     m_endpoint = url.toString();
     m_network.open(url);

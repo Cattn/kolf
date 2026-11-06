@@ -3,6 +3,7 @@
 #include "lobbyview.h"
 #include "color.h"
 #include "playerprofileeditor.h"
+#include "serverlist.h"
 #include "results/summary.h"
 #include "ui/resultsview.h"
 
@@ -94,7 +95,6 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
     root->addWidget(m_pages);
 
     KConfigGroup onlineConfig(KSharedConfig::openConfig(), QStringLiteral("Online"));
-    const auto configuredEndpoint = qEnvironmentVariable("KOLF_ONLINE_DEFAULT_ENDPOINT").trimmed();
     auto *hub = new QWidget(this);
     hub->setObjectName(QStringLiteral("onlineHub"));
     auto *hubLayout = new QVBoxLayout(hub);
@@ -127,15 +127,12 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
     m_serverControls->setObjectName(QStringLiteral("onlineServerControls"));
     auto *serverLayout = new QFormLayout(m_serverControls);
     m_recentServers = new QComboBox(m_serverControls);
-    m_recentServers->setAccessibleName(i18n("Recent servers"));
-    for (const auto &server : onlineConfig.readEntry("recentServers", QStringList()))
-        m_recentServers->addItem(server);
-    serverLayout->addRow(i18nc("@label", "Recent:"), m_recentServers);
+    m_recentServers->setObjectName(QStringLiteral("onlineServerList"));
+    m_recentServers->setAccessibleName(i18n("Saved servers"));
+    serverLayout->addRow(i18nc("@label", "Saved:"), m_recentServers);
     m_endpoint = new QLineEdit(m_serverControls);
     m_endpoint->setObjectName(QStringLiteral("onlineAddress"));
-    m_endpoint->setPlaceholderText(i18nc("@info:placeholder", "server.example.org:3011"));
-    m_endpoint->setText(onlineConfig.readEntry("lastSuccessfulEndpoint",
-        onlineConfig.readEntry("endpoint", configuredEndpoint)));
+    m_endpoint->setPlaceholderText(i18nc("@info:placeholder", "kolf.pro or 192.168.1.20"));
     auto *addressRow = new QHBoxLayout;
     addressRow->addWidget(m_endpoint, 1);
     m_connectButton = new QPushButton(i18nc("@action:button", "Connect"), m_serverControls);
@@ -244,7 +241,7 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
         m_endpoint->selectAll();
     });
     connect(m_recentServers, &QComboBox::activated, this, [this](int index) {
-        if (index >= 0) m_endpoint->setText(m_recentServers->itemText(index));
+        if (index >= 0) m_endpoint->setText(m_recentServers->itemData(index).toString());
     });
     connect(m_endpoint, &QLineEdit::textChanged, this, [this] {
         if (m_connectionState != ConnectionState::Connecting) setConnectionState(m_connectionState);
@@ -325,6 +322,10 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
             setConnectionState(ConnectionState::Disconnected);
             m_pages->setCurrentIndex(0);
             Q_EMIT statusChanged(i18n("Disconnected. Ready to connect."));
+            if (m_connectAfterDisconnect) {
+                m_connectAfterDisconnect = false;
+                if (!m_endpoint->text().trimmed().isEmpty()) beginConnection();
+            }
             return;
         }
         if (m_connectionState != ConnectionState::Failed) {
@@ -352,13 +353,17 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
         Q_EMIT statusChanged(status);
     });
     connect(&m_coordinator, &OnlineCoordinator::failed, this, [this](const QString &reason) {
-        if (m_connectionState == ConnectionState::Connecting) {
+        const bool connectionFailure = m_connectionState == ConnectionState::Connecting
+            || m_connectionState == ConnectionState::Failed;
+        if (connectionFailure) {
             m_connectTimeout->stop();
             setConnectionState(ConnectionState::Failed, reason);
+        } else {
+            m_entryStatus->setText(reason);
         }
         m_entryRequestPending = false;
         m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
-        m_entryStatus->setText(reason); m_lobby->setStatus(reason);
+        m_lobby->setStatus(reason);
         Q_EMIT statusChanged(reason);
     });
 }
@@ -367,11 +372,30 @@ OnlineWidget::~OnlineWidget()
 {
 }
 
+void OnlineWidget::reloadServers()
+{
+    KConfigGroup onlineConfig(KSharedConfig::openConfig(), QStringLiteral("Online"));
+    const auto list = ServerList::load(onlineConfig);
+    onlineConfig.sync();
+    m_servers.clear();
+    m_recentServers->clear();
+    for (const auto &server : list.servers()) {
+        m_servers.insert(server.url, server.name);
+        m_recentServers->addItem(server.name, server.url);
+    }
+    m_defaultServer = list.defaultUrl();
+}
+
 void OnlineWidget::enterOnline()
 {
     m_pages->setCurrentIndex(0);
+    if (m_connectionState != ConnectionState::Connected && m_connectionState != ConnectionState::Connecting) {
+        reloadServers();
+        m_endpoint->setText(m_sessionServer.isEmpty() ? m_defaultServer : m_sessionServer);
+    }
     setConnectionState(m_disconnectRequested ? ConnectionState::Disconnecting : ConnectionState::Disconnected,
         m_endpoint->text().trimmed().isEmpty() ? i18n("Enter a server address to play online.") : QString());
+    m_connectAfterDisconnect = m_disconnectRequested;
     if (!m_disconnectRequested && !m_endpoint->text().trimmed().isEmpty())
         beginConnection();
     else
@@ -416,6 +440,7 @@ void OnlineWidget::updateProfileChip()
 
 void OnlineWidget::changeServer()
 {
+    m_connectAfterDisconnect = false;
     m_connectTimeout->stop();
     if (m_matchActive) {
         m_matchActive = false;
@@ -445,16 +470,19 @@ void OnlineWidget::setConnectionState(ConnectionState state, const QString &mess
 {
     m_connectionState = state;
     const auto address = m_endpoint->text().trimmed();
-    const QUrl url(address.contains(QStringLiteral("://")) ? address : QStringLiteral("ws://") + address);
+    const auto normalized = normalizeServerAddress(address);
+    const QUrl url = normalized.url;
     const bool plaintextRemote = url.scheme() == QLatin1String("ws")
-        && !url.host().isEmpty() && url.host() != QLatin1String("localhost")
-        && url.host() != QLatin1String("127.0.0.1") && url.host() != QLatin1String("::1");
-    const auto configuredAddress = qEnvironmentVariable("KOLF_ONLINE_DEFAULT_ENDPOINT").trimmed();
-    const auto friendlyName = address == configuredAddress
-        ? qEnvironmentVariable("KOLF_ONLINE_DEFAULT_SERVER_NAME").trimmed() : QString();
-    m_serverLabel->setText(address.isEmpty() ? i18n("No server chosen")
-        : i18n("Server: %1", friendlyName.isEmpty() ? (url.host().isEmpty() ? address : url.host()) : friendlyName));
-    m_serverLabel->setToolTip(address);
+        && url.host() != QLatin1String("localhost") && url.host() != QLatin1String("127.0.0.1") && url.host() != QLatin1String("::1");
+    const QString canonical = url.toString();
+    const QString friendlyName = m_servers.value(canonical, url.host().isEmpty() ? address : url.host());
+    m_serverLabel->setText(address.isEmpty() ? i18n("No server chosen") : i18n("Server: %1", friendlyName));
+    m_serverLabel->setToolTip(normalized.isValid() ? canonical : address);
+    const int listIndex = m_recentServers->findData(canonical);
+    if (listIndex >= 0) {
+        const QSignalBlocker blocker(m_recentServers);
+        m_recentServers->setCurrentIndex(listIndex);
+    }
     const bool busy = state == ConnectionState::Connecting || state == ConnectionState::Disconnecting;
     QString status = !message.isEmpty() ? message
         : state == ConnectionState::Connecting ? i18n("Connecting…")
@@ -485,6 +513,7 @@ void OnlineWidget::beginConnection()
 {
     if (m_connectionState == ConnectionState::Connecting || m_connectionState == ConnectionState::Disconnecting
         || m_endpoint->text().trimmed().isEmpty()) return;
+    m_entryStatus->clear();
     setConnectionState(ConnectionState::Connecting);
     m_connectTimeout->start();
     m_coordinator.connectToService(m_endpoint->text());
@@ -493,6 +522,7 @@ void OnlineWidget::beginConnection()
 void OnlineWidget::setEndpointAddress(const QString &endpoint)
 {
     m_endpoint->setText(endpoint);
+    m_sessionServer = endpoint;
 }
 
 void OnlineWidget::setProfile(const QString &name, const QString &colorMode, const QString &customColor)
@@ -509,17 +539,16 @@ void OnlineWidget::showEntry()
 {
     setConnectionState(ConnectionState::Connected);
     KConfigGroup onlineConfig(KSharedConfig::openConfig(), QStringLiteral("Online"));
-    const auto endpoint = m_endpoint->text().trimmed();
-    onlineConfig.writeEntry("lastSuccessfulEndpoint", endpoint);
-    onlineConfig.deleteEntry("endpoint");
-    auto recent = onlineConfig.readEntry("recentServers", QStringList());
-    recent.removeAll(endpoint);
-    recent.prepend(endpoint);
-    while (recent.size() > 5) recent.removeLast();
-    onlineConfig.writeEntry("recentServers", recent);
-    m_recentServers->clear();
-    m_recentServers->addItems(recent);
-    onlineConfig.sync();
+    const auto endpoint = normalizeServerAddress(m_endpoint->text()).url.toString();
+    m_sessionServer = endpoint;
+    if (!m_servers.contains(endpoint)) {
+        auto list = ServerList::load(onlineConfig);
+        list.remember(endpoint);
+        list.save(onlineConfig);
+        onlineConfig.sync();
+        reloadServers();
+        setConnectionState(ConnectionState::Connected);
+    }
     m_entryRequestPending = false;
     m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
     m_entryStatus->clear();
@@ -595,6 +624,7 @@ void OnlineWidget::announceRematch(const QJsonObject &state)
 
 void OnlineWidget::leaveOnline()
 {
+    m_connectAfterDisconnect = false;
     m_connectTimeout->stop();
     if (m_matchActive) {
         m_matchActive = false;

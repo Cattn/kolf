@@ -32,6 +32,7 @@ private:
     QString m_frame;
     quint64 m_coalesced = 0;
     bool m_closed = false;
+    bool m_opened = false;
     QJsonObject m_initialMessage;
 };
 }

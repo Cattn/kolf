@@ -3,6 +3,7 @@
 
 #include "onlinecoordinator.h"
 
+#include <QHash>
 #include <QJsonObject>
 #include <QSet>
 #include <QWidget>
@@ -54,6 +55,7 @@ private:
     void updateProfileChip();
     static QString normalizeJoinCode(const QString &input);
     void beginConnection();
+    void reloadServers();
     void setConnectionState(ConnectionState state, const QString &message = {});
 
     OnlineCoordinator m_coordinator;
@@ -62,6 +64,10 @@ private:
     QLabel *m_connectStatus;
     QLabel *m_serverLabel;
     QComboBox *m_recentServers;
+    QHash<QString, QString> m_servers;
+    QString m_defaultServer;
+    QString m_sessionServer;
+    bool m_connectAfterDisconnect = false;
     QGroupBox *m_serverControls;
     QGroupBox *m_hostCard;
     QGroupBox *m_joinCard;

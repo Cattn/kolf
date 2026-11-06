@@ -29,6 +29,11 @@ target_include_directories(kolfprivate PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
 )
 
+set(KOLF_DEFAULT_SERVER_URL "wss://kolf.pro/ws" CACHE STRING "Built-in online server address")
+set(KOLF_DEFAULT_SERVER_NAME "kolf.pro" CACHE STRING "Display name of the built-in online server")
+set_property(SOURCE online/serverlist.cpp APPEND PROPERTY COMPILE_DEFINITIONS
+    "KOLF_DEFAULT_SERVER_URL=\"${KOLF_DEFAULT_SERVER_URL}\"" "KOLF_DEFAULT_SERVER_NAME=\"${KOLF_DEFAULT_SERVER_NAME}\"")
+
 option(KOLF_TEST_AUTOMATION "Build the scripted online test driver used by tests/multiplayer" ON)
 if(KOLF_TEST_AUTOMATION)
     target_sources(kolfprivate PRIVATE testing/onlineautomation.cpp testing/uiscript.cpp)
@@ -45,6 +50,7 @@ target_sources(kolfprivate PRIVATE
     online/lobbyview.cpp
     online/onlinewidget.cpp
     online/playerprofileeditor.cpp
+    online/serverlist.cpp
     ui/gamehud.cpp
     ui/hazardprompt.cpp
     ui/resultsview.cpp

@@ -1,10 +1,15 @@
 {
-  "description": "Online hub without a remembered server: server box shown, cards disabled, Back returns Home.",
+  "description": "Online hub: a fresh install targets the built-in kolf.pro server; a saved default that can't be reached shows the server box with the saved list; Back returns Home.",
   "steps": [
     { "wait": 1500 },
-    { "click": "homeOnline", "wait": 1200 },
-    { "expectVisible": "onlineHub" },
-    { "expectVisible": "onlineServerControls", "screenshot": "01-hub-no-server.png" },
+    { "click": "homeOnline", "wait": 1500 },
+    { "expectVisible": "onlineHub", "screenshot": "01-fresh-default-server.png" },
+    { "click": "onlineBack", "wait": 1000 },
+    { "expectVisible": "homeView" },
+    { "setConfig": { "group": "Online", "key": "servers", "value": "[{\"name\":\"Closed port\",\"url\":\"ws://127.0.0.1:9\"}]" } },
+    { "setConfig": { "group": "Online", "key": "defaultServer", "value": "ws://127.0.0.1:9" } },
+    { "click": "homeOnline", "wait": 11500 },
+    { "expectVisible": "onlineServerControls", "screenshot": "02-saved-servers.png" },
     { "click": "onlineBack", "wait": 800 },
     { "expectVisible": "homeView" },
     { "quit": true }
