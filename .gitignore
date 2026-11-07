@@ -12,3 +12,4 @@ CMakeLists.txt.user*
 .idea
 /cmake-build*
 deploy/kolf.env
+release/

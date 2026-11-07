@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 
     KAboutData aboutData( QStringLiteral("kolf"),
 			  i18n("Kolf"),
-			  QStringLiteral(KOLF_VERSION_STRING),
+			  QStringLiteral(KOLF_DISPLAY_VERSION),
 			  i18n("KDE Minigolf Game"),
 			  KAboutLicense::GPL,
 			  i18n("(c) 2002-2010, Kolf & Cattn developers"),

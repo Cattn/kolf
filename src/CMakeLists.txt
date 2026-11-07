@@ -29,6 +29,8 @@ target_include_directories(kolfprivate PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty
 )
 
+target_compile_definitions(kolfprivate PUBLIC KOLF_DISPLAY_VERSION="${KOLF_DISPLAY_VERSION}")
+
 set(KOLF_DEFAULT_SERVER_URL "wss://kolf.pro/ws" CACHE STRING "Built-in online server address")
 set(KOLF_DEFAULT_SERVER_NAME "kolf.pro" CACHE STRING "Display name of the built-in online server")
 set_property(SOURCE online/serverlist.cpp APPEND PROPERTY COMPILE_DEFINITIONS

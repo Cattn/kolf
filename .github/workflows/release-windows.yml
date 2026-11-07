@@ -1,0 +1,80 @@
+name: Windows release
+
+on:
+  push:
+    tags:
+      - "v*-cattn.*"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit, branch, or tag to release"
+        required: true
+        default: multi-proto
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: [self-hosted, windows]
+    timeout-minutes: 180
+    env:
+      CRAFT_ROOT: C:\CraftRoot
+      KOLF_WORK: C:\CraftRoot\build\kde\kdegames\kolf\work\kolf-26.08.1
+      CRAFT_PYTHON: C:\Users\cattn\AppData\Local\Programs\Python\Python312\python.exe
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the release commit in the Craft work folder
+        id: checkout
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ref = if ('${{ github.event_name }}' -eq 'push') { '${{ github.sha }}' } else { '${{ inputs.ref }}' }
+          if (git -C $env:KOLF_WORK status --porcelain --untracked-files=no) { throw 'The Craft work folder has uncommitted changes' }
+          $previous = git -C $env:KOLF_WORK rev-parse --abbrev-ref HEAD
+          "previous=$previous" >> $env:GITHUB_OUTPUT
+          git -C $env:KOLF_WORK fetch --tags origin
+          git -C $env:KOLF_WORK checkout --detach $ref
+          if ($LASTEXITCODE -ne 0) { throw "Could not check out $ref" }
+          "sha=$(git -C $env:KOLF_WORK rev-parse HEAD)" >> $env:GITHUB_OUTPUT
+
+      - name: Build and package
+        id: build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expected = if ('${{ github.ref_type }}' -eq 'tag') { '${{ github.ref_name }}'.TrimStart('v') } else { '' }
+          $out = Join-Path $env:RUNNER_TEMP 'kolf-release'
+          Remove-Item $out -Recurse -Force -ErrorAction SilentlyContinue
+          & "$env:KOLF_WORK\scripts\release-windows.ps1" -OutputDirectory $out -CraftRoot $env:CRAFT_ROOT -ExpectedVersion $expected
+          $cmake = Get-Content -Raw "$env:KOLF_WORK\CMakeLists.txt"
+          $base = [regex]::Match($cmake, 'set\(KOLF_BASE_VERSION "([^"]+)"\)').Groups[1].Value
+          $fork = [regex]::Match($cmake, 'set\(KOLF_FORK_RELEASE "([^"]+)"\)').Groups[1].Value
+          "version=$base-cattn.$fork" >> $env:GITHUB_OUTPUT
+          "out=$out" >> $env:GITHUB_OUTPUT
+
+      - name: Publish the GitHub release
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '${{ steps.build.outputs.version }}'
+          $tag = "v$version"
+          $files = Get-ChildItem '${{ steps.build.outputs.out }}' -File | ForEach-Object FullName
+          $notes = "Kolf $version for Windows, built from ${{ steps.checkout.outputs.sha }} on multi-proto. Check the download against its .sha256 file."
+          gh release view $tag --repo ${{ github.repository }} *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag @files --clobber --repo ${{ github.repository }}
+          } else {
+            gh release create $tag @files --repo ${{ github.repository }} --target ${{ steps.checkout.outputs.sha }} --title "Kolf $version" --notes $notes
+          }
+
+      - name: Return the Craft work folder to its branch
+        if: always() && steps.checkout.outputs.previous != ''
+        shell: pwsh
+        run: |
+          $previous = '${{ steps.checkout.outputs.previous }}'
+          if ($previous -and $previous -ne 'HEAD') { git -C $env:KOLF_WORK checkout $previous }
