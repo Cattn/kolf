@@ -162,7 +162,7 @@ bool Kolf::BlackHole::collision(Ball* ball)
 	if (!contains(ball->pos() - pos()))
 		return true;
 	// warp through blackhole at most 10 times per shot
-	if (m_runs > 10 && game && game->isInPlay())
+	if (m_runs > 10)
 		return true;
 
 	game->playSound(Sound::BlackHolePutIn);
