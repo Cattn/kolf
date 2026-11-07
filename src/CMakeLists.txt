@@ -8,6 +8,7 @@ add_library(kolfprivate STATIC)
 # Fingerprint normalized gameplay source, not checkout paths or line endings.
 file(GLOB_RECURSE RULES_SOURCES CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+list(FILTER RULES_SOURCES EXCLUDE REGEX "(^|/)(CMakeFiles|[^/]*_autogen)(/|$)|(^|/)(kolf_version|rules_build_id)\\.h$")
 list(SORT RULES_SOURCES)
 set(RULES_HASH_INPUT "kolf-rules-current\n")
 set(RULES_SOURCE_PATHS)

@@ -28,6 +28,7 @@
         {
             "name": "kolf",
             "buildsystem": "cmake-ninja",
+            "builddir": true,
             "sources": [
                 {
                     "type": "dir",
