@@ -15,6 +15,9 @@ public:
     void open(const QUrl &url, const QJsonObject &initialMessage = {});
     void send(const QJsonObject &message, bool visual = false);
     void close();
+#ifdef KOLF_TEST_AUTOMATION
+    void dropForTest() { m_socket.abort(); }
+#endif
     bool isDisconnected() const { return m_socket.state() == QAbstractSocket::UnconnectedState; }
     qint64 bufferedBytes() const { return m_socket.bytesToWrite(); }
     quint64 coalescedFrames() const { return m_coalesced; }

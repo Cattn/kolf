@@ -27,13 +27,22 @@ OnlineCoordinator::OnlineCoordinator(QObject *parent)
 {
     connect(&m_network, &Net::NetworkClient::connected, this, &OnlineCoordinator::connected);
     connect(&m_network, &Net::NetworkClient::disconnected, this, [this] {
-        m_state = {}; m_serviceHello = {}; m_memberId.clear(); m_lobbyId.clear();
-        m_matchId.clear(); m_preparedMatchId.clear(); m_coursePath.clear();
-        m_uploadTimer.stop(); m_downloadTimer.stop(); m_uploadBytes.clear(); m_downloadBytes.clear();
-        m_uploadId.clear(); m_downloadHash.clear();
+        if (m_resuming) { if (!m_reconnectTimer.isActive()) scheduleReconnect(); return; }
+        if (canResume()) { beginResume(); return; }
+        clearSession();
         Q_EMIT connectionClosed();
     });
-    connect(&m_network, &Net::NetworkClient::failed, this, &OnlineCoordinator::failed);
+    connect(&m_network, &Net::NetworkClient::failed, this, [this](const QString &reason) {
+        if (m_resuming) { if (!m_reconnectTimer.isActive()) scheduleReconnect(); return; }
+        if (canResume()) return;
+        Q_EMIT failed(reason);
+    });
+    m_reconnectTimer.setSingleShot(true);
+    connect(&m_reconnectTimer, &QTimer::timeout, this, [this] {
+        if (!m_resuming) return;
+        Q_EMIT statusChanged(tr("Reconnecting to the server…"));
+        m_network.open(QUrl(m_endpoint));
+    });
     connect(&m_network, &Net::NetworkClient::received, this, &OnlineCoordinator::receive);
     m_uploadTimer.setSingleShot(true);
     m_downloadTimer.setSingleShot(true);
@@ -67,10 +76,60 @@ void OnlineCoordinator::connectToService(const QString &endpoint)
 
 void OnlineCoordinator::disconnectFromService()
 {
+    const bool wasResuming = m_resuming;
+    clearSession();
     m_network.close();
+    if (wasResuming) Q_EMIT connectionClosed();
+}
+
+void OnlineCoordinator::clearSession()
+{
+    if (m_resuming) { m_resuming = false; Q_EMIT reconnectingChanged(false); }
+    m_reconnectTimer.stop(); m_reconnectAttempt = 0; m_resumeToken.clear();
     m_state = {}; m_serviceHello = {}; m_memberId.clear(); m_lobbyId.clear(); m_matchId.clear(); m_preparedMatchId.clear(); m_coursePath.clear();
     m_uploadTimer.stop(); m_downloadTimer.stop(); m_uploadBytes.clear(); m_downloadBytes.clear();
     m_uploadId.clear(); m_downloadHash.clear();
+}
+
+bool OnlineCoordinator::canResume() const
+{
+    const auto phase = m_state.value(QStringLiteral("phase")).toString();
+    return !m_resumeToken.isEmpty() && !m_lobbyId.isEmpty()
+        && (phase == QLatin1String("Open") || phase == QLatin1String("Results"));
+}
+
+void OnlineCoordinator::beginResume()
+{
+    m_resuming = true;
+    m_reconnectAttempt = 0;
+    m_resumeDeadline = QDateTime::currentMSecsSinceEpoch() + 115000;
+    m_uploadTimer.stop(); m_uploadId.clear(); m_uploadBytes.clear();
+    Q_EMIT reconnectingChanged(true);
+    scheduleReconnect();
+}
+
+void OnlineCoordinator::scheduleReconnect()
+{
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now >= m_resumeDeadline) {
+        clearSession();
+        Q_EMIT connectionClosed();
+        return;
+    }
+    const int delay = 1000 * (1 << qMin(m_reconnectAttempt, 3));
+    ++m_reconnectAttempt;
+    const int seconds = int((m_resumeDeadline - now) / 1000);
+    Q_EMIT statusChanged(tr("Lost the connection to the server. Reconnecting… (%n seconds left to rejoin)", nullptr, seconds));
+    m_reconnectTimer.start(int(qMin<qint64>(delay, m_resumeDeadline - now)));
+}
+
+void OnlineCoordinator::finishResume(bool resumed)
+{
+    m_resuming = false;
+    m_reconnectTimer.stop();
+    m_reconnectAttempt = 0;
+    Q_EMIT reconnectingChanged(false);
+    if (resumed) Q_EMIT statusChanged(tr("Reconnected."));
 }
 
 static QJsonObject colorChoice(const QString &mode, const QString &color)
@@ -192,6 +251,7 @@ void OnlineCoordinator::setLobbyRules(bool hostControls, bool allowVoting)
 void OnlineCoordinator::leaveLobby()
 {
     send(QStringLiteral("LeaveLobby"), {});
+    m_resumeToken.clear();
     m_state = {}; m_lobbyId.clear(); m_memberId.clear(); m_matchId.clear(); m_preparedMatchId.clear();
     m_uploadTimer.stop(); m_uploadId.clear(); m_uploadBytes.clear();
 }
@@ -217,7 +277,27 @@ void OnlineCoordinator::receive(const QJsonObject &message)
     const auto payload = message.value(QStringLiteral("payload")).toObject();
     if (type == QLatin1String("ServiceHello")) {
         m_serviceHello = payload;
+        if (m_resuming) {
+            m_network.send(Session::onlineEnvelope(QStringLiteral("ResumeSession"),
+                {{QStringLiteral("resumeToken"), m_resumeToken}}, requestId()));
+            return;
+        }
         Q_EMIT serviceChanged(m_serviceHello);
+        return;
+    }
+    if (type == QLatin1String("SessionResumed")) {
+        m_memberId = payload.value(QStringLiteral("memberId")).toString();
+        m_resumeToken = payload.value(QStringLiteral("resumeToken")).toString(m_resumeToken);
+        finishResume(true);
+        acceptState(payload.value(QStringLiteral("state")).toObject());
+        return;
+    }
+    if (m_resuming && type == QLatin1String("RequestRejected")) {
+        const auto hello = m_serviceHello;
+        clearSession();
+        m_serviceHello = hello;
+        Q_EMIT serviceChanged(m_serviceHello);
+        Q_EMIT lobbyClosed(tr("You were away too long to rejoin the lobby."));
         return;
     }
     if (type == QLatin1String("ServiceNotice")) {
@@ -300,12 +380,15 @@ void OnlineCoordinator::receive(const QJsonObject &message)
     }
     if (type == QLatin1String("LobbyClosed")) {
         const auto reason = payload.value(QStringLiteral("reason")).toString(tr("The lobby closed."));
+        m_resumeToken.clear();
         m_state = {}; m_memberId.clear(); m_lobbyId.clear(); m_matchId.clear(); m_preparedMatchId.clear(); m_coursePath.clear();
         m_uploadTimer.stop(); m_downloadTimer.stop(); m_uploadBytes.clear(); m_downloadBytes.clear();
         m_uploadId.clear(); m_downloadHash.clear();
         Q_EMIT lobbyClosed(reason);
         return;
     }
+    if (payload.contains(QStringLiteral("resumeToken")))
+        m_resumeToken = payload.value(QStringLiteral("resumeToken")).toString();
     if (type == QLatin1String("LobbyCreated"))
         m_memberId = payload.value(QStringLiteral("memberId")).toString();
     else if (type == QLatin1String("LobbyState") && m_memberId.isEmpty())

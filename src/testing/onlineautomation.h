@@ -39,6 +39,7 @@ private:
     bool m_createOrJoinSent = false;
     bool m_mutationPending = false;
     bool m_startRequested = false;
+    bool m_lobbyDropDone = false;
     bool m_customCourseSent = false;
     bool m_rulesSent = false;
     bool m_lobbyCaptured = false;

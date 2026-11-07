@@ -131,6 +131,15 @@ void OnlineAutomation::advance(const QJsonObject &state)
         return;
     }
     if (members.size() != m_config.value(QStringLiteral("expectedMembers")).toInt()) return;
+    for (const auto &value : members)
+        if (value.toObject().contains(QStringLiteral("connected")) && !value.toObject().value(QStringLiteral("connected")).toBool()) return;
+    if (m_config.value(QStringLiteral("scriptedLobbyDrop")).toBool() && !m_lobbyDropDone) {
+        m_lobbyDropDone = true;
+        QFile marker(QDir(m_config.value(QStringLiteral("logDirectory")).toString()).filePath(QStringLiteral("lobby-drop.txt")));
+        if (marker.open(QIODevice::WriteOnly | QIODevice::Truncate)) marker.write("dropped\n");
+        QTimer::singleShot(300, this, [this] { m_widget->networkClient()->dropForTest(); });
+        return;
+    }
 
     const auto rules = m_config.value(QStringLiteral("lobbyRules")).toObject();
     if (!rules.isEmpty() && role == QLatin1String("owner") && !m_rulesSent) {
@@ -201,9 +210,11 @@ void OnlineAutomation::advance(const QJsonObject &state)
         if (member.value(QStringLiteral("memberId")).toString() != coordinator.memberId()) guestsReady = guestsReady && member.value(QStringLiteral("ready")).toBool();
     }
     if (role == QLatin1String("owner") && guestsReady && !m_mutationPending && !m_startRequested) {
+        auto *primary = m_widget->findChild<QPushButton *>(QStringLiteral("lobbyPrimary"));
+        if (!primary || !primary->isEnabled()) return;
         m_mutationPending = true;
         m_startRequested = true;
-        if (auto *primary = m_widget->findChild<QPushButton *>(QStringLiteral("lobbyPrimary"))) primary->click();
+        primary->click();
     }
 }
 

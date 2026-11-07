@@ -85,7 +85,7 @@ export interface LobbyState {
   courses?: CourseCatalogEntry[];
   hostControls: boolean;
   allowVoting: boolean;
-  members: Array<LobbyMember & { ready: boolean; connected: true }>;
+  members: Array<LobbyMember & { ready: boolean; connected: boolean; reconnectDeadline?: number }>;
   players: LobbyPlayer[];
   rematchRequestedMemberIds: MemberId[];
   match?: MatchView;
@@ -148,6 +148,7 @@ export class LobbySession {
   private readonly members = new Map<MemberId, LobbyMember>();
   private readonly players = new Map<PlayerId, LobbyPlayer>();
   private readonly readiness = new Map<MemberId, number>();
+  private readonly reconnecting = new Map<MemberId, number>();
   private readonly rematchRequests = new Set<MemberId>();
   private readonly requests: RequestCache;
   private readonly ids: IdFactory;
@@ -202,13 +203,30 @@ export class LobbySession {
       lobbyRevision: this.revision, phase: this.lifecycle, selectedCourseId: this.selectedCourseId,
       courses: [...this.catalog.values()].map(cloneCourse),
       hostControls: this.hostControls, allowVoting: this.allowVoting,
-      members: [...this.members.values()].map(member => ({ ...member, connected: true as const,
+      members: [...this.members.values()].map(member => ({ ...member, connected: !this.reconnecting.has(member.memberId),
+        ...(this.reconnecting.has(member.memberId) ? { reconnectDeadline: this.reconnecting.get(member.memberId) } : {}),
         ready: this.readiness.get(member.memberId) === this.revision })),
       players: this.orderedPlayers().map(player => ({ ...player })),
       rematchRequestedMemberIds: [...this.rematchRequests],
       match: this.match ? cloneMatch(this.match) : undefined,
       latestResult: this.result ? cloneResult(this.result) : undefined,
     };
+  }
+
+  get reconnectingCount() { return this.reconnecting.size; }
+
+  markReconnecting(memberId: MemberId, deadline: number) {
+    this.requireMember(memberId);
+    this.reconnecting.set(memberId, deadline);
+    return this.state();
+  }
+
+  rebind(memberId: MemberId, connectionId: ConnectionId) {
+    const member = this.members.get(memberId);
+    if (!member) throw new LobbyError('NotMember', 'connection is not a member of this lobby');
+    member.connectionId = connectionId;
+    this.reconnecting.delete(memberId);
+    return this.state();
   }
 
   member(memberId: MemberId): LobbyMember {
@@ -384,6 +402,7 @@ export class LobbySession {
       if (this.match && (this.lifecycle === 'Preparing' || this.lifecycle === 'Playing')) return cloneMatch(this.match);
       this.requirePhase('Open');
       if (this.members.size < 2) throw new LobbyError('LobbyNotReady', 'at least two connected members are required');
+      if (this.reconnecting.size) throw new LobbyError('MemberReconnecting', 'wait for everyone to reconnect before starting');
       if (this.players.size < 2 || this.players.size > this.maximumPlayers)
         throw new LobbyError('LobbyNotReady', `between 2 and ${this.maximumPlayers} players are required`);
       if ([...this.members].some(([memberId]) => this.readiness.get(memberId) !== this.revision))
@@ -486,6 +505,7 @@ export class LobbySession {
   removeMember(memberId: MemberId) {
     this.requireMember(memberId);
     this.members.delete(memberId); this.readiness.delete(memberId); this.rematchRequests.delete(memberId);
+    this.reconnecting.delete(memberId);
     for (const player of this.ownedPlayers(memberId)) this.players.delete(player.playerId);
     this.normalizeOrder(); this.resolveColors();
     if (this.members.size === 0) return this.close();

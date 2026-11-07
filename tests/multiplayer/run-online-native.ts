@@ -12,7 +12,7 @@ const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
 assert(['two-rematch', 'four-player', 'four-player-hazard', 'lobby-rules', 'custom-course',
   'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-skip', 'host-go',
-  'host-proposal-approve', 'host-proposal-reject', 'host-proposal-four-player', 'host-combined', 'shipped-download'].includes(scenario),
+  'host-proposal-approve', 'host-proposal-reject', 'host-proposal-four-player', 'host-combined', 'shipped-download', 'lobby-resume'].includes(scenario),
   'Unknown native scenario');
 const variableRoster = scenario.startsWith('four-player') || scenario === 'host-proposal-four-player' || scenario === 'lobby-rules';
 const hazardScenario = scenario === 'four-player-hazard';
@@ -119,6 +119,7 @@ try {
       lobbyRules: scenario === 'lobby-rules' ? { hostControls: true, allowVoting: false } : undefined,
       customCourse: scenario === 'custom-course' ? customCourse : undefined,
       forceCourseDownload: (scenario === 'custom-course' || scenario === 'shipped-download') && client > 0,
+      scriptedLobbyDrop: scenario === 'lobby-resume' && client === 1,
       expectedPlayers: variableRoster ? 4 : 2, matches: matchCount, logDirectory,
       additionalPlayers: variableRoster && client === 0
         ? [{ displayName: 'Owner second ball', color: '#9b59b6ff' }] : [],

@@ -84,7 +84,10 @@ export class LobbyProtocolController {
 
   disconnect(connectionId: ConnectionId): Delivery[] {
     if (!this.connections.delete(connectionId)) return [];
-    return this.departureDeliveries(this.service.disconnect(connectionId));
+    const departure = this.service.disconnect(connectionId);
+    if (departure && !departure.closed && departure.reason === 'A participant is reconnecting')
+      this.log('member.reconnecting', { lobbyId: departure.lobbyId });
+    return this.departureDeliveries(departure);
   }
 
   receive(connectionId: ConnectionId, raw: string): Delivery[] {
@@ -100,7 +103,7 @@ export class LobbyProtocolController {
             customColor: message.payload.customColor };
           const created = this.service.create(connectionId, message.requestId!, profile, player, message.payload.courseId, message.payload.clientInfo);
           return [{ connectionId, message: envelope('LobbyCreated', {
-            memberId: created.memberId, state: publicState(created.state),
+            memberId: created.memberId, state: publicState(created.state), resumeToken: created.resumeToken,
           }, { requestId, lobbyId: created.state.lobbyId }) }];
         }
         case 'JoinLobby': {
@@ -108,7 +111,19 @@ export class LobbyProtocolController {
           const player = { displayName: message.payload.displayName, colorMode: message.payload.colorMode,
             customColor: message.payload.customColor };
           const joined = this.service.join(connectionId, message.requestId!, message.payload.joinCode, profile, player, message.payload.clientInfo);
-          return this.broadcast(joined.state, 'LobbyState', { joinedMemberId: joined.memberId }, requestId);
+          return this.broadcast(joined.state, 'LobbyState', { joinedMemberId: joined.memberId }, requestId)
+            .map(delivery => delivery.connectionId === connectionId
+              ? { ...delivery, message: { ...delivery.message, payload: { ...delivery.message.payload, resumeToken: joined.resumeToken } } }
+              : delivery);
+        }
+        case 'ResumeSession': {
+          const resumed = this.service.resume(connectionId, message.payload.resumeToken);
+          const lobbyId = resumed.state.lobbyId;
+          return [
+            { connectionId, message: envelope('SessionResumed', { memberId: resumed.memberId, state: publicState(resumed.state),
+              resumeToken: resumed.resumeToken }, { requestId, lobbyId }) },
+            ...this.broadcast(resumed.state, 'LobbyState').filter(delivery => delivery.connectionId !== connectionId),
+          ];
         }
         default: {
           const { lobby, memberId } = this.service.session(connectionId);
@@ -198,6 +213,7 @@ export class LobbyProtocolController {
     const deliveries: Delivery[] = [];
     this.service.expireUploads();
     for (const departure of this.service.expireIdleLobbies()) deliveries.push(...this.departureDeliveries(departure));
+    for (const departure of this.service.expireReconnects()) deliveries.push(...this.departureDeliveries(departure));
     for (const matchId of [...this.matchStartedAt.keys()]) if (!this.matches.has(matchId)) this.matchStartedAt.delete(matchId);
     for (const match of [...this.matches.values()]) {
       let lobby;

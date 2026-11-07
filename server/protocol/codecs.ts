@@ -10,6 +10,7 @@ export interface ClientInfo { appVersion: string; rulesBuildId: string }
 export type ClientMessage =
   | Envelope<'CreateLobby', { displayName: string; colorMode: 'auto' | 'custom'; customColor?: string; courseId: string; clientInfo?: ClientInfo }>
   | Envelope<'JoinLobby', { joinCode: string; displayName: string; colorMode: 'auto' | 'custom'; customColor?: string; clientInfo?: ClientInfo }>
+  | Envelope<'ResumeSession', { resumeToken: string }>
   | Envelope<'LeaveLobby', Record<string, never>>
   | Envelope<'UpdateMember', { displayName: string }>
   | Envelope<'AddPlayer', { displayName: string; colorMode: 'auto' | 'custom'; customColor?: string }>
@@ -117,6 +118,11 @@ export function decodeClientMessage(raw: string): ClientMessage {
       rejectExtraScope(message, false, false);
       if (!validJoinCode(p.joinCode) || !displayName(p.displayName) || !colorChoice(p) || !optionalClientInfo(p.clientInfo))
         throw new ProtocolError('InvalidPayload', 'invalid join request');
+      return message as ClientMessage;
+    case 'ResumeSession':
+      rejectExtraScope(message, false, false);
+      if (Object.keys(p).length !== 1 || typeof p.resumeToken !== 'string' || !/^[A-Za-z0-9_-]{22}$/.test(p.resumeToken))
+        throw new ProtocolError('InvalidPayload', 'invalid resume token');
       return message as ClientMessage;
     case 'LeaveLobby':
       requireLobby(message); rejectExtraScope(message, true, false); requireEmptyPayload(message);

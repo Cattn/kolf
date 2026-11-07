@@ -44,7 +44,7 @@ test('client-written reasons are not logged unless debugging', () => {
 test('lobby and rejection events are logged without names, codes, or addresses', async t => {
   const lines: string[] = [];
   const service = new LobbyWebSocketService({ catalog: loadCourseCatalog(courseRoot).slice(0, 1),
-    log: jsonLogger(line => lines.push(line)) });
+    log: jsonLogger(line => lines.push(line)), limits: { lobbyReconnectMs: 100 } });
   await service.ready(); t.after(() => service.close());
   const host = await client(service.endpoint());
   host.socket.send(JSON.stringify(envelope('CreateLobby', { displayName: 'Secret Sam', colorMode: 'auto', courseId: 'classic' }, { requestId: 'c' })));
@@ -56,9 +56,9 @@ test('lobby and rejection events are logged without names, codes, or addresses',
   host.socket.close();
   await until(() => lines.some(line => line.includes('lobby.closed')));
   const events = lines.map(line => JSON.parse(line));
-  assert.deepEqual(events.map(entry => entry.event), ['lobby.created', 'request.rejected', 'lobby.closed']);
+  assert.deepEqual(events.map(entry => entry.event), ['lobby.created', 'request.rejected', 'member.reconnecting', 'lobby.closed']);
   assert.deepEqual([events[1].type, events[1].code], ['JoinLobby', 'LobbyNotFound']);
-  assert.equal(events[2].reason, 'A participant disconnected');
+  assert.equal(events[3].reason, 'A participant disconnected');
   const text = lines.join('\n');
   for (const secret of ['Secret Sam', 'Hidden Hana', joinCode, 'ZZZZ2222', '127.0.0.1'])
     assert(!text.includes(secret), secret);

@@ -3,6 +3,7 @@ import type { ConnectionId, IdFactory, MemberId, RequestId } from '../protocol/i
 import { cryptoIds } from '../protocol/ids.ts';
 import type { CourseCatalogEntry, LobbyState, MemberProfile, PlayerProfile } from './lobby.ts';
 import { LobbySession } from './lobby.ts';
+import { randomBytes } from 'node:crypto';
 import { LobbyError } from './errors.ts';
 import type { ClientInfo } from '../protocol/codecs.ts';
 import { RequestCache } from './request-cache.ts';
@@ -18,6 +19,7 @@ export interface ServiceLimits {
   maximumRetainedOutboundBytes: number;
   lobbyIdleMs: number;
   maximumMatchMs: number;
+  lobbyReconnectMs: number;
 }
 export const DEFAULT_SERVICE_LIMITS: ServiceLimits = {
   maximumConnections: 64,
@@ -29,6 +31,7 @@ export const DEFAULT_SERVICE_LIMITS: ServiceLimits = {
   maximumRetainedOutboundBytes: 1024 * 1024,
   lobbyIdleMs: 30 * 60 * 1000,
   maximumMatchMs: 3 * 60 * 60 * 1000,
+  lobbyReconnectMs: 120 * 1000,
 };
 
 export interface Departure {
@@ -48,6 +51,9 @@ export class LobbyRegistry {
   private readonly membershipByConnection = new Map<ConnectionId, Membership>();
   private readonly lastActivity = new Map<string, number>();
   private readonly hostBuilds = new Map<string, ClientInfo>();
+  private readonly resumeTokens = new Map<string, { lobbyId: string; memberId: MemberId }>();
+  private readonly tokenByMember = new Map<string, string>();
+  private readonly reconnecting = new Map<string, { lobbyId: string; memberId: MemberId; deadline: number }>();
   private readonly requests: RequestCache;
   readonly catalog: CourseCatalogEntry[];
   readonly limits: ServiceLimits;
@@ -94,7 +100,7 @@ export class LobbyRegistry {
       this.lastActivity.set(lobbyId, this.now());
       if (clientInfo) this.hostBuilds.set(lobbyId, { ...clientInfo });
       this.membershipByConnection.set(connectionId, { lobbyId, memberId });
-      return { memberId, state: lobby.state() };
+      return { memberId, state: lobby.state(), resumeToken: this.issueToken(lobbyId, memberId) };
     });
   }
 
@@ -116,7 +122,7 @@ export class LobbyRegistry {
       });
       this.membershipByConnection.set(connectionId, { lobbyId: lobby.lobbyId, memberId });
       this.lastActivity.set(lobby.lobbyId, this.now());
-      return { memberId, state };
+      return { memberId, state, resumeToken: this.issueToken(lobby.lobbyId, memberId) };
     });
   }
 
@@ -135,15 +141,92 @@ export class LobbyRegistry {
   }
 
   leave(connectionId: ConnectionId): Departure | undefined { return this.depart(connectionId, 'A participant left the lobby'); }
-  disconnect(connectionId: ConnectionId): Departure | undefined { return this.depart(connectionId, 'A participant disconnected'); }
+
+  disconnect(connectionId: ConnectionId): Departure | undefined {
+    const membership = this.membershipByConnection.get(connectionId);
+    const lobby = membership ? this.lobbiesById.get(membership.lobbyId) : undefined;
+    if (!membership || !lobby || (lobby.phase !== 'Open' && lobby.phase !== 'Results'))
+      return this.depart(connectionId, 'A participant disconnected');
+    this.membershipByConnection.delete(connectionId);
+    this.requests.clearScope(`connection:${connectionId}`);
+    const deadline = this.now() + this.limits.lobbyReconnectMs;
+    this.reconnecting.set(this.memberKey(lobby.lobbyId, membership.memberId),
+      { lobbyId: lobby.lobbyId, memberId: membership.memberId, deadline });
+    const state = lobby.markReconnecting(membership.memberId, deadline);
+    const recipients = state.members.filter(member => member.memberId !== membership.memberId).map(member => member.connectionId);
+    return { lobbyId: lobby.lobbyId, recipients, state, closed: false, activeMatchInterrupted: false, reason: 'A participant is reconnecting' };
+  }
+
+  resume(connectionId: ConnectionId, resumeToken: string) {
+    const entry = this.resumeTokens.get(resumeToken);
+    const lobby = entry ? this.lobbiesById.get(entry.lobbyId) : undefined;
+    if (!entry || !lobby || lobby.phase === 'Closed')
+      throw new LobbyError('ResumeRejected', 'this session can no longer be resumed');
+    const existing = this.membershipByConnection.get(connectionId);
+    if (existing && (existing.lobbyId !== entry.lobbyId || existing.memberId !== entry.memberId))
+      throw new LobbyError('AlreadyJoined', 'connection already belongs to a lobby');
+    const key = this.memberKey(entry.lobbyId, entry.memberId);
+    if (!this.reconnecting.has(key) && lobby.phase !== 'Open' && lobby.phase !== 'Results')
+      throw new LobbyError('ResumeRejected', 'this session can no longer be resumed');
+    const previous = lobby.member(entry.memberId).connectionId;
+    let replacedConnectionId: ConnectionId | undefined;
+    if (previous !== connectionId && this.membershipByConnection.get(previous)?.memberId === entry.memberId) {
+      this.membershipByConnection.delete(previous);
+      this.requests.clearScope(`connection:${previous}`);
+      replacedConnectionId = previous;
+    }
+    this.reconnecting.delete(key);
+    const state = lobby.rebind(entry.memberId, connectionId);
+    this.membershipByConnection.set(connectionId, { lobbyId: entry.lobbyId, memberId: entry.memberId });
+    this.lastActivity.set(entry.lobbyId, this.now());
+    return { memberId: entry.memberId, state, resumeToken, replacedConnectionId };
+  }
+
+  expireReconnects(): Departure[] {
+    const departures: Departure[] = [];
+    for (const [key, entry] of [...this.reconnecting]) {
+      if (entry.deadline > this.now()) continue;
+      this.reconnecting.delete(key);
+      const lobby = this.lobbiesById.get(entry.lobbyId);
+      if (!lobby || lobby.phase === 'Closed') continue;
+      const departure = this.departMember(lobby, entry.memberId, lobby.member(entry.memberId).connectionId, 'A participant disconnected');
+      if (departure) departures.push(departure);
+    }
+    return departures;
+  }
+
+  private memberKey(lobbyId: string, memberId: MemberId) { return `${lobbyId}:${memberId}`; }
+
+  private issueToken(lobbyId: string, memberId: MemberId): string {
+    const key = this.memberKey(lobbyId, memberId);
+    const existing = this.tokenByMember.get(key);
+    if (existing) return existing;
+    const token = randomBytes(16).toString('base64url');
+    this.resumeTokens.set(token, { lobbyId, memberId });
+    this.tokenByMember.set(key, token);
+    return token;
+  }
+
+  private forgetMember(lobbyId: string, memberId: MemberId) {
+    const key = this.memberKey(lobbyId, memberId);
+    const token = this.tokenByMember.get(key);
+    if (token) this.resumeTokens.delete(token);
+    this.tokenByMember.delete(key); this.reconnecting.delete(key);
+  }
 
   private depart(connectionId: ConnectionId, reason: string): Departure | undefined {
     const membership = this.membershipByConnection.get(connectionId);
     const lobby = membership ? this.lobbiesById.get(membership.lobbyId) : undefined;
     if (!membership || !lobby) return undefined;
-    const before = lobby.state(), matchId = before.match?.matchId;
     this.membershipByConnection.delete(connectionId);
     this.requests.clearScope(`connection:${connectionId}`);
+    return this.departMember(lobby, membership.memberId, connectionId, reason);
+  }
+
+  private departMember(lobby: LobbySession, memberId: MemberId, connectionId: ConnectionId, reason: string): Departure | undefined {
+    const membership = { lobbyId: lobby.lobbyId, memberId };
+    this.forgetMember(lobby.lobbyId, memberId);
+    const before = lobby.state(), matchId = before.match?.matchId;
     let activeMatchInterrupted = false;
     if (matchId && (before.phase === 'Preparing' || before.phase === 'Playing')) {
       lobby.interruptMatch(matchId, reason); activeMatchInterrupted = true;
@@ -177,6 +260,7 @@ export class LobbyRegistry {
   private removeLobby(lobby: LobbySession) {
     this.lobbiesById.delete(lobby.lobbyId); this.lobbyIdByJoinCode.delete(lobby.joinCode);
     this.lastActivity.delete(lobby.lobbyId); this.hostBuilds.delete(lobby.lobbyId);
+    for (const member of lobby.state().members) this.forgetMember(lobby.lobbyId, member.memberId);
     for (const [connectionId, membership] of this.membershipByConnection)
       if (membership.lobbyId === lobby.lobbyId) this.membershipByConnection.delete(connectionId);
   }

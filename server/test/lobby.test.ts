@@ -160,7 +160,7 @@ test('registry hosts isolated rooms, enforces capacity, and releases indexes on 
   assert.equal(service.activeLobbyCount, 2);
   assert.throws(() => service.create('connection_c', 'create_c', { displayName: 'C' }, { displayName: 'C', colorMode: 'custom', customColor: '#0000ffff' }, 'classic'),
     (error: unknown) => error instanceof LobbyError && error.code === 'ServiceFull');
-  const departure = service.disconnect('connection_a');
+  const departure = service.leave('connection_a');
   assert.equal(departure?.closed, true); assert.equal(service.activeLobbyCount, 1); assert.equal(service.membershipCount, 1);
   const replacement = service.create('connection_c', 'create_c2', { displayName: 'C' }, { displayName: 'C', colorMode: 'custom', customColor: '#0000ffff' }, 'classic');
   assert.equal(service.activeLobbyCount, 2); assert.notEqual(replacement.state.joinCode, second.state.joinCode);
@@ -169,7 +169,7 @@ test('registry hosts isolated rooms, enforces capacity, and releases indexes on 
 test('non-owner departure removes only that member and its slots', () => {
   const h = setup();
   h.lobby.addPlayer(h.guest, 'add_guest', { displayName: 'Bob 2', colorMode: 'custom', customColor: '#00ffffff' });
-  const departure = h.service.disconnect('connection_b')!;
+  const departure = h.service.leave('connection_b')!;
   assert.equal(departure.closed, false); assert.equal(departure.state?.members.length, 1);
   assert.equal(departure.state?.players.length, 1);
   assert.equal(h.service.activeLobbyCount, 1);

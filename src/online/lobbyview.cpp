@@ -214,8 +214,11 @@ void LobbyView::setState(const QJsonObject &state)
             card->setObjectName(QStringLiteral("lobbyPerson"));
             auto *cardLayout = new QVBoxLayout(card);
             const QString name = member.value(QStringLiteral("displayName")).toString();
+            const bool away = member.contains(QStringLiteral("connected")) && !member.value(QStringLiteral("connected")).toBool();
             auto *heading = new QLabel(i18n("%1%2%3 · %4", owner ? i18n("Host · ") : QString(), name,
-                local ? i18n(" (you)") : QString(), owner ? i18n("Starts the match") : member.value(QStringLiteral("ready")).toBool() ? i18n("✓ Ready") : i18n("… Not ready")), card);
+                local ? i18n(" (you)") : QString(), away ? i18n("Reconnecting…")
+                : owner ? i18n("Starts the match") : member.value(QStringLiteral("ready")).toBool() ? i18n("✓ Ready") : i18n("… Not ready")), card);
+            card->setEnabled(!away || local);
             heading->setTextFormat(Qt::PlainText);
             heading->setWordWrap(true);
             auto font = heading->font(); font.setBold(true); heading->setFont(font);
@@ -265,10 +268,18 @@ void LobbyView::setState(const QJsonObject &state)
             m_people->addWidget(card);
         }
     }
-    m_primary->setText(!open ? i18n("Preparing match…") : host ? (waiting > 0 ? i18np("Waiting for 1 person…", "Waiting for %1 people…", waiting) : i18n("Start match")) : localReady ? i18n("Not ready") : i18n("I'm ready"));
+    QStringList awayNames;
+    for (const auto &value : members) {
+        const auto member = value.toObject();
+        if (member.contains(QStringLiteral("connected")) && !member.value(QStringLiteral("connected")).toBool())
+            awayNames << member.value(QStringLiteral("displayName")).toString();
+    }
+    m_primary->setText(!open ? i18n("Preparing match…") : host && !awayNames.isEmpty() ? i18n("Waiting for reconnection…")
+        : host ? (waiting > 0 ? i18np("Waiting for 1 person…", "Waiting for %1 people…", waiting) : i18n("Start match")) : localReady ? i18n("Not ready") : i18n("I'm ready"));
     const QString reason = !open ? i18n("Preparing the course. You can leave while waiting.") : members.size() < 2 ? i18n("Invite another person using the code above.")
+        : !awayNames.isEmpty() ? i18n("Waiting for %1 to reconnect.", awayNames.join(QStringLiteral(", ")))
         : waiting > 0 ? i18n("Waiting for %1 to get ready.", waitingNames.join(QStringLiteral(", "))) : i18n("Everyone is ready. The host can start.");
-    m_primary->setEnabled(open && (!host || (members.size() >= 2 && waiting == 0)));
+    m_primary->setEnabled(open && (!host || (members.size() >= 2 && waiting == 0 && awayNames.isEmpty())));
     m_primary->setToolTip(m_primary->isEnabled() ? QString() : reason);
     setStatus(reason);
     const QSignalBlocker blockCourse(m_course), blockHost(m_hostControls), blockVoting(m_allowVoting);

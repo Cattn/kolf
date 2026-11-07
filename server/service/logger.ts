@@ -43,6 +43,9 @@ export function logDeliveries(log: Logger, deliveries: Delivery[], incomingType?
       case 'LobbyCreated':
         log('lobby.created', { lobbyId: message.lobbyId });
         break;
+      case 'SessionResumed':
+        log('session.resumed', { lobbyId: message.lobbyId });
+        break;
       case 'MatchStarted':
         log('match.started', { lobbyId: message.lobbyId, matchId: message.matchId ?? payload.state?.match?.matchId,
           players: Array.isArray(payload.state?.match?.roster) ? payload.state.match.roster.length : undefined });

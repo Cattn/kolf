@@ -44,6 +44,7 @@ Q_SIGNALS:
     void failed(const QString &reason);
     void serviceNotice(const QString &text);
     void courseUploadProgress(int percent);
+    void reconnectingChanged(bool reconnecting);
 
 private:
     QString requestId();
@@ -58,8 +59,18 @@ private:
     void downloadCourse(const QString &hash, int byteSize, const QString &status);
     QString cacheCourse(const QByteArray &bytes, const QString &sha256);
     void send(const QString &type, const QJsonObject &payload, bool matchScoped = false);
+    bool canResume() const;
+    void beginResume();
+    void scheduleReconnect();
+    void finishResume(bool resumed);
+    void clearSession();
 
     Net::NetworkClient m_network;
+    QString m_resumeToken;
+    bool m_resuming = false;
+    int m_reconnectAttempt = 0;
+    qint64 m_resumeDeadline = 0;
+    QTimer m_reconnectTimer;
     QJsonObject m_state;
     QJsonObject m_serviceHello;
     QString m_memberId;
