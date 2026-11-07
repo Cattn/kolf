@@ -243,6 +243,9 @@ if(NOT WIN32)
 endif()
 
 install(TARGETS kolf  ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+if(WIN32)
+    install(FILES $<TARGET_FILE:Qt6::WebSockets> DESTINATION ${KDE_INSTALL_BINDIR})
+endif()
 
 install(PROGRAMS org.kde.kolf.desktop  DESTINATION  ${KDE_INSTALL_APPDIR})
 install(FILES org.kde.kolf.appdata.xml DESTINATION ${KDE_INSTALL_METAINFODIR})

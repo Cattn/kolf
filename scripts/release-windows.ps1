@@ -38,6 +38,12 @@ $packages = Get-ChildItem (Join-Path $CraftRoot 'tmp') -File -ErrorAction Silent
     Where-Object { $_.Name -like 'kolf-*' -and $_.Extension -in '.exe', '.7z', '.appx', '.msix' -and $_.LastWriteTime -ge $started }
 if (-not $packages) { throw "Craft produced no Kolf package in $CraftRoot\tmp" }
 
+$archive = $packages | Where-Object Extension -eq '.7z' | Select-Object -First 1
+if (-not $archive) { throw 'Craft produced no portable archive to verify' }
+$listing = & (Join-Path $CraftRoot 'dev-utils\bin\7za.exe') l -slt $archive.FullName
+if ($LASTEXITCODE -ne 0) { throw 'Could not inspect the portable archive' }
+if (-not ($listing -match '^Path = bin[\\/]Qt6WebSockets\.dll$')) { throw 'The Windows package is missing Qt6WebSockets.dll' }
+
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 $results = foreach ($package in $packages) {
     $target = Join-Path $OutputDirectory "kolf-$version-windows-x86_64$($package.Extension)"
