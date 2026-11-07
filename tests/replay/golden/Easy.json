@@ -362,37 +362,11 @@
             "hole": 10,
             "shots": [
                 {
-                    "ball": [
-                        78.065,
-                        299.279
-                    ],
                     "direction": -0.019,
+                    "holed": true,
                     "magnitude": 4.163,
-                    "state": 1,
-                    "steps": 912,
+                    "steps": 372,
                     "strokes": 1
-                },
-                {
-                    "ball": [
-                        76.613,
-                        309.71
-                    ],
-                    "direction": 0.566,
-                    "magnitude": 2.428,
-                    "state": 1,
-                    "steps": 958,
-                    "strokes": 2
-                },
-                {
-                    "ball": [
-                        147.606,
-                        315.902
-                    ],
-                    "direction": 0.087,
-                    "magnitude": 1.388,
-                    "state": 1,
-                    "steps": 99,
-                    "strokes": 3
                 }
             ]
         },
@@ -401,35 +375,35 @@
             "shots": [
                 {
                     "ball": [
-                        125.204,
-                        202.983
+                        133.43,
+                        213.622
                     ],
                     "direction": -0.861,
                     "magnitude": 4.163,
                     "state": 1,
-                    "steps": 666,
+                    "steps": 694,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        115.12,
-                        145.491
+                        372.318,
+                        238.262
                     ],
-                    "direction": -0.139,
+                    "direction": -0.201,
                     "magnitude": 2.428,
                     "state": 1,
-                    "steps": 1326,
+                    "steps": 831,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        109.587,
-                        180.831
+                        368.302,
+                        228.847
                     ],
-                    "direction": -0.305,
+                    "direction": -1.974,
                     "magnitude": 1.388,
                     "state": 1,
-                    "steps": 689,
+                    "steps": 15,
                     "strokes": 3
                 }
             ]

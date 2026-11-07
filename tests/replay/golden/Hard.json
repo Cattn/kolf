@@ -988,39 +988,11 @@
             "hole": 15,
             "shots": [
                 {
-                    "ball": [
-                        246.537,
-                        318.206
-                    ],
                     "direction": -1.078,
-                    "hazardDrops": 1,
+                    "holed": true,
                     "magnitude": 4.163,
-                    "state": 1,
-                    "steps": 1307,
-                    "strokes": 2
-                },
-                {
-                    "ball": [
-                        187.233,
-                        376.333
-                    ],
-                    "direction": 0.065,
-                    "magnitude": 2.428,
-                    "state": 1,
-                    "steps": 204,
-                    "strokes": 3
-                },
-                {
-                    "ball": [
-                        218.241,
-                        358.414
-                    ],
-                    "direction": -0.524,
-                    "hazardDrops": 1,
-                    "magnitude": 1.388,
-                    "state": 1,
-                    "steps": 94,
-                    "strokes": 5
+                    "steps": 848,
+                    "strokes": 1
                 }
             ]
         },

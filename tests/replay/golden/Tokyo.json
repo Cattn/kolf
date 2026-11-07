@@ -299,8 +299,8 @@
             "shots": [
                 {
                     "ball": [
-                        359.113,
-                        362.488
+                        173.366,
+                        346
                     ],
                     "direction": -1.539,
                     "magnitude": 4.163,
@@ -308,86 +308,86 @@
                         "7-floater@282,157|10": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 308.857,
+                            "x": 317.143,
                             "y": 157
                         },
                         "7-floater@282,157|10/left-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 308.857,
+                            "x": 317.143,
                             "y": 157
                         },
                         "7-floater@282,157|10/right-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 308.857,
+                            "x": 317.143,
                             "y": 157
                         }
                     },
                     "state": 1,
-                    "steps": 1466,
+                    "steps": 466,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        286.309,
-                        369.176
+                        175.637,
+                        333.127
                     ],
-                    "direction": -1.911,
+                    "direction": -1.498,
                     "magnitude": 2.428,
                     "objects": {
                         "7-floater@282,157|10": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 303.429,
+                            "x": 324,
                             "y": 157
                         },
                         "7-floater@282,157|10/left-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 303.429,
+                            "x": 324,
                             "y": 157
                         },
                         "7-floater@282,157|10/right-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 303.429,
+                            "x": 324,
                             "y": 157
                         }
                     },
                     "state": 1,
-                    "steps": 175,
+                    "steps": 25,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        244.602,
-                        337.33
+                        171.772,
+                        324.83
                     ],
-                    "direction": -2.196,
+                    "direction": -1.958,
                     "magnitude": 1.388,
                     "objects": {
                         "7-floater@282,157|10": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 289.143,
+                            "x": 328.571,
                             "y": 157
                         },
                         "7-floater@282,157|10/left-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 289.143,
+                            "x": 328.571,
                             "y": 157
                         },
                         "7-floater@282,157|10/right-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 289.143,
+                            "x": 328.571,
                             "y": 157
                         }
                     },
                     "state": 1,
-                    "steps": 99,
+                    "steps": 15,
                     "strokes": 3
                 }
             ]

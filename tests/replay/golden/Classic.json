@@ -450,11 +450,10 @@
             "shots": [
                 {
                     "direction": -1.604,
-                    "hazardDrops": 10,
                     "holed": true,
                     "magnitude": 4.163,
-                    "steps": 1836,
-                    "strokes": 11
+                    "steps": 537,
+                    "strokes": 1
                 }
             ]
         },

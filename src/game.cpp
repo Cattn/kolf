@@ -1214,8 +1214,6 @@ void KolfGame::fastTimeout()
 	const double timeStep = 1.0 * Kolf::Box2DScaleFactor;
 	m_world->Step(timeStep, 10, 10); //parameters 2/3 = iteration counts (TODO: optimize)
 	++m_physicsSteps;
-	Q_EMIT simulationStepped();
-	deliverChannels();
 	//conclude simulation
 	for (b2Body* body = m_world->GetBodyList(); body; body = body->GetNext())
 	{
@@ -1225,6 +1223,8 @@ void KolfGame::fastTimeout()
 			citem->endSimulation();
 		}
 	}
+	Q_EMIT simulationStepped();
+	deliverChannels();
 }
 
 void KolfGame::ballMoved()

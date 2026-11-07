@@ -140,35 +140,35 @@
             "shots": [
                 {
                     "ball": [
-                        70.813,
-                        360.03
+                        362.017,
+                        363.558
                     ],
                     "direction": 0.062,
                     "magnitude": 4.163,
                     "state": 1,
-                    "steps": 598,
+                    "steps": 394,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        67.143,
-                        351.782
+                        342.532,
+                        321.35
                     ],
-                    "direction": 0.485,
+                    "direction": -2.781,
                     "magnitude": 2.428,
                     "state": 1,
-                    "steps": 185,
+                    "steps": 103,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        118.134,
-                        355.573
+                        316.127,
+                        340.144
                     ],
-                    "direction": 0.087,
+                    "direction": 2.503,
                     "magnitude": 1.388,
                     "state": 1,
-                    "steps": 99,
+                    "steps": 35,
                     "strokes": 3
                 }
             ]
@@ -431,150 +431,11 @@
                     "strokes": 1
                 },
                 {
-                    "ball": [
-                        240.858,
-                        282.748
-                    ],
                     "direction": 0.444,
+                    "holed": true,
                     "magnitude": 2.428,
-                    "objects": {
-                        "7-floater@163,347|13": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 161.813,
-                            "y": 339.167
-                        },
-                        "7-floater@163,347|13/bottom-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 161.813,
-                            "y": 339.167
-                        },
-                        "7-floater@163,347|13/left-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 161.813,
-                            "y": 339.167
-                        },
-                        "7-floater@163,347|13/right-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 161.813,
-                            "y": 339.167
-                        },
-                        "7-floater@163,347|13/top-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 161.813,
-                            "y": 339.167
-                        },
-                        "7-floater@197,284|14": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 191.574,
-                            "y": 241.947
-                        },
-                        "7-floater@197,284|14/bottom-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 191.574,
-                            "y": 241.947
-                        },
-                        "7-floater@197,284|14/left-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 191.574,
-                            "y": 241.947
-                        },
-                        "7-floater@197,284|14/right-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 191.574,
-                            "y": 241.947
-                        },
-                        "7-floater@197,284|14/top-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 191.574,
-                            "y": 241.947
-                        }
-                    },
-                    "state": 1,
-                    "steps": 817,
+                    "steps": 159,
                     "strokes": 2
-                },
-                {
-                    "ball": [
-                        299.144,
-                        321.626
-                    ],
-                    "direction": 0.52,
-                    "magnitude": 1.388,
-                    "objects": {
-                        "7-floater@163,347|13": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 161.346,
-                            "y": 336.086
-                        },
-                        "7-floater@163,347|13/bottom-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 161.346,
-                            "y": 336.086
-                        },
-                        "7-floater@163,347|13/left-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 161.346,
-                            "y": 336.086
-                        },
-                        "7-floater@163,347|13/right-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 161.346,
-                            "y": 336.086
-                        },
-                        "7-floater@163,347|13/top-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 161.346,
-                            "y": 336.086
-                        },
-                        "7-floater@197,284|14": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 191.911,
-                            "y": 244.558
-                        },
-                        "7-floater@197,284|14/bottom-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 191.911,
-                            "y": 244.558
-                        },
-                        "7-floater@197,284|14/left-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 191.911,
-                            "y": 244.558
-                        },
-                        "7-floater@197,284|14/right-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 191.911,
-                            "y": 244.558
-                        },
-                        "7-floater@197,284|14/top-wall": {
-                            "rotation": 0,
-                            "visible": true,
-                            "x": 191.911,
-                            "y": 244.558
-                        }
-                    },
-                    "state": 1,
-                    "steps": 99,
-                    "strokes": 3
                 }
             ]
         },
