@@ -13,6 +13,7 @@
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <KConfig>
 #include <QWidget>
 #include <cmath>
 #include <iostream>
@@ -282,6 +283,66 @@ int runReplayFromEnvironment()
         } else {
             std::cout << "replay: " << qPrintable(name) << " matches" << std::endl;
         }
+    }
+    return failures ? 1 : 0;
+}
+
+bool resaveCourse(const QString &courseFile, const QString &outputFile, QString &error)
+{
+    QFile::remove(outputFile);
+    PlayerList players;
+    Player player;
+    player.setId(1);
+    player.setName(QStringLiteral("Resave"));
+    players.append(player);
+    QWidget host;
+    auto *game = new KolfGame(&players, courseFile, &host, Role::Authority);
+    game->setManualStepping(true);
+    game->setSound(false);
+    auto *adapter = new GameSessionAdapter(game);
+    KConfig target(outputFile, KConfig::SimpleConfig);
+    int holeCount = 1;
+    for (int hole = 1; hole <= holeCount; ++hole) {
+        if (!adapter->loadHole(hole)) {
+            error = QStringLiteral("hole %1 could not be loaded").arg(hole);
+            break;
+        }
+        holeCount = adapter->highestHole();
+        game->writeHole(&target);
+    }
+    delete game;
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    return error.isEmpty() && target.sync();
+}
+
+int runResaveFromEnvironment()
+{
+    const QString courses = qEnvironmentVariable("KOLF_RESAVE_COURSES");
+    const QString output = qEnvironmentVariable("KOLF_RESAVE_OUTPUT");
+    const auto files = courseFiles(courses);
+    if (files.isEmpty() || output.isEmpty()) {
+        std::cerr << "resave: set KOLF_RESAVE_COURSES and KOLF_RESAVE_OUTPUT" << std::endl;
+        return 2;
+    }
+    QDir().mkpath(output);
+    int failures = 0;
+    for (const auto &file : files) {
+        const QString name = QFileInfo(file).completeBaseName();
+        const QString first = QDir(output).filePath(name + QStringLiteral(".kolf"));
+        const QString second = QDir(output).filePath(name + QStringLiteral(".roundtrip.kolf"));
+        QString error;
+        if (!resaveCourse(file, first, error) || !resaveCourse(first, second, error)) {
+            std::cerr << "resave: " << qPrintable(name) << ": " << qPrintable(error) << std::endl;
+            ++failures;
+            continue;
+        }
+        QFile a(first), b(second);
+        if (!a.open(QIODevice::ReadOnly) || !b.open(QIODevice::ReadOnly) || a.readAll() != b.readAll()) {
+            std::cerr << "resave: " << qPrintable(name) << ": saving the saved course changed it" << std::endl;
+            ++failures;
+            continue;
+        }
+        std::cout << "resave: " << qPrintable(name) << " round-trips" << std::endl;
     }
     return failures ? 1 : 0;
 }

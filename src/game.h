@@ -262,6 +262,7 @@ public:
 	void setManualStepping(bool manual);
 	bool manualStepping() const { return m_manualStepping; }
 	void stepSimulation() { fastTimeout(); }
+	void writeHole(KConfig *target);
 	~KolfGame() override;
 	void setFilename(const QString &filename);
 	QString curFilename() const { return filename; }

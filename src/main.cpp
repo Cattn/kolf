@@ -127,6 +127,7 @@ int main(int argc, char **argv)
     if (!protocolTests.isEmpty()) return Kolf::Session::runOnlineProtocolFixtures(protocolTests);
 #ifdef KOLF_TEST_AUTOMATION
     if (!qEnvironmentVariableIsEmpty("KOLF_REPLAY_COURSES")) return Kolf::Testing::runReplayFromEnvironment();
+    if (!qEnvironmentVariableIsEmpty("KOLF_RESAVE_COURSES")) return Kolf::Testing::runResaveFromEnvironment();
     const auto onlineTestConfig = qEnvironmentVariable("KOLF_ONLINE_TEST_CONFIG");
     if (!onlineTestConfig.isEmpty()) {
         QFile config(onlineTestConfig);

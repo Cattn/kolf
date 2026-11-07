@@ -1956,6 +1956,8 @@ void KolfGame::openFile()
 	}
 
 	if (!missingPlugins.empty())
+		qWarning() << "Course" << filename << "hole" << curHole << "uses unknown object types" << missingPlugins;
+	if (!missingPlugins.empty() && !isOnline())
 	{
 		KMessageBox::informationList(this, QStringLiteral("<p>") + i18n("This hole uses the following plugins, which you do not have installed:") + QStringLiteral("</p>"), missingPlugins, QString(), QStringLiteral("%1 warning").arg(holeInfo.untranslatedName() + QString::number(curHole)));
 	}
@@ -2248,6 +2250,30 @@ void KolfGame::randHole()
 	switchHole(newHole);
 }
 
+void KolfGame::writeHole(KConfig *target)
+{
+	for (QGraphicsItem* qitem : std::as_const(m_topLevelQItems)) {
+		CanvasItem *citem = dynamic_cast<CanvasItem *>(qitem);
+		if (citem && !dynamic_cast<Ball *>(qitem))
+		{
+			KConfigGroup group(target->group(makeGroup(citem->curId(), curHole, citem->name(), (int)qitem->x(), (int)qitem->y())));
+			citem->save(&group);
+		}
+	}
+
+	KConfigGroup ball(target->group(QStringLiteral("%1-ball@%2,%3").arg(curHole).arg((int)whiteBall->x()).arg((int)whiteBall->y())));
+	ball.writeEntry("dummykey", true);
+
+	KConfigGroup course(target->group(QStringLiteral("0-course@-50,-50")));
+	course.writeEntry("author", holeInfo.author());
+	course.writeEntry("Name", holeInfo.untranslatedName());
+
+	KConfigGroup hole(target->group(QStringLiteral("%1-hole@-50,-50|0").arg(curHole)));
+	hole.writeEntry("par", holeInfo.par());
+	hole.writeEntry("maxstrokes", holeInfo.maxStrokes());
+	hole.writeEntry("borderWalls", holeInfo.borderWalls());
+}
+
 void KolfGame::save()
 {
 	if (isOnline()) return;
@@ -2281,28 +2307,7 @@ void KolfGame::save()
 		if (holeNum == curHole)
 			cfg->deleteGroup(*it);
 	}
-	for (QGraphicsItem* qitem : std::as_const(m_topLevelQItems)) {
-		CanvasItem *citem = dynamic_cast<CanvasItem *>(qitem);
-		if (citem)
-		{
-			cfgGroup = KConfigGroup(cfg->group(makeGroup(citem->curId(), curHole, citem->name(), (int)qitem->x(), (int)qitem->y())));
-			citem->save(&cfgGroup);
-		}
-	}
-
-	// save where ball starts (whiteBall tells all)
-	cfgGroup = KConfigGroup(cfg->group(QStringLiteral("%1-ball@%2,%3").arg(curHole).arg((int)whiteBall->x()).arg((int)whiteBall->y())));
-	cfgGroup.writeEntry("dummykey", true);
-
-	cfgGroup = KConfigGroup(cfg->group(QStringLiteral("0-course@-50,-50")));
-	cfgGroup.writeEntry("author", holeInfo.author());
-	cfgGroup.writeEntry("Name", holeInfo.untranslatedName());
-
-	// save hole info
-	cfgGroup = KConfigGroup(cfg->group(QStringLiteral("%1-hole@-50,-50|0").arg(curHole)));
-	cfgGroup.writeEntry("par", holeInfo.par());
-	cfgGroup.writeEntry("maxstrokes", holeInfo.maxStrokes());
-	cfgGroup.writeEntry("borderWalls", holeInfo.borderWalls());
+	writeHole(cfg);
 
 	cfg->sync();
 
