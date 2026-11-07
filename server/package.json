@@ -3,7 +3,9 @@
   "private": true,
   "version": "26.08.1",
   "type": "module",
-  "engines": { "node": ">=22.18" },
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "start": "node main.ts",
     "test": "node --test test/*.test.ts",
@@ -12,6 +14,12 @@
     "test:native:four-player": "node ../tests/multiplayer/run-online-native.ts four-player",
     "test:native:hazard": "node ../tests/multiplayer/run-online-native.ts four-player-hazard"
   },
-  "dependencies": { "ws": "^8.18.3" },
-  "devDependencies": { "@types/node": "^22.0.0", "@types/ws": "^8.18.1", "typescript": "^5.9.2" }
+  "dependencies": {
+    "ws": "^8.22.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.9.2"
+  }
 }
