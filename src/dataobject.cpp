@@ -253,6 +253,17 @@ std::shared_ptr<const Kolf::DataObjectDefinition> Kolf::DataObjectLibrary::parse
 
 	ObjectType type = ObjectType::withPlainName(definition->id, definition->name);
 	type.category(category);
+	type.plainHelp(definition->help);
+	{
+		const auto renderer = definition->sprite;
+		type.iconFactory([renderer](int size) {
+			QPixmap pixmap(size, size);
+			pixmap.fill(Qt::transparent);
+			QPainter painter(&pixmap);
+			renderer->render(&painter, QRectF(2, 2, size - 4, size - 4));
+			return QIcon(pixmap);
+		});
+	}
 	if (!affectsGameplay)
 		type.decoration();
 	QMap<QString, PropertyType> propertyTypes;

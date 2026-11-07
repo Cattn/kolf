@@ -646,11 +646,11 @@ QList<Kolf::PropertySpec> landscapeProperties(double width, double height)
 }
 }
 
-KOLF_REGISTER_OBJECT(Kolf::Puddle, Kolf::ObjectType(QStringLiteral("puddle"), kli18n("Puddle")).category(Kolf::ObjectCategory::Hazard)
+KOLF_REGISTER_OBJECT(Kolf::Puddle, Kolf::ObjectType(QStringLiteral("puddle"), kli18n("Puddle")).sprite(QStringLiteral("puddle")).help(kli18n("Water: costs a stroke, then drop the ball outside or replay the shot.")).category(Kolf::ObjectCategory::Hazard)
 	.properties(landscapeProperties(45, 30)))
-KOLF_REGISTER_OBJECT(Kolf::Sand, Kolf::ObjectType(QStringLiteral("sand"), kli18n("Sand")).category(Kolf::ObjectCategory::Terrain)
+KOLF_REGISTER_OBJECT(Kolf::Sand, Kolf::ObjectType(QStringLiteral("sand"), kli18n("Sand")).sprite(QStringLiteral("sand")).help(kli18n("Slows the ball down a lot.")).category(Kolf::ObjectCategory::Terrain)
 	.properties(landscapeProperties(45, 40)))
-KOLF_REGISTER_OBJECT(Kolf::Slope, Kolf::ObjectType(QStringLiteral("slope"), kli18n("Slope")).category(Kolf::ObjectCategory::Terrain)
+KOLF_REGISTER_OBJECT(Kolf::Slope, Kolf::ObjectType(QStringLiteral("slope"), kli18n("Slope")).sprite(QStringLiteral("slope_n")).help(kli18n("Pushes the ball downhill.")).category(Kolf::ObjectCategory::Terrain)
 	.property(Kolf::PropertySpec::number(QStringLiteral("grade"), kli18n("Grade"), 4, 0, 8, 1))
 	.property(Kolf::PropertySpec::boolean(QStringLiteral("reversed"), kli18n("Reverse direction"), false))
 	.property(Kolf::PropertySpec::boolean(QStringLiteral("stuckOnGround"), kli18n("Unmovable"), false))

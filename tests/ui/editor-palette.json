@@ -1,12 +1,16 @@
 {
-  "description": "Course editor: the object palette lists every registered object type, and a new hole gets the registry's default objects (a cup).",
+  "description": "Course editor: the categorised palette lists every registered object type; picking one adds it and shows its generated property panel.",
   "steps": [
     { "wait": 1500 },
-    { "resize": [960, 760], "wait": 800 },
+    { "resize": [1100, 860], "wait": 800 },
     { "click": "homeEditor", "wait": 2500 },
     { "expectHidden": "homeView", "screenshot": "01-editor-palette.png" },
-    { "trigger": "New Hole", "in": "course", "wait": 1500 },
-    { "screenshot": "02-new-hole-default-objects.png" },
+    { "activateItem": "Ice", "in": "editorPalette", "wait": 1200 },
+    { "expectVisible": "propertyPanel", "screenshot": "02-ice-properties.png" },
+    { "activateItem": "Gate", "in": "editorPalette", "wait": 1200 },
+    { "expectVisible": "property_channel", "screenshot": "03-gate-properties.png" },
+    { "type": "gat", "into": "editorSearch", "wait": 500 },
+    { "screenshot": "04-search.png" },
     { "quit": true }
   ]
 }

@@ -23,6 +23,7 @@
 #include <QMenu>
 #include <QStandardPaths>
 #include <QTimer>
+#include <QTreeWidget>
 #include <QUrl>
 
 #include "game.h"
@@ -184,6 +185,13 @@ bool UiScript::runStep(const QJsonObject &step, QString &error)
         QTimer::singleShot(0, menu, [menu, window = m_mainWindow] {
             if (window) menu->popup(window->mapToGlobal(QPoint(40, 40)));
         });
+    }
+    if (step.contains(QStringLiteral("activateItem"))) {
+        const auto text = step.value(QStringLiteral("activateItem")).toString();
+        auto *tree = m_mainWindow ? m_mainWindow->findChild<QTreeWidget *>(step.value(QStringLiteral("in")).toString()) : nullptr;
+        const auto found = tree ? tree->findItems(text, Qt::MatchExactly | Qt::MatchRecursive) : QList<QTreeWidgetItem *>();
+        if (found.isEmpty()) { error = QStringLiteral("no item %1 in %2").arg(text, step.value(QStringLiteral("in")).toString()); return false; }
+        QTimer::singleShot(0, tree, [tree, item = found.first()] { Q_EMIT tree->itemClicked(item, 0); });
     }
     if (step.contains(QStringLiteral("trigger"))) {
         const auto text = step.value(QStringLiteral("trigger")).toString();

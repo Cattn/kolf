@@ -2,6 +2,7 @@
 #pragma once
 
 #include <KLazyLocalizedString>
+#include <QIcon>
 #include <QJsonObject>
 #include <QList>
 #include <QPoint>
@@ -82,6 +83,10 @@ public:
 	ObjectType &property(const PropertySpec &spec) { m_properties.append(spec); return *this; }
 	ObjectType &properties(const QList<PropertySpec> &specs) { m_properties.append(specs); return *this; }
 	ObjectType &runtime(const QStringList &fields) { m_runtime = fields; return *this; }
+	ObjectType &sprite(const QString &key) { m_spriteKey = key; return *this; }
+	ObjectType &help(const KLazyLocalizedString &text) { m_help = text; return *this; }
+	ObjectType &plainHelp(const QString &text) { m_plainHelp = text; return *this; }
+	ObjectType &iconFactory(const std::function<QIcon(int)> &factory) { m_iconFactory = factory; return *this; }
 
 	QString id() const { return m_id; }
 	QString name() const { return m_plainName.isEmpty() ? m_name.toString() : m_plainName; }
@@ -93,6 +98,9 @@ public:
 	QGraphicsItem *create(QGraphicsItem *parent, b2World *world) const { return m_creator ? m_creator(parent, world) : nullptr; }
 	QList<PropertySpec> propertySpecs() const { return m_properties; }
 	QStringList runtimeFields() const { return m_runtime; }
+	QString spriteKey() const { return m_spriteKey; }
+	QString helpText() const { return m_plainHelp.isEmpty() ? (m_help.isEmpty() ? QString() : m_help.toString()) : m_plainHelp; }
+	QIcon icon(int size) const { return m_iconFactory ? m_iconFactory(size) : QIcon(); }
 	QJsonObject toJson() const;
 	QString signature() const;
 	const PropertySpec *propertySpec(const QString &key) const;
@@ -110,6 +118,10 @@ private:
 	Creator m_creator = nullptr;
 	QList<PropertySpec> m_properties;
 	QStringList m_runtime;
+	QString m_spriteKey;
+	KLazyLocalizedString m_help;
+	QString m_plainHelp;
+	std::function<QIcon(int)> m_iconFactory;
 };
 
 class ObjectRegistry

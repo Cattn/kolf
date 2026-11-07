@@ -19,47 +19,135 @@
 
 #include "editor.h"
 #include "objectregistry.h"
+#include "ui/propertypanel.h"
+#include "game.h"
 
-#include <QLabel>
-#include <QListWidget>
 #include <QHBoxLayout>
+#include <QLabel>
+#include <QLineEdit>
+#include <QPainter>
+#include <QTreeWidget>
+#include <QVBoxLayout>
+#include <KGameRenderer>
 #include <KLocalizedString>
-Editor::Editor(QWidget *parent)
-	: QWidget(parent)
+
+namespace
 {
-	config = nullptr;
-
-	hlayout = new QHBoxLayout(this);
-
-	QVBoxLayout *vlayout = new QVBoxLayout;
-	hlayout->addLayout( vlayout );
-	vlayout->addWidget(new QLabel(i18nc("@label:listbox", "Add object:"), this));
-	m_typeList = new QListWidget(this);
-	vlayout->addWidget(m_typeList);
-	hlayout->setStretchFactor(vlayout, 2);
-
-	//populate type list
-	auto knownTypes = Kolf::ObjectRegistry::instance().types();
-	std::sort(knownTypes.begin(), knownTypes.end(), [](const Kolf::ObjectType &a, const Kolf::ObjectType &b) {
-		return QString::localeAwareCompare(a.name(), b.name()) < 0;
-	});
-	for (const Kolf::ObjectType& type : std::as_const(knownTypes)) {
-		QListWidgetItem* item = new QListWidgetItem(type.name());
-		item->setData(Qt::UserRole, type.id());
-		m_typeList->addItem(item);
+QString categoryLabel(Kolf::ObjectCategory category)
+{
+	switch (category) {
+	case Kolf::ObjectCategory::Course: return i18nc("@title:group object palette", "Course");
+	case Kolf::ObjectCategory::Terrain: return i18nc("@title:group object palette", "Terrain");
+	case Kolf::ObjectCategory::Obstacle: return i18nc("@title:group object palette", "Obstacles");
+	case Kolf::ObjectCategory::Hazard: return i18nc("@title:group object palette", "Hazards");
+	case Kolf::ObjectCategory::Mechanism: return i18nc("@title:group object palette", "Mechanisms");
+	case Kolf::ObjectCategory::Decoration: return i18nc("@title:group object palette", "Decoration");
 	}
-	connect(m_typeList, &QListWidget::itemClicked, this, &Editor::listboxExecuted);
+	return QString();
 }
 
-void Editor::listboxExecuted(QListWidgetItem* item)
+QIcon typeIcon(const Kolf::ObjectType &type)
 {
-	Q_EMIT addNewItem(item->data(Qt::UserRole).toString()); //data(UserRole) contains the type identifier
+	const int size = 24;
+	QIcon icon = type.icon(size);
+	if (!icon.isNull())
+		return icon;
+	if (!type.spriteKey().isEmpty())
+		return QIcon(Kolf::renderer()->spritePixmap(type.spriteKey(), QSize(size, size)));
+	QPixmap pixmap(size, size);
+	pixmap.fill(Qt::transparent);
+	QPainter painter(&pixmap);
+	painter.setRenderHint(QPainter::Antialiasing);
+	painter.setPen(QPen(Qt::darkRed, 3));
+	painter.drawLine(4, size - 6, size - 4, 6);
+	return QIcon(pixmap);
+}
+}
+
+Editor::Editor(QWidget *parent)
+	: QWidget(parent)
+	, config(nullptr)
+{
+	setMaximumHeight(fontMetrics().height() * 16);
+	hlayout = new QHBoxLayout(this);
+
+	auto *vlayout = new QVBoxLayout;
+	hlayout->addLayout(vlayout);
+	vlayout->addWidget(new QLabel(i18nc("@label:listbox", "Add object:"), this));
+	m_search = new QLineEdit(this);
+	m_search->setObjectName(QStringLiteral("editorSearch"));
+	m_search->setPlaceholderText(i18nc("@info:placeholder", "Search objects"));
+	m_search->setClearButtonEnabled(true);
+	vlayout->addWidget(m_search);
+	m_palette = new QTreeWidget(this);
+	m_palette->setObjectName(QStringLiteral("editorPalette"));
+	m_palette->setHeaderHidden(true);
+	m_palette->setRootIsDecorated(false);
+	m_palette->setIconSize(QSize(24, 24));
+	vlayout->addWidget(m_palette);
+	hlayout->setStretchFactor(vlayout, 2);
+
+	const QList<Kolf::ObjectCategory> order{Kolf::ObjectCategory::Course, Kolf::ObjectCategory::Terrain,
+		Kolf::ObjectCategory::Obstacle, Kolf::ObjectCategory::Hazard, Kolf::ObjectCategory::Mechanism, Kolf::ObjectCategory::Decoration};
+	auto types = Kolf::ObjectRegistry::instance().types();
+	std::sort(types.begin(), types.end(), [](const Kolf::ObjectType &a, const Kolf::ObjectType &b) {
+		return QString::localeAwareCompare(a.name(), b.name()) < 0;
+	});
+	for (const auto category : order) {
+		QTreeWidgetItem *group = nullptr;
+		for (const auto &type : std::as_const(types)) {
+			if (type.objectCategory() != category)
+				continue;
+			if (!group) {
+				group = new QTreeWidgetItem(m_palette, {categoryLabel(category)});
+				group->setFlags(Qt::ItemIsEnabled);
+				QFont font = group->font(0);
+				font.setBold(true);
+				group->setFont(0, font);
+			}
+			auto *entry = new QTreeWidgetItem(group, {type.name()});
+			entry->setData(0, Qt::UserRole, type.id());
+			entry->setIcon(0, typeIcon(type));
+			entry->setToolTip(0, type.helpText());
+		}
+	}
+	m_palette->expandAll();
+	connect(m_palette, &QTreeWidget::itemClicked, this, &Editor::paletteActivated);
+	connect(m_search, &QLineEdit::textChanged, this, &Editor::filterPalette);
+}
+
+void Editor::paletteActivated(QTreeWidgetItem *item)
+{
+	const QString id = item ? item->data(0, Qt::UserRole).toString() : QString();
+	if (!id.isEmpty())
+		Q_EMIT addNewItem(id);
+}
+
+void Editor::filterPalette(const QString &text)
+{
+	for (int i = 0; i < m_palette->topLevelItemCount(); ++i) {
+		auto *group = m_palette->topLevelItem(i);
+		bool anyVisible = false;
+		for (int j = 0; j < group->childCount(); ++j) {
+			auto *entry = group->child(j);
+			const bool match = text.isEmpty() || entry->text(0).contains(text, Qt::CaseInsensitive)
+				|| entry->toolTip(0).contains(text, Qt::CaseInsensitive);
+			entry->setHidden(!match);
+			anyVisible = anyVisible || match;
+		}
+		group->setHidden(!anyVisible);
+	}
 }
 
 void Editor::setItem(CanvasItem *item)
 {
 	delete config;
-	config = item->config(this);
+	config = nullptr;
+	const auto *type = item ? Kolf::ObjectRegistry::instance().find(item->name()) : nullptr;
+	if (type && !type->propertySpecs().isEmpty())
+		config = new Kolf::Ui::PropertyPanel(item, *type, this);
+	else if (item)
+		config = item->config(this);
 	if (!config)
 		return;
 	config->ctorDone();

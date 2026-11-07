@@ -1288,6 +1288,7 @@ void KolfWindow::editingStarted()
 	connect(game, &KolfGame::newSelectedItem, editor, &Editor::setItem);
 
 	scoreboard->hide();
+	gameHud->clearHint();
 
 	layout->addWidget(editor, 2, 0);
 	editor->show();

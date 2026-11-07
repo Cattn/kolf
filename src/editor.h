@@ -24,14 +24,11 @@
 
 #include "game.h"
 
-class QListWidget;
 class QHBoxLayout;
-class QListWidgetItem;
+class QLineEdit;
+class QTreeWidget;
+class QTreeWidgetItem;
 class Config;
-
-namespace Kolf
-{
-}
 
 class Editor : public QWidget
 {
@@ -44,10 +41,12 @@ Q_SIGNALS:
 public Q_SLOTS:
 	void setItem(CanvasItem *);
 private Q_SLOTS:
-	void listboxExecuted(QListWidgetItem*);
+	void paletteActivated(QTreeWidgetItem *item);
+	void filterPalette(const QString &text);
 private:
 	QHBoxLayout *hlayout;
-	QListWidget* m_typeList;
+	QLineEdit *m_search;
+	QTreeWidget *m_palette;
 	Config *config;
 };
 

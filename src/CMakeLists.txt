@@ -64,6 +64,7 @@ target_sources(kolfprivate PRIVATE
     ui/homeview.cpp
     ui/newgameview.cpp
     ui/settingsdialog.cpp
+    ui/propertypanel.cpp
     net/networkclient.cpp
     replication/snapshot.cpp
     replication/presentationcontroller.cpp

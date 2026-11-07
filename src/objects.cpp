@@ -403,11 +403,11 @@ bool Kolf::Cup::collision(Ball* ball)
 
 //END Kolf::Cup
 
-KOLF_REGISTER_OBJECT(Kolf::BlackHole, Kolf::ObjectType(QStringLiteral("blackhole"), kli18n("Black Hole")).category(Kolf::ObjectCategory::Mechanism)
+KOLF_REGISTER_OBJECT(Kolf::BlackHole, Kolf::ObjectType(QStringLiteral("blackhole"), kli18n("Black Hole")).sprite(QStringLiteral("black_hole")).help(kli18n("Swallows a slow ball and shoots it out of its exit.")).category(Kolf::ObjectCategory::Mechanism)
 	.property(Kolf::PropertySpec::point(QStringLiteral("exit"), kli18n("Exit"), QPoint(300, 100)))
 	.property(Kolf::PropertySpec::angle(QStringLiteral("exitDeg"), kli18n("Exiting ball angle"), 0))
 	.property(Kolf::PropertySpec::number(QStringLiteral("minspeed"), kli18n("Minimum exit speed"), 3, 0, 10, 0.01))
 	.property(Kolf::PropertySpec::number(QStringLiteral("maxspeed"), kli18n("Maximum exit speed"), 5, 0, 10, 0.01)))
-KOLF_REGISTER_OBJECT(Kolf::Cup, Kolf::ObjectType(QStringLiteral("cup"), kli18n("Cup")).category(Kolf::ObjectCategory::Course).addOnNewHole())
+KOLF_REGISTER_OBJECT(Kolf::Cup, Kolf::ObjectType(QStringLiteral("cup"), kli18n("Cup")).sprite(QStringLiteral("cup")).help(kli18n("The hole. The ball drops in when it is slow enough.")).category(Kolf::ObjectCategory::Course).addOnNewHole())
 
 #include "moc_objects.cpp"

@@ -2068,6 +2068,7 @@ void KolfGame::addNewObject(const QString& identifier)
 	sceneItem->setSize(newItem->boundingRect().size());
 
 	setModified(true);
+	setSelectedItem(sceneItem);
 }
 
 bool KolfGame::askSave(bool noMoreChances)
