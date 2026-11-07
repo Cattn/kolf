@@ -17,6 +17,7 @@
 #include <QStandardPaths>
 #include <QSvgRenderer>
 #include <QXmlStreamReader>
+#include <QtMath>
 #include <cmath>
 
 namespace
@@ -462,6 +463,65 @@ QStringList Kolf::DataObjectLibrary::loadInstalled()
 	return errors;
 }
 
+namespace
+{
+class DataObjectOverlay : public Kolf::Overlay
+{
+public:
+	explicit DataObjectOverlay(Kolf::DataObject *object)
+		: Kolf::Overlay(object, object, true)
+		, m_object(object)
+	{
+		if (object->isResizable()) {
+			for (int i = 0; i < 4; ++i) {
+				auto *handle = new Kolf::OverlayHandle(Kolf::OverlayHandle::SquareShape, this);
+				m_corners << handle;
+				addHandle(handle);
+				QObject::connect(handle, &Kolf::OverlayHandle::moveRequest, this, [this](const QPointF &scenePos) { resizeTo(scenePos); });
+			}
+		}
+		if (object->isRotatable()) {
+			m_rotate = new Kolf::OverlayHandle(Kolf::OverlayHandle::CircleShape, this);
+			addHandle(m_rotate);
+			QObject::connect(m_rotate, &Kolf::OverlayHandle::moveRequest, this, [this](const QPointF &scenePos) { rotateTowards(scenePos); });
+		}
+	}
+
+	void update() override
+	{
+		Kolf::Overlay::update();
+		const QRectF rect = m_object->boundingRect();
+		const QList<QPointF> corners{rect.topLeft(), rect.topRight(), rect.bottomLeft(), rect.bottomRight()};
+		for (int i = 0; i < m_corners.size(); ++i)
+			m_corners[i]->setPos(mapFromItem(m_object, corners[i]));
+		if (m_rotate)
+			m_rotate->setPos(mapFromItem(m_object, QPointF(0, rect.top() - 18)));
+	}
+
+private:
+	void resizeTo(const QPointF &scenePos)
+	{
+		const QPointF local = m_object->mapFromScene(scenePos);
+		const qreal minimum = Kolf::Overlay::MinimumObjectDimension;
+		m_object->setSize(QSizeF(qMax(minimum, 2 * std::abs(local.x())), qMax(minimum, 2 * std::abs(local.y()))));
+		update();
+	}
+
+	void rotateTowards(const QPointF &scenePos)
+	{
+		const QPointF delta = scenePos - m_object->scenePos();
+		int degrees = qRound(qRadiansToDegrees(std::atan2(delta.y(), delta.x())) + 90);
+		degrees = ((degrees % 360) + 360) % 360;
+		m_object->applyProperties({{QStringLiteral("rotation"), degrees}});
+		update();
+	}
+
+	Kolf::DataObject *m_object;
+	QList<Kolf::OverlayHandle *> m_corners;
+	Kolf::OverlayHandle *m_rotate = nullptr;
+};
+}
+
 Kolf::DataObject::DataObject(std::shared_ptr<const DataObjectDefinition> definition, QGraphicsItem *parent, b2World *world)
 	: QGraphicsObject(parent)
 	, CanvasItem(world)
@@ -787,7 +847,7 @@ void Kolf::DataObject::onBall(BallStepContext &context)
 
 Kolf::Overlay *Kolf::DataObject::createOverlay()
 {
-	return new Kolf::Overlay(this, this);
+	return new DataObjectOverlay(this);
 }
 
 #include "moc_dataobject.cpp"

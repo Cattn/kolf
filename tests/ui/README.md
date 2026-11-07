@@ -30,6 +30,7 @@ Each step is an object. The keys run in this order, and `wait` (ms, default
 | `activateItem` + `in` | Click a tree item, by its text, in the tree widget with that object name (for example the editor palette `editorPalette`) |
 | `trigger` + `in` | Trigger an enabled item, by its text, in the named menu, and close the menu |
 | `key` (+ `to`) | Send a key sequence such as `Escape` to the focused widget, or to `to` (`game` = the active course view; use it, since desktop focus is unreliable) |
+| `drag` `[x1, y1, x2, y2]` | Press the left button at a course (board) point, move in steps and release at another |
 | `resize` `[w, h]` | Resize the main window |
 | `expectVisible` / `expectHidden` | Fail unless the named widget is visible or hidden |
 | `expectTitle` | Fail unless the window title contains the text |

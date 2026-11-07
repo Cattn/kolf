@@ -17,7 +17,10 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QKeyEvent>
+#include <QMouseEvent>
+#include <QPointer>
 #include <QLineEdit>
 #include <QKeySequence>
 #include <QMenu>
@@ -176,6 +179,25 @@ bool UiScript::runStep(const QJsonObject &step, QString &error)
             if (!receiver) return;
             QKeyEvent release(QEvent::KeyRelease, combination.key(), combination.keyboardModifiers());
             QCoreApplication::sendEvent(receiver, &release);
+        });
+    }
+    if (step.contains(QStringLiteral("drag"))) {
+        const auto points = step.value(QStringLiteral("drag")).toArray();
+        auto *game = qobject_cast<KolfGame *>(target(QStringLiteral("game")));
+        if (points.size() != 4 || !game) { error = QStringLiteral("drag needs [x1, y1, x2, y2] board coordinates and a visible course"); return false; }
+        const QPointF from(points.at(0).toDouble(), points.at(1).toDouble()), to(points.at(2).toDouble(), points.at(3).toDouble());
+        QTimer::singleShot(0, game, [game = QPointer<KolfGame>(game), from, to] {
+            const auto send = [&game](QEvent::Type type, const QPointF &board, Qt::MouseButtons buttons) {
+                if (!game) return;
+                const QPointF view = game->viewPointForBoard(board);
+                QMouseEvent event(type, view, game->viewport()->mapToGlobal(view), type == QEvent::MouseMove ? Qt::NoButton : Qt::LeftButton,
+                    buttons, Qt::NoModifier);
+                QCoreApplication::sendEvent(game->viewport(), &event);
+            };
+            send(QEvent::MouseButtonPress, from, Qt::LeftButton);
+            for (int i = 1; i <= 8; ++i)
+                send(QEvent::MouseMove, from + (to - from) * (i / 8.0), Qt::LeftButton);
+            send(QEvent::MouseButtonRelease, to, Qt::NoButton);
         });
     }
     if (step.contains(QStringLiteral("openMenu"))) {

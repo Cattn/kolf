@@ -736,6 +736,11 @@ private:
 };
 }
 
+QPointF KolfGame::viewPointForBoard(const QPointF &point) const
+{
+	return mapFromScene(courseBoard->mapToScene(point));
+}
+
 QByteArray KolfGame::holeSnapshot()
 {
 	KConfig scratch(QString(), KConfig::SimpleConfig);
@@ -971,6 +976,11 @@ void KolfGame::mouseReleaseEvent(QMouseEvent * e)
 {
 	e->setAccepted(false);
 	QGraphicsView::mouseReleaseEvent(e);
+	if (editing && !isOnline()) {
+		scheduleEditCapture();
+		if (auto *selected = dynamic_cast<CanvasItem *>(selectedItem))
+			Q_EMIT newSelectedItem(selected);
+	}
 	if (e->isAccepted())
 		return;
 
@@ -1044,7 +1054,6 @@ void KolfGame::handleMouseReleaseEvent(QMouseEvent *e)
 	if (editing)
 	{
 		Q_EMIT newStatusText(QString());
-		scheduleEditCapture();
 	}
 
 	if (m_ignoreEvents)
@@ -2587,6 +2596,9 @@ void KolfGame::setSelectedItem(CanvasItem* citem)
 	QGraphicsItem* qitem = dynamic_cast<QGraphicsItem*>(citem);
 	selectedItem = qitem;
 	Q_EMIT newSelectedItem(qitem ? citem : &holeInfo);
+	if (citem && qitem && editing)
+		if (Kolf::Overlay *overlay = citem->overlay())
+			overlay->setState(Kolf::Overlay::Active);
 	//deactivate all other overlays
 	for (QGraphicsItem* otherQitem : std::as_const(m_topLevelQItems)) {
 		CanvasItem* otherCitem = dynamic_cast<CanvasItem*>(otherQitem);

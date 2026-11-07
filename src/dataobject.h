@@ -72,6 +72,8 @@ public:
 	void setGame(KolfGame *game) override;
 	void receiveChannel(const QString &channel, bool level, bool pulse);
 	bool hasComponent(const QString &type) const;
+	bool isResizable() const { return m_definition->resizable; }
+	bool isRotatable() const { return m_definition->rotatable; }
 
 protected:
 	Kolf::Overlay *createOverlay() override;

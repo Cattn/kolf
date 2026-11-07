@@ -269,6 +269,7 @@ public:
 	QList<Ball *> balls() const;
 	void emitChannel(const QString &channel, bool level, bool pulse);
 	QUndoStack *editHistory() const { return m_editHistory; }
+	QPointF viewPointForBoard(const QPointF &point) const;
 	QByteArray holeSnapshot();
 	void restoreHoleSnapshot(const QByteArray &snapshot);
 	void duplicateSelected();
