@@ -90,18 +90,17 @@ Kolf::Wall::Wall(QGraphicsItem* parent, b2World* world)
 	addShape(m_shape);
 }
 
-void Kolf::Wall::load(KConfigGroup* cfgGroup)
-{
-	const QPoint start = cfgGroup->readEntry("startPoint", QPoint(-15, 10));
-	const QPoint end = cfgGroup->readEntry("endPoint", QPoint(15, -5));
-	setLine(QLineF(start, end));
-}
-
-void Kolf::Wall::save(KConfigGroup* cfgGroup)
+QVariantMap Kolf::Wall::properties() const
 {
 	const QLineF line = this->line();
-	cfgGroup->writeEntry("startPoint", line.p1().toPoint());
-	cfgGroup->writeEntry("endPoint", line.p2().toPoint());
+	return {{QStringLiteral("startPoint"), line.p1().toPoint()}, {QStringLiteral("endPoint"), line.p2().toPoint()}};
+}
+
+void Kolf::Wall::applyProperties(const QVariantMap &values)
+{
+	const QPoint start = values.value(QStringLiteral("startPoint"), QPoint(-15, 10)).toPoint();
+	const QPoint end = values.value(QStringLiteral("endPoint"), QPoint(15, -5)).toPoint();
+	setLine(QLineF(start, end));
 }
 
 void Kolf::Wall::setVisible(bool visible)
@@ -331,30 +330,23 @@ void Kolf::RectangleItem::applyWallStyle(Kolf::Wall* wall, bool adjustPainting)
 
 static const char* wallPropNames[] = { "topWallVisible", "leftWallVisible", "rightWallVisible", "botWallVisible" };
 
-void Kolf::RectangleItem::load(KConfigGroup* group)
-{
-	QSize size = Tagaro::SpriteObjectItem::size().toSize();
-	size.setWidth(group->readEntry("width", size.width()));
-	size.setHeight(group->readEntry("height", size.height()));
-	setSize(size);
-	for (int i = 0; i < Kolf::RectangleWallCount; ++i)
-	{
-		bool hasWall = this->hasWall((Kolf::WallIndex) i);
-		hasWall = group->readEntry(wallPropNames[i], hasWall);
-		setWall((Kolf::WallIndex) i, hasWall);
-	}
-}
-
-void Kolf::RectangleItem::save(KConfigGroup* group)
+QVariantMap Kolf::RectangleItem::properties() const
 {
 	const QSize size = Tagaro::SpriteObjectItem::size().toSize();
-	group->writeEntry("width", size.width());
-	group->writeEntry("height", size.height());
+	QVariantMap values{{QStringLiteral("width"), size.width()}, {QStringLiteral("height"), size.height()}};
 	for (int i = 0; i < Kolf::RectangleWallCount; ++i)
-	{
-		const bool hasWall = this->hasWall((Kolf::WallIndex) i);
-		group->writeEntry(wallPropNames[i], hasWall);
-	}
+		values.insert(QString::fromLatin1(wallPropNames[i]), hasWall((Kolf::WallIndex) i));
+	return values;
+}
+
+void Kolf::RectangleItem::applyProperties(const QVariantMap &values)
+{
+	QSize size = Tagaro::SpriteObjectItem::size().toSize();
+	size.setWidth(values.value(QStringLiteral("width"), size.width()).toInt());
+	size.setHeight(values.value(QStringLiteral("height"), size.height()).toInt());
+	setSize(size);
+	for (int i = 0; i < Kolf::RectangleWallCount; ++i)
+		setWall((Kolf::WallIndex) i, values.value(QString::fromLatin1(wallPropNames[i]), hasWall((Kolf::WallIndex) i)).toBool());
 }
 
 Config* Kolf::RectangleItem::config(QWidget* parent)
@@ -614,22 +606,23 @@ void Kolf::Floater::advance(int phase)
 	setMlPosition(m_position);
 }
 
-void Kolf::Floater::load(KConfigGroup* group)
+QVariantMap Kolf::Floater::properties() const
 {
-	Kolf::RectangleItem::load(group);
-	QLineF motionLine = m_motionLine;
-	motionLine.setP1(group->readEntry("startPoint", m_motionLine.p1()));
-	motionLine.setP2(group->readEntry("endPoint", m_motionLine.p2()));
-	setMotionLine(motionLine);
-	setSpeed(group->readEntry("speed", m_speed));
+	QVariantMap values = Kolf::RectangleItem::properties();
+	values.insert(QStringLiteral("startPoint"), m_motionLine.p1());
+	values.insert(QStringLiteral("endPoint"), m_motionLine.p2());
+	values.insert(QStringLiteral("speed"), m_speed);
+	return values;
 }
 
-void Kolf::Floater::save(KConfigGroup* group)
+void Kolf::Floater::applyProperties(const QVariantMap &values)
 {
-	Kolf::RectangleItem::save(group);
-	group->writeEntry("startPoint", m_motionLine.p1());
-	group->writeEntry("endPoint", m_motionLine.p2());
-	group->writeEntry("speed", m_speed);
+	Kolf::RectangleItem::applyProperties(values);
+	QLineF motionLine = m_motionLine;
+	motionLine.setP1(values.value(QStringLiteral("startPoint"), m_motionLine.p1()).toPointF());
+	motionLine.setP2(values.value(QStringLiteral("endPoint"), m_motionLine.p2()).toPointF());
+	setMotionLine(motionLine);
+	setSpeed(values.value(QStringLiteral("speed"), m_speed).toInt());
 }
 
 Kolf::Overlay* Kolf::Floater::createOverlay()
@@ -729,16 +722,17 @@ void Kolf::Sign::setSize(const QSizeF& size)
 	m_textItem->setTextWidth(size.width());
 }
 
-void Kolf::Sign::load(KConfigGroup* group)
+QVariantMap Kolf::Sign::properties() const
 {
-	Kolf::RectangleItem::load(group);
-	setText(group->readEntry("Comment", m_text));
+	QVariantMap values = Kolf::RectangleItem::properties();
+	values.insert(QStringLiteral("Comment"), m_text);
+	return values;
 }
 
-void Kolf::Sign::save(KConfigGroup* group)
+void Kolf::Sign::applyProperties(const QVariantMap &values)
 {
-	Kolf::RectangleItem::save(group);
-	group->writeEntry("Comment", m_text);
+	Kolf::RectangleItem::applyProperties(values);
+	setText(values.value(QStringLiteral("Comment"), m_text).toString());
 }
 
 //END Kolf::Sign
@@ -878,27 +872,55 @@ void Kolf::Windmill::updateWallPosition()
 	m_guardWall->setLine(gLine);
 }
 
-void Kolf::Windmill::load(KConfigGroup* group)
+QVariantMap Kolf::Windmill::properties() const
 {
-	Kolf::RectangleItem::load(group);
-	setSpeed(group->readEntry("speed", m_speed));
-	setGuardAtTop(!group->readEntry("bottom", !m_guardAtTop));
+	QVariantMap values = Kolf::RectangleItem::properties();
+	values.insert(QStringLiteral("speed"), m_speed);
+	values.insert(QStringLiteral("bottom"), !m_guardAtTop);
+	return values;
 }
 
-void Kolf::Windmill::save(KConfigGroup* group)
+void Kolf::Windmill::applyProperties(const QVariantMap &values)
 {
-	Kolf::RectangleItem::save(group);
-	group->writeEntry("speed", m_speed);
-	group->writeEntry("bottom", !m_guardAtTop);
+	Kolf::RectangleItem::applyProperties(values);
+	setSpeed(values.value(QStringLiteral("speed"), m_speed).toInt());
+	setGuardAtTop(!values.value(QStringLiteral("bottom"), !m_guardAtTop).toBool());
 }
 
 //END Kolf::Windmill
 
+namespace
+{
+QList<Kolf::PropertySpec> rectangleProperties(int width, int height, bool top, bool left, bool right, bool bottom)
+{
+	return {
+		Kolf::PropertySpec::integer(QStringLiteral("width"), kli18n("Width"), width, 1, 10000),
+		Kolf::PropertySpec::integer(QStringLiteral("height"), kli18n("Height"), height, 1, 10000),
+		Kolf::PropertySpec::boolean(QStringLiteral("topWallVisible"), kli18n("Top wall"), top),
+		Kolf::PropertySpec::boolean(QStringLiteral("leftWallVisible"), kli18n("Left wall"), left),
+		Kolf::PropertySpec::boolean(QStringLiteral("rightWallVisible"), kli18n("Right wall"), right),
+		Kolf::PropertySpec::boolean(QStringLiteral("botWallVisible"), kli18n("Bottom wall"), bottom),
+	};
+}
+}
+
 KOLF_REGISTER_OBJECT(Kolf::Bumper, Kolf::ObjectType(QStringLiteral("bumper"), kli18n("Bumper")).category(Kolf::ObjectCategory::Obstacle))
-KOLF_REGISTER_OBJECT(Kolf::Wall, Kolf::ObjectType(QStringLiteral("wall"), kli18n("Wall")).category(Kolf::ObjectCategory::Obstacle))
-KOLF_REGISTER_OBJECT(Kolf::Bridge, Kolf::ObjectType(QStringLiteral("bridge"), kli18n("Bridge")).category(Kolf::ObjectCategory::Terrain))
-KOLF_REGISTER_OBJECT(Kolf::Floater, Kolf::ObjectType(QStringLiteral("floater"), kli18n("Floater")).category(Kolf::ObjectCategory::Mechanism))
-KOLF_REGISTER_OBJECT(Kolf::Sign, Kolf::ObjectType(QStringLiteral("sign"), kli18n("Sign")).category(Kolf::ObjectCategory::Obstacle))
-KOLF_REGISTER_OBJECT(Kolf::Windmill, Kolf::ObjectType(QStringLiteral("windmill"), kli18n("Windmill")).category(Kolf::ObjectCategory::Mechanism))
+KOLF_REGISTER_OBJECT(Kolf::Wall, Kolf::ObjectType(QStringLiteral("wall"), kli18n("Wall")).category(Kolf::ObjectCategory::Obstacle)
+	.property(Kolf::PropertySpec::point(QStringLiteral("startPoint"), kli18n("Start"), QPoint(-15, 10)))
+	.property(Kolf::PropertySpec::point(QStringLiteral("endPoint"), kli18n("End"), QPoint(15, -5))))
+KOLF_REGISTER_OBJECT(Kolf::Bridge, Kolf::ObjectType(QStringLiteral("bridge"), kli18n("Bridge")).category(Kolf::ObjectCategory::Terrain)
+	.properties(rectangleProperties(80, 40, false, false, false, false)))
+KOLF_REGISTER_OBJECT(Kolf::Floater, Kolf::ObjectType(QStringLiteral("floater"), kli18n("Floater")).category(Kolf::ObjectCategory::Mechanism)
+	.properties(rectangleProperties(80, 40, false, false, false, false))
+	.property(Kolf::PropertySpec::pointF(QStringLiteral("startPoint"), kli18n("Path start"), QPointF(200, 200)))
+	.property(Kolf::PropertySpec::pointF(QStringLiteral("endPoint"), kli18n("Path end"), QPointF(100, 100)))
+	.property(Kolf::PropertySpec::integer(QStringLiteral("speed"), kli18n("Speed"), 0, 0, 20)))
+KOLF_REGISTER_OBJECT(Kolf::Sign, Kolf::ObjectType(QStringLiteral("sign"), kli18n("Sign")).category(Kolf::ObjectCategory::Obstacle)
+	.properties(rectangleProperties(110, 40, true, true, true, true))
+	.property(Kolf::PropertySpec::text(QStringLiteral("Comment"), kli18n("Text"), QStringLiteral("New Text"), 1000)))
+KOLF_REGISTER_OBJECT(Kolf::Windmill, Kolf::ObjectType(QStringLiteral("windmill"), kli18n("Windmill")).category(Kolf::ObjectCategory::Mechanism)
+	.properties(rectangleProperties(80, 40, false, true, true, false))
+	.property(Kolf::PropertySpec::integer(QStringLiteral("speed"), kli18n("Speed"), 5, 1, 10))
+	.property(Kolf::PropertySpec::boolean(QStringLiteral("bottom"), kli18n("Guard at bottom"), true)))
 
 #include "moc_obstacles.cpp"

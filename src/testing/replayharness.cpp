@@ -3,6 +3,7 @@
 
 #include "game.h"
 #include "landscape.h"
+#include "objectregistry.h"
 #include "objects.h"
 #include "obstacles.h"
 #include "session/gamesessionadapter.h"
@@ -287,6 +288,26 @@ int runReplayFromEnvironment()
     return failures ? 1 : 0;
 }
 
+int checkPropertyDefaults(KolfGame *game)
+{
+    int failures = 0;
+    for (const auto &type : Kolf::ObjectRegistry::instance().types()) {
+        const auto values = game->newObjectProperties(type.id());
+        QStringList problems;
+        for (const auto &spec : type.propertySpecs()) {
+            if (!values.contains(spec.key())) problems << QStringLiteral("%1 is not reported").arg(spec.key());
+            else if (!spec.sameValue(values.value(spec.key()), spec.defaultValue()))
+                problems << QStringLiteral("%1 is %2, schema default %3").arg(spec.key(), values.value(spec.key()).toString(), spec.defaultValue().toString());
+        }
+        for (auto it = values.cbegin(); it != values.cend(); ++it)
+            if (!type.propertySpec(it.key())) problems << QStringLiteral("%1 is missing from the schema").arg(it.key());
+        for (const auto &problem : std::as_const(problems)) std::cerr << "defaults: " << qPrintable(type.id()) << ": " << qPrintable(problem) << std::endl;
+        failures += problems.size();
+    }
+    if (!failures) std::cout << "defaults: every object type matches its schema" << std::endl;
+    return failures;
+}
+
 bool resaveCourse(const QString &courseFile, const QString &outputFile, QString &error)
 {
     QFile::remove(outputFile);
@@ -326,6 +347,17 @@ int runResaveFromEnvironment()
     }
     QDir().mkpath(output);
     int failures = 0;
+    {
+        PlayerList players;
+        Player player;
+        player.setId(1);
+        players.append(player);
+        QWidget host;
+        auto *game = new KolfGame(&players, files.first(), &host, Role::Authority);
+        game->setManualStepping(true);
+        failures += checkPropertyDefaults(game);
+        delete game;
+    }
     for (const auto &file : files) {
         const QString name = QFileInfo(file).completeBaseName();
         const QString first = QDir(output).filePath(name + QStringLiteral(".kolf"));

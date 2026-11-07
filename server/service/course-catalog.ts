@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 import type { CourseCatalogEntry } from './lobby.ts';
-import { objectCatalog } from './object-catalog.ts';
+import { acceptsPropertyText, objectCatalog, type ObjectCatalogType } from './object-catalog.ts';
 
 export interface CatalogFile {
   courseId: string;
@@ -22,6 +22,7 @@ export function parseCourseBytes(content: Buffer): CourseMetadata {
   if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(text)) throw Error('course contains binary content');
   const groups = new Map<string, Map<string, string>>();
   let current: Map<string, string> | undefined;
+  let currentType: ObjectCatalogType | undefined;
   for (const line of text.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n')) {
     if (line.length > 4096) throw Error('course line is too long');
     const trimmed = line.trim();
@@ -31,7 +32,7 @@ export function parseCourseBytes(content: Buffer): CourseMetadata {
       if (!trimmed.endsWith(']') || !match || !objectCatalog.groups.has(match[2])
         || Number(match[1]) > 1000 || Math.abs(Number(match[3])) > 100000
         || Math.abs(Number(match[4])) > 100000 || groups.has(trimmed)) throw Error('unsupported course group');
-      current = new Map(); groups.set(trimmed, current);
+      current = new Map(); groups.set(trimmed, current); currentType = objectCatalog.byId.get(match[2]);
       if (groups.size > 4096) throw Error('course has too many objects');
       continue;
     }
@@ -41,6 +42,8 @@ export function parseCourseBytes(content: Buffer): CourseMetadata {
     const key = line.slice(0, equals).trim(), value = line.slice(equals + 1).trim();
     if (/plugin|script|exec/iu.test(key) || /\.(?:exe|dll|zip)$/iu.test(value))
       throw Error('executable or archive content is not allowed');
+    const spec = currentType?.properties.find(property => property.key === key);
+    if (spec && !acceptsPropertyText(spec, value)) throw Error(`course object property ${key} is out of range`);
     current.set(key, value);
   }
   const header = groups.get('[0-course@-50,-50]');

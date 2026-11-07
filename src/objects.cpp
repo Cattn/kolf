@@ -232,20 +232,18 @@ void Kolf::BlackHole::halfway()
 	game->playSound(Sound::BlackHole);
 }
 
-void Kolf::BlackHole::load(KConfigGroup* cfgGroup)
+QVariantMap Kolf::BlackHole::properties() const
 {
-	setExitPos(cfgGroup->readEntry("exit", exitPos().toPoint()));
-	setExitDeg(cfgGroup->readEntry("exitDeg", m_exitDeg));
-	setMinSpeed(cfgGroup->readEntry("minspeed", m_minSpeed));
-	setMaxSpeed(cfgGroup->readEntry("maxspeed", m_maxSpeed));
+	return {{QStringLiteral("exit"), m_exitItem->pos().toPoint()}, {QStringLiteral("exitDeg"), m_exitDeg},
+		{QStringLiteral("minspeed"), m_minSpeed}, {QStringLiteral("maxspeed"), m_maxSpeed}};
 }
 
-void Kolf::BlackHole::save(KConfigGroup* cfgGroup)
+void Kolf::BlackHole::applyProperties(const QVariantMap &values)
 {
-	cfgGroup->writeEntry("exit", m_exitItem->pos().toPoint());
-	cfgGroup->writeEntry("exitDeg", m_exitDeg);
-	cfgGroup->writeEntry("minspeed", m_minSpeed);
-	cfgGroup->writeEntry("maxspeed", m_maxSpeed);
+	setExitPos(values.value(QStringLiteral("exit"), exitPos().toPoint()).toPoint());
+	setExitDeg(values.value(QStringLiteral("exitDeg"), m_exitDeg).toInt());
+	setMinSpeed(values.value(QStringLiteral("minspeed"), m_minSpeed).toDouble());
+	setMaxSpeed(values.value(QStringLiteral("maxspeed"), m_maxSpeed).toDouble());
 }
 
 //END Kolf::BlackHole
@@ -405,7 +403,11 @@ bool Kolf::Cup::collision(Ball* ball)
 
 //END Kolf::Cup
 
-KOLF_REGISTER_OBJECT(Kolf::BlackHole, Kolf::ObjectType(QStringLiteral("blackhole"), kli18n("Black Hole")).category(Kolf::ObjectCategory::Mechanism))
+KOLF_REGISTER_OBJECT(Kolf::BlackHole, Kolf::ObjectType(QStringLiteral("blackhole"), kli18n("Black Hole")).category(Kolf::ObjectCategory::Mechanism)
+	.property(Kolf::PropertySpec::point(QStringLiteral("exit"), kli18n("Exit"), QPoint(300, 100)))
+	.property(Kolf::PropertySpec::angle(QStringLiteral("exitDeg"), kli18n("Exiting ball angle"), 0))
+	.property(Kolf::PropertySpec::number(QStringLiteral("minspeed"), kli18n("Minimum exit speed"), 3, 0, 10, 0.01))
+	.property(Kolf::PropertySpec::number(QStringLiteral("maxspeed"), kli18n("Maximum exit speed"), 5, 0, 10, 0.01)))
 KOLF_REGISTER_OBJECT(Kolf::Cup, Kolf::ObjectType(QStringLiteral("cup"), kli18n("Cup")).category(Kolf::ObjectCategory::Course).addOnNewHole())
 
 #include "moc_objects.cpp"

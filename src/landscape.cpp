@@ -81,18 +81,21 @@ void Kolf::LandscapeItem::advance(int phase)
 	}
 }
 
-void Kolf::LandscapeItem::load(KConfigGroup* group)
+QVariantMap Kolf::LandscapeItem::properties() const
 {
-	EllipticalCanvasItem::loadSize(group);
-	setBlinkEnabled(group->readEntry("changeEnabled", m_blinkEnabled));
-	setBlinkInterval(group->readEntry("changeEvery", m_blinkInterval));
+	const QSizeF size = this->size();
+	return {{QStringLiteral("width"), size.width()}, {QStringLiteral("height"), size.height()},
+		{QStringLiteral("changeEnabled"), m_blinkEnabled}, {QStringLiteral("changeEvery"), m_blinkInterval}};
 }
 
-void Kolf::LandscapeItem::save(KConfigGroup* group)
+void Kolf::LandscapeItem::applyProperties(const QVariantMap &values)
 {
-	EllipticalCanvasItem::saveSize(group);
-	group->writeEntry("changeEnabled", m_blinkEnabled);
-	group->writeEntry("changeEvery", m_blinkInterval);
+	QSizeF size = this->size();
+	size.rwidth() = values.value(QStringLiteral("width"), size.width()).toDouble();
+	size.rheight() = values.value(QStringLiteral("height"), size.height()).toDouble();
+	setSize(size);
+	setBlinkEnabled(values.value(QStringLiteral("changeEnabled"), m_blinkEnabled).toBool());
+	setBlinkInterval(values.value(QStringLiteral("changeEvery"), m_blinkInterval).toInt());
 }
 
 Config* Kolf::LandscapeItem::config(QWidget* parent)
@@ -390,30 +393,25 @@ void Kolf::Slope::moveBy(double dx, double dy)
 	CanvasItem::moveBy(dx, dy);
 }
 
-void Kolf::Slope::load(KConfigGroup* group)
+QVariantMap Kolf::Slope::properties() const
 {
-	setGrade(group->readEntry("grade", m_grade));
-	setReversed(group->readEntry("reversed", m_reversed));
-	setStuckOnGround(group->readEntry("stuckOnGround", m_stuckOnGround));
-	//gradient is a bit more complicated
-	const QString type = group->readEntry("gradient", g_slopeData->gradientKeys.value(m_type));
-	setSlopeType(g_slopeData->gradientKeys.indexOf(type));
-	//read size
-	QSizeF size = Tagaro::SpriteObjectItem::size();
-	size.setWidth(group->readEntry("width", size.width()));
-	size.setHeight(group->readEntry("height", size.height()));
-	setSize(size);
+	const QSizeF size = Tagaro::SpriteObjectItem::size();
+	return {{QStringLiteral("grade"), m_grade}, {QStringLiteral("reversed"), m_reversed},
+		{QStringLiteral("stuckOnGround"), m_stuckOnGround}, {QStringLiteral("gradient"), g_slopeData->gradientKeys.value(m_type)},
+		{QStringLiteral("width"), size.width()}, {QStringLiteral("height"), size.height()}};
 }
 
-void Kolf::Slope::save(KConfigGroup* group)
+void Kolf::Slope::applyProperties(const QVariantMap &values)
 {
-	group->writeEntry("grade", m_grade);
-	group->writeEntry("reversed", m_reversed);
-	group->writeEntry("stuckOnGround", m_stuckOnGround);
-	group->writeEntry("gradient", g_slopeData->gradientKeys.value(m_type));
-	const QSizeF size = Tagaro::SpriteObjectItem::size();
-	group->writeEntry("width", size.width());
-	group->writeEntry("height", size.height());
+	setGrade(values.value(QStringLiteral("grade"), m_grade).toDouble());
+	setReversed(values.value(QStringLiteral("reversed"), m_reversed).toBool());
+	setStuckOnGround(values.value(QStringLiteral("stuckOnGround"), m_stuckOnGround).toBool());
+	const QString type = values.value(QStringLiteral("gradient"), g_slopeData->gradientKeys.value(m_type)).toString();
+	setSlopeType(g_slopeData->gradientKeys.indexOf(type));
+	QSizeF size = Tagaro::SpriteObjectItem::size();
+	size.setWidth(values.value(QStringLiteral("width"), size.width()).toDouble());
+	size.setHeight(values.value(QStringLiteral("height"), size.height()).toDouble());
+	setSize(size);
 }
 
 void Kolf::Slope::updateAppearance()
@@ -642,8 +640,31 @@ void Kolf::SlopeOverlay::moveHandle(const QPointF& handleScenePos)
 
 //END Kolf::SlopeOverlay
 
-KOLF_REGISTER_OBJECT(Kolf::Puddle, Kolf::ObjectType(QStringLiteral("puddle"), kli18n("Puddle")).category(Kolf::ObjectCategory::Hazard))
-KOLF_REGISTER_OBJECT(Kolf::Sand, Kolf::ObjectType(QStringLiteral("sand"), kli18n("Sand")).category(Kolf::ObjectCategory::Terrain))
-KOLF_REGISTER_OBJECT(Kolf::Slope, Kolf::ObjectType(QStringLiteral("slope"), kli18n("Slope")).category(Kolf::ObjectCategory::Terrain))
+namespace
+{
+QList<Kolf::PropertySpec> landscapeProperties(double width, double height)
+{
+	return {
+		Kolf::PropertySpec::number(QStringLiteral("width"), kli18n("Width"), width, 1, 10000, 1),
+		Kolf::PropertySpec::number(QStringLiteral("height"), kli18n("Height"), height, 1, 10000, 1),
+		Kolf::PropertySpec::boolean(QStringLiteral("changeEnabled"), kli18n("Show and hide"), false),
+		Kolf::PropertySpec::integer(QStringLiteral("changeEvery"), kli18n("Show and hide interval"), 50, 1, 100),
+	};
+}
+}
+
+KOLF_REGISTER_OBJECT(Kolf::Puddle, Kolf::ObjectType(QStringLiteral("puddle"), kli18n("Puddle")).category(Kolf::ObjectCategory::Hazard)
+	.properties(landscapeProperties(45, 30)))
+KOLF_REGISTER_OBJECT(Kolf::Sand, Kolf::ObjectType(QStringLiteral("sand"), kli18n("Sand")).category(Kolf::ObjectCategory::Terrain)
+	.properties(landscapeProperties(45, 40)))
+KOLF_REGISTER_OBJECT(Kolf::Slope, Kolf::ObjectType(QStringLiteral("slope"), kli18n("Slope")).category(Kolf::ObjectCategory::Terrain)
+	.property(Kolf::PropertySpec::number(QStringLiteral("grade"), kli18n("Grade"), 4, 0, 8, 1))
+	.property(Kolf::PropertySpec::boolean(QStringLiteral("reversed"), kli18n("Reverse direction"), false))
+	.property(Kolf::PropertySpec::boolean(QStringLiteral("stuckOnGround"), kli18n("Unmovable"), false))
+	.property(Kolf::PropertySpec::choice(QStringLiteral("gradient"), kli18n("Gradient"),
+		{QStringLiteral("Vertical"), QStringLiteral("Horizontal"), QStringLiteral("Diagonal"), QStringLiteral("Opposite Diagonal"), QStringLiteral("Elliptic")},
+		QStringLiteral("Vertical")))
+	.property(Kolf::PropertySpec::number(QStringLiteral("width"), kli18n("Width"), 40, 1, 10000, 1))
+	.property(Kolf::PropertySpec::number(QStringLiteral("height"), kli18n("Height"), 40, 1, 10000, 1)))
 
 #include "moc_landscape.cpp"

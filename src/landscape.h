@@ -38,8 +38,8 @@ namespace Kolf
 			int blinkInterval() const;
 			void advance(int phase) override;
 
-			void load(KConfigGroup* group) override;
-			void save(KConfigGroup* group) override;
+			QVariantMap properties() const override;
+			void applyProperties(const QVariantMap &values) override;
 
 			Config* config(QWidget* parent) override;
 		public Q_SLOTS:
@@ -115,8 +115,8 @@ namespace Kolf
 			QPointF getPosition() const override;
 			void moveBy(double dx, double dy) override;
 
-			void load(KConfigGroup* group) override;
-			void save(KConfigGroup* group) override;
+			QVariantMap properties() const override;
+			void applyProperties(const QVariantMap &values) override;
 
 			bool collision(Ball* ball) override;
 			bool terrainCollisions() const override;

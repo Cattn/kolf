@@ -55,8 +55,8 @@ namespace Kolf
 		public:
 			Wall(QGraphicsItem* parent, b2World* world);
 
-			void load(KConfigGroup* cfgGroup) override;
-			void save(KConfigGroup* cfgGroup) override;
+			QVariantMap properties() const override;
+			void applyProperties(const QVariantMap &values) override;
 			void setVisible(bool visible);
 
 			virtual void setLine(const QLineF& line);
@@ -110,8 +110,8 @@ namespace Kolf
 			void setWallColor(const QColor& color);
 			void applyWallStyle(Kolf::Wall* wall, bool adjustPainting = true);
 
-			void load(KConfigGroup* group) override;
-			void save(KConfigGroup* group) override;
+			QVariantMap properties() const override;
+			void applyProperties(const QVariantMap &values) override;
 
 			Config* config(QWidget* parent) override;
 		Q_SIGNALS:
@@ -173,8 +173,8 @@ namespace Kolf
 			int speed() const;
 			void advance(int phase) override;
 
-			void load(KConfigGroup* group) override;
-			void save(KConfigGroup* group) override;
+			QVariantMap properties() const override;
+			void applyProperties(const QVariantMap &values) override;
 		public Q_SLOTS:
 			void setSpeed(int speed);
 		protected:
@@ -214,8 +214,8 @@ namespace Kolf
 			QString text() const;
 			void setSize(const QSizeF& size) override;
 
-			void load(KConfigGroup* group) override;
-			void save(KConfigGroup* group) override;
+			QVariantMap properties() const override;
+			void applyProperties(const QVariantMap &values) override;
 		public Q_SLOTS:
 			void setText(const QString& text);
 		private:
@@ -236,8 +236,8 @@ namespace Kolf
 			void advance(int phase) override;
 			void moveBy(double dx, double dy) override;
 
-			void load(KConfigGroup* group) override;
-			void save(KConfigGroup* group) override;
+			QVariantMap properties() const override;
+			void applyProperties(const QVariantMap &values) override;
 		public Q_SLOTS:
 			void setGuardAtTop(bool guardAtTop);
 			void setSpeed(int speed);

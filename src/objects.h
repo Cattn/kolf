@@ -41,8 +41,8 @@ namespace Kolf
 			//FIXME: strutted moving of exit is broken since refactoring.
 
 			QList<QGraphicsItem*> infoItems() const override;
-			void save(KConfigGroup* cfgGroup) override;
-			void load(KConfigGroup* cfgGroup) override;
+			QVariantMap properties() const override;
+			void applyProperties(const QVariantMap &values) override;
 			Config* config(QWidget* parent) override;
 			double minSpeed() const;
 			double maxSpeed() const;

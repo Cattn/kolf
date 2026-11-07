@@ -1,5 +1,5 @@
 {
-    "catalogHash": "0ce99ae59ee3215a4fac0f0127d565691f95e6c76237a37343454ae684da6308",
+    "catalogHash": "0e76885202141e83cd3df8eb0df64e82a74694cb4fd7087905aea09d0c8c6d41",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -13,8 +13,45 @@
             "category": "mechanism",
             "id": "blackhole",
             "name": "Black Hole",
-            "properties": {
-            },
+            "properties": [
+                {
+                    "default": [
+                        300,
+                        100
+                    ],
+                    "key": "exit",
+                    "label": "Exit",
+                    "max": 100000,
+                    "min": -100000,
+                    "type": "point"
+                },
+                {
+                    "default": 0,
+                    "key": "exitDeg",
+                    "label": "Exiting ball angle",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": 3,
+                    "key": "minspeed",
+                    "label": "Minimum exit speed",
+                    "max": 10,
+                    "min": 0,
+                    "step": 0.01,
+                    "type": "number"
+                },
+                {
+                    "default": 5,
+                    "key": "maxspeed",
+                    "label": "Maximum exit speed",
+                    "max": 10,
+                    "min": 0,
+                    "step": 0.01,
+                    "type": "number"
+                }
+            ],
             "runtime": [
             ]
         },
@@ -24,8 +61,48 @@
             "category": "terrain",
             "id": "bridge",
             "name": "Bridge",
-            "properties": {
-            },
+            "properties": [
+                {
+                    "default": 80,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 10000,
+                    "min": 1,
+                    "type": "int"
+                },
+                {
+                    "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 10000,
+                    "min": 1,
+                    "type": "int"
+                },
+                {
+                    "default": false,
+                    "key": "topWallVisible",
+                    "label": "Top wall",
+                    "type": "bool"
+                },
+                {
+                    "default": false,
+                    "key": "leftWallVisible",
+                    "label": "Left wall",
+                    "type": "bool"
+                },
+                {
+                    "default": false,
+                    "key": "rightWallVisible",
+                    "label": "Right wall",
+                    "type": "bool"
+                },
+                {
+                    "default": false,
+                    "key": "botWallVisible",
+                    "label": "Bottom wall",
+                    "type": "bool"
+                }
+            ],
             "runtime": [
             ]
         },
@@ -35,8 +112,8 @@
             "category": "obstacle",
             "id": "bumper",
             "name": "Bumper",
-            "properties": {
-            },
+            "properties": [
+            ],
             "runtime": [
             ]
         },
@@ -46,8 +123,8 @@
             "category": "course",
             "id": "cup",
             "name": "Cup",
-            "properties": {
-            },
+            "properties": [
+            ],
             "runtime": [
             ]
         },
@@ -57,8 +134,78 @@
             "category": "mechanism",
             "id": "floater",
             "name": "Floater",
-            "properties": {
-            },
+            "properties": [
+                {
+                    "default": 80,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 10000,
+                    "min": 1,
+                    "type": "int"
+                },
+                {
+                    "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 10000,
+                    "min": 1,
+                    "type": "int"
+                },
+                {
+                    "default": false,
+                    "key": "topWallVisible",
+                    "label": "Top wall",
+                    "type": "bool"
+                },
+                {
+                    "default": false,
+                    "key": "leftWallVisible",
+                    "label": "Left wall",
+                    "type": "bool"
+                },
+                {
+                    "default": false,
+                    "key": "rightWallVisible",
+                    "label": "Right wall",
+                    "type": "bool"
+                },
+                {
+                    "default": false,
+                    "key": "botWallVisible",
+                    "label": "Bottom wall",
+                    "type": "bool"
+                },
+                {
+                    "default": [
+                        200,
+                        200
+                    ],
+                    "key": "startPoint",
+                    "label": "Path start",
+                    "max": 100000,
+                    "min": -100000,
+                    "type": "pointf"
+                },
+                {
+                    "default": [
+                        100,
+                        100
+                    ],
+                    "key": "endPoint",
+                    "label": "Path end",
+                    "max": 100000,
+                    "min": -100000,
+                    "type": "pointf"
+                },
+                {
+                    "default": 0,
+                    "key": "speed",
+                    "label": "Speed",
+                    "max": 20,
+                    "min": 0,
+                    "type": "int"
+                }
+            ],
             "runtime": [
             ]
         },
@@ -68,8 +215,40 @@
             "category": "hazard",
             "id": "puddle",
             "name": "Puddle",
-            "properties": {
-            },
+            "properties": [
+                {
+                    "default": 45,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 10000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 30,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 10000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": false,
+                    "key": "changeEnabled",
+                    "label": "Show and hide",
+                    "type": "bool"
+                },
+                {
+                    "default": 50,
+                    "key": "changeEvery",
+                    "label": "Show and hide interval",
+                    "max": 100,
+                    "min": 1,
+                    "type": "int"
+                }
+            ],
             "runtime": [
             ]
         },
@@ -79,8 +258,40 @@
             "category": "terrain",
             "id": "sand",
             "name": "Sand",
-            "properties": {
-            },
+            "properties": [
+                {
+                    "default": 45,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 10000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 10000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": false,
+                    "key": "changeEnabled",
+                    "label": "Show and hide",
+                    "type": "bool"
+                },
+                {
+                    "default": 50,
+                    "key": "changeEvery",
+                    "label": "Show and hide interval",
+                    "max": 100,
+                    "min": 1,
+                    "type": "int"
+                }
+            ],
             "runtime": [
             ]
         },
@@ -90,8 +301,55 @@
             "category": "obstacle",
             "id": "sign",
             "name": "Sign",
-            "properties": {
-            },
+            "properties": [
+                {
+                    "default": 110,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 10000,
+                    "min": 1,
+                    "type": "int"
+                },
+                {
+                    "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 10000,
+                    "min": 1,
+                    "type": "int"
+                },
+                {
+                    "default": true,
+                    "key": "topWallVisible",
+                    "label": "Top wall",
+                    "type": "bool"
+                },
+                {
+                    "default": true,
+                    "key": "leftWallVisible",
+                    "label": "Left wall",
+                    "type": "bool"
+                },
+                {
+                    "default": true,
+                    "key": "rightWallVisible",
+                    "label": "Right wall",
+                    "type": "bool"
+                },
+                {
+                    "default": true,
+                    "key": "botWallVisible",
+                    "label": "Bottom wall",
+                    "type": "bool"
+                },
+                {
+                    "default": "New Text",
+                    "key": "Comment",
+                    "label": "Text",
+                    "maxLength": 1000,
+                    "type": "text"
+                }
+            ],
             "runtime": [
             ]
         },
@@ -101,8 +359,60 @@
             "category": "terrain",
             "id": "slope",
             "name": "Slope",
-            "properties": {
-            },
+            "properties": [
+                {
+                    "default": 4,
+                    "key": "grade",
+                    "label": "Grade",
+                    "max": 8,
+                    "min": 0,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": false,
+                    "key": "reversed",
+                    "label": "Reverse direction",
+                    "type": "bool"
+                },
+                {
+                    "default": false,
+                    "key": "stuckOnGround",
+                    "label": "Unmovable",
+                    "type": "bool"
+                },
+                {
+                    "default": "Vertical",
+                    "key": "gradient",
+                    "label": "Gradient",
+                    "type": "enum",
+                    "values": [
+                        "Vertical",
+                        "Horizontal",
+                        "Diagonal",
+                        "Opposite Diagonal",
+                        "Elliptic"
+                    ]
+                },
+                {
+                    "default": 40,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 10000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 10000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                }
+            ],
             "runtime": [
             ]
         },
@@ -112,8 +422,30 @@
             "category": "obstacle",
             "id": "wall",
             "name": "Wall",
-            "properties": {
-            },
+            "properties": [
+                {
+                    "default": [
+                        -15,
+                        10
+                    ],
+                    "key": "startPoint",
+                    "label": "Start",
+                    "max": 100000,
+                    "min": -100000,
+                    "type": "point"
+                },
+                {
+                    "default": [
+                        15,
+                        -5
+                    ],
+                    "key": "endPoint",
+                    "label": "End",
+                    "max": 100000,
+                    "min": -100000,
+                    "type": "point"
+                }
+            ],
             "runtime": [
             ]
         },
@@ -123,8 +455,62 @@
             "category": "mechanism",
             "id": "windmill",
             "name": "Windmill",
-            "properties": {
-            },
+            "properties": [
+                {
+                    "default": 80,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 10000,
+                    "min": 1,
+                    "type": "int"
+                },
+                {
+                    "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 10000,
+                    "min": 1,
+                    "type": "int"
+                },
+                {
+                    "default": false,
+                    "key": "topWallVisible",
+                    "label": "Top wall",
+                    "type": "bool"
+                },
+                {
+                    "default": true,
+                    "key": "leftWallVisible",
+                    "label": "Left wall",
+                    "type": "bool"
+                },
+                {
+                    "default": true,
+                    "key": "rightWallVisible",
+                    "label": "Right wall",
+                    "type": "bool"
+                },
+                {
+                    "default": false,
+                    "key": "botWallVisible",
+                    "label": "Bottom wall",
+                    "type": "bool"
+                },
+                {
+                    "default": 5,
+                    "key": "speed",
+                    "label": "Speed",
+                    "max": 10,
+                    "min": 1,
+                    "type": "int"
+                },
+                {
+                    "default": true,
+                    "key": "bottom",
+                    "label": "Guard at bottom",
+                    "type": "bool"
+                }
+            ],
             "runtime": [
             ]
         }

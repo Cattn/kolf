@@ -20,6 +20,7 @@
 #include "canvasitem.h"
 #include "game.h"
 #include "landscape.h"
+#include "objectregistry.h"
 #include "overlay.h"
 #include "shape.h"
 
@@ -178,9 +179,19 @@ void CanvasItem::moveBy(double dx, double dy)
 		updateZ(qitem);
 }
 
-void CanvasItem::save(KConfigGroup *cfgGroup)
+void CanvasItem::load(KConfigGroup *group)
 {
-	cfgGroup->writeEntry("dummykey", true);
+	if (const auto *type = Kolf::ObjectRegistry::instance().find(m_name))
+		applyProperties(type->readProperties(*group));
+}
+
+void CanvasItem::save(KConfigGroup *group)
+{
+	const auto *type = Kolf::ObjectRegistry::instance().find(m_name);
+	if (type && !type->propertySpecs().isEmpty())
+		type->writeProperties(*group, properties());
+	else
+		group->writeEntry("dummykey", true);
 }
 
 void CanvasItem::editModeChanged(bool editing)

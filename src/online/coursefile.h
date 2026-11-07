@@ -43,7 +43,7 @@ inline bool validateCourseBytes(const QByteArray &bytes, QString &error)
     text.replace(QStringLiteral("\r\n"), QStringLiteral("\n")).replace(QLatin1Char('\r'), QLatin1Char('\n'));
     QSet<QString> groups;
     QSet<int> balls, cups, holes;
-    QString current, name, author;
+    QString current, currentType, name, author;
     for (const auto &line : text.split(QLatin1Char('\n'))) {
         if (line.size() > 4096) { error = QStringLiteral("Course line is too long."); return false; }
         const auto trimmed = line.trimmed();
@@ -61,7 +61,7 @@ inline bool validateCourseBytes(const QByteArray &bytes, QString &error)
                 || groups.contains(group) || groups.size() >= 4096) {
                 error = QStringLiteral("Unsupported or duplicate course object."); return false;
             }
-            groups.insert(group); current = group;
+            groups.insert(group); current = group; currentType = match.captured(2);
             if (match.captured(2) == QLatin1String("ball")) balls.insert(hole);
             if (match.captured(2) == QLatin1String("cup")) cups.insert(hole);
             if (group == QStringLiteral("%1-hole@-50,-50|0").arg(hole)) holes.insert(hole);
@@ -76,6 +76,12 @@ inline bool validateCourseBytes(const QByteArray &bytes, QString &error)
             error = QStringLiteral("Malformed or unsafe course property."); return false;
         }
         const auto value = line.mid(equals + 1).trimmed();
+        if (const auto *type = Kolf::ObjectRegistry::instance().find(currentType)) {
+            const auto *spec = type->propertySpec(key);
+            if (spec && !spec->acceptsText(value)) {
+                error = QStringLiteral("Course object property %1 is out of range.").arg(key); return false;
+            }
+        }
         if (value.endsWith(QStringLiteral(".exe"), Qt::CaseInsensitive)
             || value.endsWith(QStringLiteral(".dll"), Qt::CaseInsensitive)
             || value.endsWith(QStringLiteral(".zip"), Qt::CaseInsensitive)) {

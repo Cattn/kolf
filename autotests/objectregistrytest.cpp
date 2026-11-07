@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "objectregistry.h"
+#include "online/coursefile.h"
 
 #include <QGraphicsRectItem>
 #include <QJsonArray>
@@ -59,6 +60,39 @@ private Q_SLOTS:
 		types.replace(0, first);
 		changed.insert(QStringLiteral("types"), types);
 		QVERIFY(Kolf::ObjectRegistry::catalogHash(changed) != catalog.value(QStringLiteral("catalogHash")).toString());
+	}
+
+	void propertyTextFollowsTheSchema()
+	{
+		const auto *windmill = Kolf::ObjectRegistry::instance().find(QStringLiteral("windmill"));
+		QVERIFY(windmill);
+		QVERIFY(windmill->propertySpec(QStringLiteral("speed"))->acceptsText(QStringLiteral("9")));
+		QVERIFY(!windmill->propertySpec(QStringLiteral("speed"))->acceptsText(QStringLiteral("50")));
+		QVERIFY(!windmill->propertySpec(QStringLiteral("speed"))->acceptsText(QStringLiteral("fast")));
+		QVERIFY(windmill->propertySpec(QStringLiteral("bottom"))->acceptsText(QStringLiteral("false")));
+		QVERIFY(!windmill->propertySpec(QStringLiteral("bottom"))->acceptsText(QStringLiteral("maybe")));
+		const auto *blackHole = Kolf::ObjectRegistry::instance().find(QStringLiteral("blackhole"));
+		QVERIFY(blackHole->propertySpec(QStringLiteral("exit"))->acceptsText(QStringLiteral("-26,293")));
+		QVERIFY(!blackHole->propertySpec(QStringLiteral("exit"))->acceptsText(QStringLiteral("1,2,3")));
+		QVERIFY(!blackHole->propertySpec(QStringLiteral("exitDeg"))->acceptsText(QStringLiteral("400")));
+		QVERIFY(blackHole->propertySpec(QStringLiteral("maxspeed"))->acceptsText(QStringLiteral("10")));
+		const auto *slope = Kolf::ObjectRegistry::instance().find(QStringLiteral("slope"));
+		QVERIFY(slope->propertySpec(QStringLiteral("gradient"))->acceptsText(QStringLiteral("Opposite Diagonal")));
+		QVERIFY(!slope->propertySpec(QStringLiteral("gradient"))->acceptsText(QStringLiteral("Sideways")));
+		QVERIFY(!slope->propertySpec(QStringLiteral("width"))->acceptsText(QStringLiteral("inf")));
+		QVERIFY(!Kolf::ObjectRegistry::instance().find(QStringLiteral("cup"))->propertySpecs().size());
+	}
+
+	void courseValidationChecksProperties()
+	{
+		const auto course = [](const QByteArray &object) {
+			return QByteArray("[0-course@-50,-50]\nName=Catalog\nauthor=test\n\n[1-hole@-50,-50|0]\npar=3\n\n"
+				"[1-ball@100,100]\ndummykey=true\n\n[1-cup@200,200|1]\ndummykey=true\n\n[1-windmill@150,150|2]\n") + object + '\n';
+		};
+		QString error;
+		QVERIFY2(Kolf::Online::validateCourseBytes(course("speed=9\nhasFinalLoad=true"), error), qPrintable(error));
+		QVERIFY(!Kolf::Online::validateCourseBytes(course("speed=50"), error));
+		QVERIFY(error.contains(QStringLiteral("out of range")));
 	}
 
 	void committedCatalogIsCurrent()

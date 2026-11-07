@@ -25,6 +25,7 @@
 #include "tagaro/spriteobjectitem.h"
 
 #include <QGraphicsRectItem>
+#include <QVariantMap>
 
 class b2Body;
 class b2World;
@@ -47,10 +48,10 @@ class CanvasItem
 public:
 	explicit CanvasItem(b2World* world);
 	virtual ~CanvasItem();
-	///load your settings from the KConfigGroup, which represents a course.
-	virtual void load(KConfigGroup *) {}
-	///save your settings.
-	virtual void save(KConfigGroup *cfg);
+	void load(KConfigGroup *group);
+	void save(KConfigGroup *group);
+	virtual QVariantMap properties() const { return {}; }
+	virtual void applyProperties(const QVariantMap &values) { Q_UNUSED(values) }
 	///called for information when shot started
 	virtual void shotStarted() {}
 	///called when the edit mode has been changed.
