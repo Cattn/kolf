@@ -1,4 +1,5 @@
 {
+  "server": { "env": { "KOLF_DRAIN_SECONDS": "30" }, "drainAfterSeconds": 8 },
   "description": "A server restart notice stays on the hub after the server closes. Needs a local server on 127.0.0.1:13111 that drains (SIGTERM) a few seconds after the hub connects.",
   "steps": [
     { "wait": 1500 },

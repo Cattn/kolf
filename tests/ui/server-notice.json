@@ -1,4 +1,5 @@
 {
+  "server": { "env": { "KOLF_SERVER_NAME": "Test LAN Server", "KOLF_MOTD": "Welcome to the test server. Have fun!", "KOLF_LATEST_CLIENT_VERSION": "99.0.0", "KOLF_LATEST_CLIENT_URL": "https://kolf.pro/download" } },
   "description": "Hub shows the server name, message of the day, and an update link from ServiceHello. Needs a local server on 127.0.0.1:13111 started with KOLF_SERVER_NAME, KOLF_MOTD, and KOLF_LATEST_CLIENT_VERSION/URL.",
   "steps": [
     { "wait": 1500 },

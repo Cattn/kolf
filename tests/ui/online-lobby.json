@@ -1,4 +1,5 @@
 {
+  "server": {},
   "steps": [
     { "wait": 1000 },
     { "setConfig": { "group": "Online", "key": "servers", "value": "[{\"name\":\"Test LAN\",\"url\":\"ws://127.0.0.1:13111\"}]" } },

@@ -1,4 +1,5 @@
 {
+  "server": {},
   "description": "Configure Kolf > Servers: status for each server, Add with live address feedback, Set as Default, and the hub picks up the new default. Needs a local server on 127.0.0.1:13111.",
   "steps": [
     { "wait": 1500 },

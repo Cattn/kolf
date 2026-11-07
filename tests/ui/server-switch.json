@@ -1,4 +1,5 @@
 {
+  "server": {},
   "description": "Hub server menu: an unreachable default fails, switching to a working saved server connects, and Manage Servers opens Configure Kolf on the Servers page. Needs a local server on 127.0.0.1:13111.",
   "steps": [
     { "wait": 1500 },
