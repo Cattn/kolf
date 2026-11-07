@@ -281,6 +281,13 @@ void KolfWindow::ensureOnlineWidget()
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::manageServersRequested, this, &KolfWindow::showServerSettings, Qt::QueuedConnection);
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::matchRequested, this, &KolfWindow::startOnlineMatch);
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::matchEnded, this, &KolfWindow::finishOnlineMatch);
+		connect(onlineWidget, &Kolf::Online::OnlineWidget::matchPauseChanged, this, [this](bool paused, const QString &reason) {
+			if (!onlineMatchController) return;
+			const bool wasPaused = onlineMatchController->isPaused();
+			onlineMatchController->setPaused(paused, reason);
+			if (paused && onlineMatchView) onlineMatchView->showNotice(reason);
+			if (wasPaused && !paused) onlineMatchController->requestResync();
+		});
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::serviceNotice, this, [this](const QString &text) {
 			statusBar()->showMessage(text);
 			if (onlineMatchController && onlineMatchView)

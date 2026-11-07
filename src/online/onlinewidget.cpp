@@ -351,7 +351,23 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
         m_lobby->setStatus(text);
         Q_EMIT serviceNotice(text);
     });
-    connect(&m_coordinator, &OnlineCoordinator::lobbyChanged, this, &OnlineWidget::showLobby);
+    connect(&m_coordinator, &OnlineCoordinator::reconnectingChanged, this, [this](bool reconnecting) {
+        if (!m_matchActive) return;
+        Q_EMIT matchPauseChanged(reconnecting, reconnecting ? i18n("Lost the connection. Reconnecting to the match…") : QString());
+    });
+    connect(&m_coordinator, &OnlineCoordinator::lobbyChanged, this, [this](const QJsonObject &state) {
+        if (m_matchActive) {
+            QStringList away;
+            for (const auto &value : state.value(QStringLiteral("members")).toArray()) {
+                const auto member = value.toObject();
+                if (member.contains(QStringLiteral("connected")) && !member.value(QStringLiteral("connected")).toBool())
+                    away << member.value(QStringLiteral("displayName")).toString();
+            }
+            Q_EMIT matchPauseChanged(!away.isEmpty(), away.isEmpty() ? QString()
+                : i18n("Waiting for %1 to reconnect…", away.join(QStringLiteral(", "))));
+        }
+        showLobby(state);
+    });
     connect(&m_coordinator, &OnlineCoordinator::lobbyClosed, this, [this](const QString &reason) {
         if (m_matchActive) {
             m_matchActive = false;

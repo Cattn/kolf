@@ -61,6 +61,7 @@ SessionController::SessionController(const QJsonObject &config, Net::NetworkClie
     m_clock.start();
     connect(&m_retry, &QTimer::timeout, this, [this] {
         if (m_pending.isEmpty() || m_interrupted) return;
+        if (m_paused) { m_pendingClock.restart(); return; }
         if (m_pendingClock.elapsed() > 15000) { interrupt(QStringLiteral("Shot acceptance timed out")); return; }
         m_network->send(m_pendingMessage); // Same ID and content: never a speculative new shot.
     });
@@ -201,7 +202,7 @@ void SessionController::commit(const QString &phase) {
     refresh();
 }
 void SessionController::submit(const ShotIntent &intent) {
-    if (!m_ready || m_interrupted || !m_adapter || m_phase != QLatin1String("AwaitingShot")
+    if (!m_ready || m_paused || m_interrupted || !m_adapter || m_phase != QLatin1String("AwaitingShot")
         || !ownsSlot(m_adapter->activeSlot()) || !intent.valid() || !m_pending.isEmpty()) return;
     m_pending = QUuid::createUuid().toString(QUuid::WithoutBraces); m_pendingClock.start(); m_ready = false;
     m_lastAim = {}; clearRemoteAim();
@@ -363,6 +364,11 @@ void SessionController::receive(const QJsonObject &message) {
     if (type == QLatin1String("ShotPending") || type == QLatin1String("ShotResolved")) {
         clearRemoteAim(); return;
     }
+    if (type == QLatin1String("CommandRejected") && m[QStringLiteral("reason")] == QLatin1String("waiting for a player to reconnect")) {
+        m_pending.clear();
+        Q_EMIT noticeChanged(tr("Waiting for everyone to reconnect before the next shot."));
+        refresh(); return;
+    }
     if (type == QLatin1String("CommandRejected") && m[QStringLiteral("reason")] == QLatin1String("not awaiting shot")) {
         m_pending.clear(); m_ready = false;
         Q_EMIT noticeChanged(tr("The shot arrived after the match state changed. Waiting for synchronization."));
@@ -482,6 +488,8 @@ void SessionController::refresh() {
     QString status;
     if (m_interrupted)
         status = tr("The online match was interrupted.");
+    else if (m_paused)
+        status = m_pauseReason;
     else if (!m_adapter)
         status = tr("Preparing the online match…");
     else if (!m_pending.isEmpty())
@@ -500,11 +508,11 @@ void SessionController::refresh() {
         status = tr("Synchronizing the online match…");
     Q_EMIT statusChanged(status);
     if (!m_adapter) return;
-    const bool canAim = m_ready && !m_interrupted && m_phase == QLatin1String("AwaitingShot")
+    const bool canAim = m_ready && !m_paused && !m_interrupted && m_phase == QLatin1String("AwaitingShot")
         && ownsSlot(m_adapter->activeSlot()) && m_pending.isEmpty();
     // Do not cancel an ongoing local power stroke on every visual frame.
     if (!canAim || m_game->inputIgnored()) m_adapter->enableInput(canAim);
-    const bool canChoose = m_ready && !m_interrupted && m_phase == QLatin1String("AwaitingHazardChoice") && ownsSlot(m_choiceSlot);
+    const bool canChoose = m_ready && !m_paused && !m_interrupted && m_phase == QLatin1String("AwaitingHazardChoice") && ownsSlot(m_choiceSlot);
     Q_EMIT hazardChoiceChanged(canChoose);
     const bool canHostToggle = m_role == Role::Authority && m_ready && !m_interrupted
         && m_phase == QLatin1String("AwaitingShot") && m_pending.isEmpty() && !m_hostActionPending
@@ -546,6 +554,16 @@ void SessionController::refresh() {
     Q_EMIT scorecardChanged(scores, m_pars, activeSlot, m_adapter->hole());
     if (m_phase == QLatin1String("Finished"))
         Q_EMIT noticeChanged(tr("Match complete. Results are ready."));
+}
+
+void SessionController::setPaused(bool paused, const QString &reason)
+{
+    if (m_interrupted) return;
+    const bool changed = m_paused != paused || m_pauseReason != reason;
+    m_paused = paused;
+    m_pauseReason = reason;
+    if (paused) m_pendingClock.restart();
+    if (changed) refresh();
 }
 
 void SessionController::requestResync()

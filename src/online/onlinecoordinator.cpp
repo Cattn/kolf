@@ -94,15 +94,18 @@ void OnlineCoordinator::clearSession()
 bool OnlineCoordinator::canResume() const
 {
     const auto phase = m_state.value(QStringLiteral("phase")).toString();
+    const bool guestInMatch = phase == QLatin1String("Playing")
+        && m_state.value(QStringLiteral("match")).toObject().value(QStringLiteral("authorityMemberId")).toString() != m_memberId;
     return !m_resumeToken.isEmpty() && !m_lobbyId.isEmpty()
-        && (phase == QLatin1String("Open") || phase == QLatin1String("Results"));
+        && (phase == QLatin1String("Open") || phase == QLatin1String("Results") || guestInMatch);
 }
 
 void OnlineCoordinator::beginResume()
 {
     m_resuming = true;
     m_reconnectAttempt = 0;
-    m_resumeDeadline = QDateTime::currentMSecsSinceEpoch() + 115000;
+    const bool inMatch = m_state.value(QStringLiteral("phase")).toString() == QLatin1String("Playing");
+    m_resumeDeadline = QDateTime::currentMSecsSinceEpoch() + (inMatch ? 57000 : 115000);
     m_uploadTimer.stop(); m_uploadId.clear(); m_uploadBytes.clear();
     Q_EMIT reconnectingChanged(true);
     scheduleReconnect();

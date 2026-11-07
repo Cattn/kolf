@@ -20,6 +20,7 @@ export interface ServiceLimits {
   lobbyIdleMs: number;
   maximumMatchMs: number;
   lobbyReconnectMs: number;
+  matchReconnectMs: number;
 }
 export const DEFAULT_SERVICE_LIMITS: ServiceLimits = {
   maximumConnections: 64,
@@ -32,6 +33,7 @@ export const DEFAULT_SERVICE_LIMITS: ServiceLimits = {
   lobbyIdleMs: 30 * 60 * 1000,
   maximumMatchMs: 3 * 60 * 60 * 1000,
   lobbyReconnectMs: 120 * 1000,
+  matchReconnectMs: 60 * 1000,
 };
 
 export interface Departure {
@@ -42,6 +44,7 @@ export interface Departure {
   closed: boolean;
   activeMatchInterrupted: boolean;
   reason: string;
+  memberId?: MemberId;
 }
 
 /** Bounded indexes for every active v3 room and connection membership. */
@@ -145,16 +148,20 @@ export class LobbyRegistry {
   disconnect(connectionId: ConnectionId): Departure | undefined {
     const membership = this.membershipByConnection.get(connectionId);
     const lobby = membership ? this.lobbiesById.get(membership.lobbyId) : undefined;
-    if (!membership || !lobby || (lobby.phase !== 'Open' && lobby.phase !== 'Results'))
+    const before = lobby?.state();
+    const guestInMatch = !!lobby && lobby.phase === 'Playing' && !!membership
+      && before?.match?.authorityMemberId !== membership.memberId;
+    if (!membership || !lobby || (lobby.phase !== 'Open' && lobby.phase !== 'Results' && !guestInMatch))
       return this.depart(connectionId, 'A participant disconnected');
     this.membershipByConnection.delete(connectionId);
     this.requests.clearScope(`connection:${connectionId}`);
-    const deadline = this.now() + this.limits.lobbyReconnectMs;
+    const deadline = this.now() + (guestInMatch ? this.limits.matchReconnectMs : this.limits.lobbyReconnectMs);
     this.reconnecting.set(this.memberKey(lobby.lobbyId, membership.memberId),
       { lobbyId: lobby.lobbyId, memberId: membership.memberId, deadline });
     const state = lobby.markReconnecting(membership.memberId, deadline);
     const recipients = state.members.filter(member => member.memberId !== membership.memberId).map(member => member.connectionId);
-    return { lobbyId: lobby.lobbyId, recipients, state, closed: false, activeMatchInterrupted: false, reason: 'A participant is reconnecting' };
+    return { lobbyId: lobby.lobbyId, matchId: guestInMatch ? before?.match?.matchId : undefined, memberId: membership.memberId,
+      recipients, state, closed: false, activeMatchInterrupted: false, reason: 'A participant is reconnecting' };
   }
 
   resume(connectionId: ConnectionId, resumeToken: string) {

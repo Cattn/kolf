@@ -34,6 +34,8 @@ public:
 
 public Q_SLOTS:
     void requestResync();
+    void setPaused(bool paused, const QString &reason = QString());
+    bool isPaused() const { return m_paused; }
     void submitShot(const Kolf::Session::ShotIntent &intent);
     void chooseHazardAction(const QString &action);
     void chooseDrop();
@@ -103,7 +105,8 @@ private:
     int m_revision = 0, m_generation = 1, m_turn = 1, m_lastHole = 1;
     int m_syncId = 0;
     int m_frameSeq = 0, m_receivedFrame = 0;
-    bool m_ready = false, m_interrupted = false, m_awaitingResync = false;
+    bool m_ready = false, m_interrupted = false, m_awaitingResync = false, m_paused = false;
+    QString m_pauseReason;
     bool m_hostControlsEnabled = false, m_hostActionPending = false;
     bool m_allowVoting = true;
     QJsonObject m_hostProposal;

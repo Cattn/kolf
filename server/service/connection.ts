@@ -2,7 +2,7 @@
 import { decodeClientMessage } from '../protocol/codecs.ts';
 import { envelope, PROTOCOL_VERSION, ProtocolError } from '../protocol/envelope.ts';
 import type { Envelope, JsonObject } from '../protocol/envelope.ts';
-import type { ConnectionId, IdFactory, MatchId } from '../protocol/ids.ts';
+import type { ConnectionId, IdFactory, MatchId, MemberId } from '../protocol/ids.ts';
 import { cryptoIds } from '../protocol/ids.ts';
 import { LobbyError } from './errors.ts';
 import type { CourseCatalogEntry, LobbyState } from './lobby.ts';
@@ -85,8 +85,11 @@ export class LobbyProtocolController {
   disconnect(connectionId: ConnectionId): Delivery[] {
     if (!this.connections.delete(connectionId)) return [];
     const departure = this.service.disconnect(connectionId);
-    if (departure && !departure.closed && departure.reason === 'A participant is reconnecting')
-      this.log('member.reconnecting', { lobbyId: departure.lobbyId });
+    if (departure && !departure.closed && departure.reason === 'A participant is reconnecting') {
+      this.log('member.reconnecting', { lobbyId: departure.lobbyId, inMatch: !!departure.matchId });
+      if (departure.matchId && departure.memberId) this.matches.get(departure.matchId as MatchId)?.memberAway(departure.memberId as MemberId);
+      return departure.state ? this.broadcast(departure.state, 'LobbyState').filter(delivery => departure.recipients.includes(delivery.connectionId)) : [];
+    }
     return this.departureDeliveries(departure);
   }
 
@@ -119,6 +122,8 @@ export class LobbyProtocolController {
         case 'ResumeSession': {
           const resumed = this.service.resume(connectionId, message.payload.resumeToken);
           const lobbyId = resumed.state.lobbyId;
+          const resumedMatchId = resumed.state.match?.matchId;
+          if (resumedMatchId) this.matches.get(resumedMatchId as MatchId)?.memberBack(resumed.memberId as MemberId);
           return [
             { connectionId, message: envelope('SessionResumed', { memberId: resumed.memberId, state: publicState(resumed.state),
               resumeToken: resumed.resumeToken }, { requestId, lobbyId }) },

@@ -286,8 +286,9 @@ void OnlineAutomation::scheduleShot(int turn, bool requireReady)
     if (!session || turn > shots.size()) return;
     m_shotTurns.insert(turn);
     const auto shot = shots[turn - 1].toObject();
-    QTimer::singleShot(150, session, [session, shot, turn, requireReady] {
+    QTimer::singleShot(150, session, [this, session, shot, turn, requireReady] {
         if (session->turn() != turn || (requireReady && !session->isReady())) return;
+        if (session->isPaused()) { m_shotTurns.remove(turn); return; }
         session->submitShot({shot[QStringLiteral("directionRadians")].toDouble(),
             shot[QStringLiteral("launchMagnitude")].toDouble(), shot[QStringLiteral("advanced")].toBool()});
     });
@@ -301,6 +302,7 @@ void OnlineAutomation::sessionMessage(const QString &type, const QJsonObject &me
     const auto proposal = config.value(QStringLiteral("scriptedHostProposal")).toObject();
     const bool proposalTurn = !proposal.isEmpty() && proposal.value(QStringLiteral("turn")).toInt() == session->turn();
 
+    if (type == QLatin1String("FullState")) m_resyncSeen = true;
     if (type == QLatin1String("InputReady")) {
         sessionInputReady();
         return;
@@ -369,6 +371,17 @@ void OnlineAutomation::sessionInputReady()
     const bool authority = session->isAuthority();
     const bool awaitingShot = session->phase() == QLatin1String("AwaitingShot");
     const int turn = session->turn();
+    if (m_resyncSeen) {
+        m_resyncSeen = false;
+        m_shotTurns.remove(turn);
+    }
+    const int dropTurn = m_config.value(QStringLiteral("scriptedMatchDropTurn")).toInt();
+    if (!authority && dropTurn > 0 && turn >= dropTurn && !m_matchDropDone) {
+        m_matchDropDone = true;
+        QFile marker(QDir(m_config.value(QStringLiteral("logDirectory")).toString()).filePath(QStringLiteral("match-drop.txt")));
+        if (marker.open(QIODevice::WriteOnly | QIODevice::Truncate)) marker.write(QByteArray::number(turn));
+        QTimer::singleShot(200, this, [this] { m_widget->networkClient()->dropForTest(); });
+    }
 
     const auto proposal = config.value(QStringLiteral("scriptedHostProposal")).toObject();
     if (authority && !proposal.isEmpty() && turn == 1 && !session->hostControlsEnabled())

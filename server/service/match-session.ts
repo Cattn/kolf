@@ -44,6 +44,7 @@ export class MatchCoordinator {
   private choicePending?: string;
   private admissions = new Map<string, Admission>();
   private lastCommit = '';
+  private readonly away = new Set<MemberId>();
   private lastFrame = 0;
   private lastAimAt = 0;
   private resyncRound = 0;
@@ -73,6 +74,18 @@ export class MatchCoordinator {
 
   get matchId() { return this.match.matchId; }
   get lobbyIdentity() { return this.lobbyId; }
+  get awayCount() { return this.away.size; }
+
+  memberAway(memberId: MemberId) {
+    if (!this.members.has(memberId) || this.interrupted) return;
+    this.away.add(memberId);
+    this.retireProposal('a player is reconnecting');
+  }
+
+  memberBack(memberId: MemberId) {
+    if (!this.away.delete(memberId)) return;
+    this.pendingAt = this.now();
+  }
 
   constructor(state: LobbyState, now = () => Date.now()) {
     if (!state.match?.compatibilityId || state.match.roster.length < 2 || state.match.roster.length > 8)
@@ -131,6 +144,7 @@ export class MatchCoordinator {
   tick(): MatchProgress {
     if (this.proposal && this.now() >= this.proposal.expiresAt) this.retireProposal('expired');
     if (!this.interrupted && this.queuedResync && this.now() >= this.nextResyncAt) this.startResync(this.now());
+    if (this.away.size) this.pendingAt = this.now();
     if (this.pending && this.now() - this.pendingAt > 300_000) this.interrupt('shot/choice watchdog expired');
     if (this.barrier && this.state && this.now() - this.pendingAt > 30_000) this.interrupt('state application timed out');
     return this.progress();
@@ -303,6 +317,7 @@ export class MatchCoordinator {
         const valid = !!player && typeof p.commandId === 'string' && integer(p.holeGeneration, 1) && integer(p.turnId, 1)
           && finite(p.directionRadians, -Math.PI, Math.PI) && finite(p.launchMagnitude, Number.MIN_VALUE, maximum);
         if (!valid) return reject('invalid shot');
+        if (this.away.size) return reject('waiting for a player to reconnect');
         const key = JSON.stringify([p.holeGeneration, p.turnId, p.playerId, p.puttingMode, p.directionRadians, p.launchMagnitude]);
         const known = this.admissions.get(p.commandId);
         if (known) {
