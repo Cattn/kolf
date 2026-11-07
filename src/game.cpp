@@ -21,6 +21,7 @@
 #include "game.h"
 #include "objectregistry.h"
 #include "dataobject.h"
+#include "missingobject.h"
 #include "kcomboboxdialog.h"
 #include "landscape.h"
 #include "obstacles.h"
@@ -734,6 +735,63 @@ private:
 	QByteArray m_before, m_after;
 	bool m_first = true;
 };
+}
+
+namespace
+{
+QString groupType(const QString &group)
+{
+	const int dash = group.indexOf(QLatin1Char('-'));
+	const int at = group.indexOf(QLatin1Char('@'));
+	return dash < 0 || at <= dash ? QString() : group.mid(dash + 1, at - dash - 1);
+}
+}
+
+void KolfGame::updateCourseMetadata(KConfig *config)
+{
+	KConfigGroup course(config->group(QStringLiteral("0-course@-50,-50")));
+	QStringList decorations = course.readEntry("decorationTypes", QStringList());
+	const QStringList groups = config->groupList();
+	QStringList used;
+	for (const QString &group : groups) {
+		const QString type = groupType(group);
+		if (!type.isEmpty() && !used.contains(type))
+			used << type;
+	}
+	QStringList result;
+	for (const QString &type : std::as_const(used)) {
+		const auto *known = Kolf::ObjectRegistry::instance().find(type);
+		if ((known && !known->affectsGameplay()) || (!known && decorations.contains(type)))
+			result << type;
+	}
+	result.sort();
+	course.writeEntry("formatVersion", CourseFormatVersion);
+	if (result.isEmpty())
+		course.deleteEntry("decorationTypes");
+	else
+		course.writeEntry("decorationTypes", result);
+}
+
+QString KolfGame::coursePlayProblem(const QString &file)
+{
+	KConfig config(file, KConfig::SimpleConfig);
+	const KConfigGroup course(config.group(QStringLiteral("0-course@-50,-50")));
+	if (course.readEntry("formatVersion", 1) > CourseFormatVersion)
+		return i18n("This course was made with a newer version of Kolf. Update Kolf to play it.");
+	const QStringList decorations = course.readEntry("decorationTypes", QStringList());
+	QStringList missing;
+	const QStringList groups = config.groupList();
+	for (const QString &group : groups) {
+		const QString type = groupType(group);
+		if (type.isEmpty() || Kolf::ObjectRegistry::instance().isKnownGroup(type) || decorations.contains(type) || missing.contains(type))
+			continue;
+		missing << type;
+	}
+	if (missing.isEmpty())
+		return {};
+	missing.sort();
+	return i18n("This course uses objects that are not installed: %1. Install the objects (or the pack that provides them) to play it.",
+		missing.join(QStringLiteral(", ")));
 }
 
 QPointF KolfGame::viewPointForBoard(const QPointF &point) const
@@ -2165,17 +2223,26 @@ void KolfGame::openFile()
 			cfgGroup = KConfigGroup(cfg->group(makeGroup(id, curHole, sceneItem->name(), x, y)));
 			sceneItem->load(&cfgGroup);
 		}
-		else if (name != QLatin1String("hole") && !missingPlugins.contains(name))
-			missingPlugins.append(name);
+		else if (name != QLatin1String("hole"))
+		{
+			if (!missingPlugins.contains(name))
+				missingPlugins.append(name);
+			QMap<QString, QString> entries = cfgGroup.entryMap();
+			auto *missing = new Kolf::MissingObject(name, entries, courseBoard, m_world.get());
+			missing->setData(1, *it);
+			m_topLevelQItems << missing;
+			m_moveableQItems << missing;
+			missing->setId(id);
+			missing->setGame(this);
+			missing->editModeChanged(editing);
+			missing->setName(name);
+			missing->setPosition(QPointF(x, y));
+		}
 
 	}
 
 	if (!missingPlugins.empty())
 		qWarning() << "Course" << filename << "hole" << curHole << "uses unknown object types" << missingPlugins;
-	if (!missingPlugins.empty() && !isOnline())
-	{
-		KMessageBox::informationList(this, QStringLiteral("<p>") + i18n("This hole uses the following plugins, which you do not have installed:") + QStringLiteral("</p>"), missingPlugins, QString(), QStringLiteral("%1 warning").arg(holeInfo.untranslatedName() + QString::number(curHole)));
-	}
 
 	lastDelId = -1;
 
@@ -2518,7 +2585,10 @@ void KolfGame::writeHole(KConfig *target)
 		if (citem && !dynamic_cast<Ball *>(qitem))
 		{
 			KConfigGroup group(target->group(makeGroup(citem->curId(), curHole, citem->name(), (int)qitem->x(), (int)qitem->y())));
-			citem->save(&group);
+			if (auto *missing = dynamic_cast<Kolf::MissingObject *>(qitem))
+				missing->writeEntries(group);
+			else
+				citem->save(&group);
 		}
 	}
 
@@ -2528,6 +2598,11 @@ void KolfGame::writeHole(KConfig *target)
 	KConfigGroup course(target->group(QStringLiteral("0-course@-50,-50")));
 	course.writeEntry("author", holeInfo.author());
 	course.writeEntry("Name", holeInfo.untranslatedName());
+	if (cfg && target != cfg) {
+		const QStringList decorations = cfg->group(QStringLiteral("0-course@-50,-50")).readEntry("decorationTypes", QStringList());
+		if (!decorations.isEmpty())
+			course.writeEntry("decorationTypes", decorations);
+	}
 
 	KConfigGroup hole(target->group(QStringLiteral("%1-hole@-50,-50|0").arg(curHole)));
 	hole.writeEntry("par", holeInfo.par());
@@ -2569,6 +2644,7 @@ void KolfGame::save()
 			cfg->deleteGroup(*it);
 	}
 	writeHole(cfg);
+	updateCourseMetadata(cfg);
 
 	cfg->sync();
 

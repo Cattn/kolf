@@ -270,6 +270,9 @@ public:
 	void emitChannel(const QString &channel, bool level, bool pulse);
 	QUndoStack *editHistory() const { return m_editHistory; }
 	QPointF viewPointForBoard(const QPointF &point) const;
+	static constexpr int CourseFormatVersion = 2;
+	static void updateCourseMetadata(KConfig *config);
+	static QString coursePlayProblem(const QString &file);
 	QByteArray holeSnapshot();
 	void restoreHoleSnapshot(const QByteArray &snapshot);
 	void duplicateSelected();

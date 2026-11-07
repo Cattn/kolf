@@ -337,6 +337,7 @@ bool resaveCourse(const QString &courseFile, const QString &outputFile, QString 
         holeCount = adapter->highestHole();
         game->writeHole(&target);
     }
+    KolfGame::updateCourseMetadata(&target);
     delete game;
     QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     return error.isEmpty() && target.sync();

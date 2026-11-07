@@ -2,6 +2,10 @@
 #include "objectregistry.h"
 #include "dataobject.h"
 #include "online/coursefile.h"
+#include "game.h"
+
+#include <QFile>
+#include <QTemporaryDir>
 
 #include <QGraphicsRectItem>
 #include <QJsonArray>
@@ -94,6 +98,31 @@ private Q_SLOTS:
 		QVERIFY2(Kolf::Online::validateCourseBytes(course("speed=9\nhasFinalLoad=true"), error), qPrintable(error));
 		QVERIFY(!Kolf::Online::validateCourseBytes(course("speed=50"), error));
 		QVERIFY(error.contains(QStringLiteral("out of range")));
+	}
+
+	void coursePlayProblemsFollowTheMissingTypePolicy()
+	{
+		QTemporaryDir directory;
+		const auto write = [&directory](const QString &name, const QByteArray &text) {
+			QFile file(directory.filePath(name));
+			file.open(QIODevice::WriteOnly);
+			file.write(text);
+			return file.fileName();
+		};
+		const QByteArray base = "[1-hole@-50,-50|0]\npar=3\n\n[1-ball@100,200]\ndummykey=true\n\n[1-cup@300,200|1]\ndummykey=true\n\n";
+		const QString missing = write(QStringLiteral("missing.kolf"),
+			"[0-course@-50,-50]\nName=Missing\ndecorationTypes=flowerbed\n\n" + base
+			+ "[1-teleporter@200,120|2]\nexitX=300\n\n[1-flowerbed@200,280|3]\ncolour=pink\n");
+		const QString problem = KolfGame::coursePlayProblem(missing);
+		QVERIFY2(problem.contains(QStringLiteral("teleporter")), qPrintable(problem));
+		QVERIFY2(!problem.contains(QStringLiteral("flowerbed")), qPrintable(problem));
+		const QString decorationsOnly = write(QStringLiteral("decorations.kolf"),
+			"[0-course@-50,-50]\nName=Decor\ndecorationTypes=flowerbed\n\n" + base + "[1-flowerbed@200,280|3]\ncolour=pink\n");
+		QVERIFY(KolfGame::coursePlayProblem(decorationsOnly).isEmpty());
+		const QString newer = write(QStringLiteral("newer.kolf"), "[0-course@-50,-50]\nName=Newer\nformatVersion=3\n\n" + base);
+		QVERIFY(KolfGame::coursePlayProblem(newer).contains(QStringLiteral("newer version")));
+		const QString plain = write(QStringLiteral("plain.kolf"), "[0-course@-50,-50]\nName=Plain\n\n" + base);
+		QVERIFY(KolfGame::coursePlayProblem(plain).isEmpty());
 	}
 
 	void committedCatalogIsCurrent()

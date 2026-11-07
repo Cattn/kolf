@@ -662,6 +662,15 @@ void KolfWindow::showSetup(const QString &lockedCourse)
 
 void KolfWindow::launchGame(int firstHole)
 {
+	if (!filename.isEmpty()) {
+		const QString problem = KolfGame::coursePlayProblem(filename);
+		if (!problem.isEmpty()) {
+			KMessageBox::error(this, problem, i18nc("@title:window", "Course Cannot Be Played"));
+			filename = QString();
+			closeGame();
+			return;
+		}
+	}
 	homeView->hide();
 	delete scoreboard;
 	scoreboard = new ScoreBoard(dummy);

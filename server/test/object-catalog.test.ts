@@ -45,6 +45,13 @@ test('course validation checks object properties against the catalog schema', ()
     assert.throws(() => parseCourseBytes(course(type!, [property!])), /out of range/u, `${type} ${property}`);
 });
 
+test('course validation refuses a newer course format', () => {
+  const versioned = (version: string) => Buffer.from(course('cup').toString('utf8').replace('author=test', `author=test
+formatVersion=${version}`));
+  assert.equal(parseCourseBytes(versioned('2')).holes, 1);
+  assert.throws(() => parseCourseBytes(versioned('3')), /newer version of Kolf/u);
+});
+
 test('the catalog describes every property with a type and range', () => {
   const windmill = objectCatalog.byId.get('windmill')!;
   assert.deepEqual(windmill.properties.map(property => property.key), ['width', 'height', 'topWallVisible', 'leftWallVisible',

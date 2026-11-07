@@ -89,6 +89,11 @@ inline bool validateCourseBytes(const QByteArray &bytes, QString &error)
         }
         if (current == QLatin1String("0-course@-50,-50") && (key == QLatin1String("Name") || key == QLatin1String("name"))) name = value;
         if (current == QLatin1String("0-course@-50,-50") && key == QLatin1String("author")) author = value;
+        if (current == QLatin1String("0-course@-50,-50") && key == QLatin1String("formatVersion")) {
+            bool validVersion = false;
+            const int version = value.toInt(&validVersion);
+            if (!validVersion || version < 1 || version > 2) { error = QStringLiteral("Course needs a newer version of Kolf."); return false; }
+        }
         if (key == QLatin1String("par") && current.endsWith(QStringLiteral("-hole@-50,-50|0"))) {
             bool validPar = false;
             const int par = value.toInt(&validPar);

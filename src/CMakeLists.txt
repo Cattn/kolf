@@ -161,6 +161,8 @@ target_sources(kolfprivate PRIVATE
     ballstep.h
     dataobject.cpp
     dataobject.h
+    missingobject.cpp
+    missingobject.h
     canvasitem.cpp
     canvasitem.h
     config.cpp

@@ -49,6 +49,8 @@ export function parseCourseBytes(content: Buffer): CourseMetadata {
   const header = groups.get('[0-course@-50,-50]');
   const displayName = header?.get('Name') ?? header?.get('name') ?? '';
   const author = header?.get('author') ?? '';
+  const formatVersion = header?.get('formatVersion');
+  if (formatVersion !== undefined && !/^[12]$/u.test(formatVersion)) throw Error('course needs a newer version of Kolf');
   if (!displayName || [...displayName].length > 64 || [...author].length > 128) throw Error('invalid course metadata');
   const holePars: number[] = [];
   for (let hole = 1; hole <= 1000; ++hole) {
