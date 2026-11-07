@@ -37,6 +37,7 @@ public:
     OnlineCoordinator &coordinator() { return m_coordinator; }
     void setEndpointAddress(const QString &endpoint);
     void serversChanged();
+    void openInvite(const QString &code, const QString &serverUrl);
     void setProfile(const QString &name, const QString &colorMode, const QString &customColor);
     QString profileName() const;
     QString profileColorMode() const;
@@ -83,6 +84,8 @@ private:
     QLabel *m_serverNotice;
     QString m_restartNotice;
     bool m_connectAfterDisconnect = false;
+    QString m_pendingInviteCode;
+    void joinCode(const QString &code);
     QGroupBox *m_serverControls;
     QGroupBox *m_hostCard;
     QGroupBox *m_joinCard;

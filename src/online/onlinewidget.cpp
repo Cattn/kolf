@@ -4,11 +4,13 @@
 #include "color.h"
 #include "playerprofileeditor.h"
 #include "serverlist.h"
+#include "invitelink.h"
 #include "results/summary.h"
 #include "ui/resultsview.h"
 
 #include <KConfigGroup>
 #include <KLocalizedString>
+#include <KMessageBox>
 #include <KSharedConfig>
 
 #include <QComboBox>
@@ -272,7 +274,19 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
         m_entryRequestPending = true;
         m_createButton->setEnabled(false); m_joinButton->setEnabled(false);
         if (!m_profile->isValid()) { m_entryStatus->setText(i18n("Enter a player name.")); m_entryRequestPending = false; m_createButton->setEnabled(true); m_joinButton->setEnabled(true); return; }
-        const auto code = normalizeJoinCode(m_joinCode->text());
+        const auto invite = parseInviteLink(m_joinCode->text());
+        const auto current = normalizeServerAddress(m_endpoint->text()).url.toString();
+        if (invite && !invite->serverUrl.isEmpty() && invite->serverUrl != current) {
+            m_entryRequestPending = false; m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
+            const auto name = m_servers.value(invite->serverUrl, QUrl(invite->serverUrl).host());
+            if (KMessageBox::questionTwoActions(this, i18n("This invite is for a game on %1. Switch to that server and join?", name),
+                    i18nc("@title:window", "Join on Another Server?"),
+                    KGuiItem(i18nc("@action:button", "Switch and Join"), QStringLiteral("network-connect")),
+                    KStandardGuiItem::cancel()) == KMessageBox::PrimaryAction)
+                openInvite(invite->code, invite->serverUrl);
+            return;
+        }
+        const auto code = invite ? invite->code : normalizeJoinCode(m_joinCode->text());
         if (code.isEmpty()) {
             m_entryStatus->setText(i18n("That doesn't look like a join code. Codes are 6 to 12 letters and numbers."));
             m_entryRequestPending = false; m_createButton->setEnabled(true); m_joinButton->setEnabled(true);
@@ -309,6 +323,11 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
         if (lastCourse >= 0) m_createCourse->setCurrentIndex(lastCourse);
         m_serverDisplayName = hello.value(QStringLiteral("serverName")).toString().trimmed().left(60);
         m_restartNotice.clear();
+        if (!m_pendingInviteCode.isEmpty()) {
+            const auto code = m_pendingInviteCode;
+            m_pendingInviteCode.clear();
+            QTimer::singleShot(0, this, [this, code] { joinCode(code); });
+        }
         showEntry();
         showServerNotice(hello);
         Q_EMIT statusChanged(i18n("Connected to %1.", m_endpoint->text().trimmed()));
@@ -446,6 +465,30 @@ void OnlineWidget::rebuildServerMenu()
     auto *disconnectAction = m_serverMenu->addAction(QIcon::fromTheme(QStringLiteral("network-disconnect")), i18nc("@action:inmenu", "Disconnect"));
     disconnectAction->setEnabled(m_connectionState == ConnectionState::Connected || m_connectionState == ConnectionState::Connecting);
     connect(disconnectAction, &QAction::triggered, this, &OnlineWidget::changeServer);
+}
+
+void OnlineWidget::openInvite(const QString &code, const QString &serverUrl)
+{
+    const auto current = normalizeServerAddress(m_endpoint->text()).url.toString();
+    const QString target = serverUrl.isEmpty() ? (m_connectionState == ConnectionState::Connected ? current : m_defaultServer) : serverUrl;
+    m_joinCode->setText(code.left(4) + QLatin1Char('-') + code.mid(4));
+    m_pages->setCurrentIndex(0);
+    if (m_connectionState == ConnectionState::Connected && target == current) {
+        joinCode(code);
+        return;
+    }
+    m_pendingInviteCode = code;
+    m_entryStatus->setText(i18n("Connecting to join game %1…", code));
+    switchToServer(target);
+}
+
+void OnlineWidget::joinCode(const QString &code)
+{
+    if (m_entryRequestPending || !m_profile->isValid()) return;
+    m_entryRequestPending = true;
+    m_createButton->setEnabled(false); m_joinButton->setEnabled(false);
+    savePreferences();
+    m_coordinator.joinLobby(code, m_profile->playerName(), m_profile->colorMode(), m_profile->customColor());
 }
 
 void OnlineWidget::switchToServer(const QString &url)

@@ -76,7 +76,7 @@ Name[zh_TW]=Kolf
 Type=Application
 Exec=kolf %U
 Icon=kolf
-MimeType=application/x-kourse;application/x-kolf;
+MimeType=application/x-kourse;application/x-kolf;x-scheme-handler/kolf;
 
 GenericName=Miniature Golf
 GenericName[ar]=غولف المصغر

@@ -1,4 +1,5 @@
 #include "lobbyview.h"
+#include "invitelink.h"
 #include "onlinecoordinator.h"
 #include "playerprofileeditor.h"
 #include "color.h"
@@ -51,6 +52,10 @@ LobbyView::LobbyView(const Kolf::ItemFactory &factory, OnlineCoordinator &coordi
     auto *copy = new QPushButton(i18n("Copy code"), this);
     copy->setObjectName(QStringLiteral("lobbyCopyCode"));
     header->addWidget(copy);
+    auto *copyLink = new QPushButton(QIcon::fromTheme(QStringLiteral("edit-link")), i18n("Copy invite link"), this);
+    copyLink->setObjectName(QStringLiteral("lobbyCopyInvite"));
+    copyLink->setToolTip(i18n("A link friends can open in a browser to get the code, or click to join if Kolf is installed."));
+    header->addWidget(copyLink);
     auto *leave = new QPushButton(i18n("Leave"), this);
     leave->setObjectName(QStringLiteral("lobbyLeave"));
     header->addWidget(leave);
@@ -119,6 +124,13 @@ LobbyView::LobbyView(const Kolf::ItemFactory &factory, OnlineCoordinator &coordi
     layout->addLayout(footer);
     connect(copy, &QPushButton::clicked, this, [this] {
         QGuiApplication::clipboard()->setText(m_state.value(QStringLiteral("joinCode")).toString());
+        setStatus(i18n("Join code copied."));
+    });
+    connect(copyLink, &QPushButton::clicked, this, [this] {
+        const auto link = inviteLinkFor(m_coordinator.endpoint(), m_state.value(QStringLiteral("joinCode")).toString());
+        if (link.isEmpty()) return;
+        QGuiApplication::clipboard()->setText(link);
+        setStatus(i18n("Invite link copied: %1", link));
     });
     connect(leave, &QPushButton::clicked, this, [this] {
         const bool host = m_state.value(QStringLiteral("ownerMemberId")).toString() == m_coordinator.memberId();

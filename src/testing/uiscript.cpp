@@ -212,6 +212,12 @@ bool UiScript::runStep(const QJsonObject &step, QString &error)
         if (!match) { error = QStringLiteral("no settings page named %1").arg(name); return false; }
         dialog->setCurrentPage(match);
     }
+    if (step.contains(QStringLiteral("openLink"))) {
+        const auto link = step.value(QStringLiteral("openLink")).toString();
+        QTimer::singleShot(0, m_mainWindow, [window = m_mainWindow, link] {
+            if (window) QMetaObject::invokeMethod(window, "openInviteUrl", Q_ARG(QString, link));
+        });
+    }
     if (step.contains(QStringLiteral("open"))) {
         const auto url = QUrl::fromLocalFile(QFileInfo(expand(step.value(QStringLiteral("open")).toString())).absoluteFilePath());
         if (!QFileInfo::exists(url.toLocalFile())) { error = QStringLiteral("cannot open %1").arg(url.toLocalFile()); return false; }

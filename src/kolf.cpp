@@ -31,6 +31,7 @@
 #include "results/summary.h"
 #include "ui/settingsdialog.h"
 #include "online/onlinewidget.h"
+#include "online/invitelink.h"
 #include "scoreboard.h"
 #include "session/sessioncontroller.h"
 #ifdef KOLF_TEST_AUTOMATION
@@ -299,6 +300,27 @@ void KolfWindow::ensureOnlineWidget()
 				statusBar()->showMessage(status);
 		});
 	}
+}
+
+void KolfWindow::openInviteUrl(const QString &link)
+{
+	const auto invite = Kolf::Online::parseInviteLink(link);
+	if (!invite) {
+		KMessageBox::error(this, i18n("That invite link isn't valid. Ask for the join code instead."));
+		return;
+	}
+	raise();
+	activateWindow();
+	if (onlineMatchController) {
+		if (KMessageBox::warningTwoActions(this, i18n("You're in an online match. Leave it to join the new game?"),
+				i18nc("@title:window", "Leave Online Match?"),
+				KGuiItem(i18nc("@action:button", "Leave and Join"), QStringLiteral("network-disconnect")),
+				KStandardGuiItem::cancel()) != KMessageBox::PrimaryAction)
+			return;
+		leaveOnline();
+	}
+	showOnline();
+	onlineWidget->openInvite(invite->code, invite->serverUrl);
 }
 
 void KolfWindow::showOnline()

@@ -16,6 +16,7 @@ public:
     const QJsonObject &serviceHello() const { return m_serviceHello; }
     const QString &memberId() const { return m_memberId; }
     bool inLobby() const { return !m_lobbyId.isEmpty(); }
+    const QString &endpoint() const { return m_endpoint; }
     Net::NetworkClient *networkClient() { return &m_network; }
 
 public Q_SLOTS:

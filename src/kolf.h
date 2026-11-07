@@ -50,6 +50,7 @@ public:
 	~KolfWindow() override;
 
 	Q_INVOKABLE void openUrl(const QUrl &url);
+	Q_INVOKABLE void openInviteUrl(const QString &link);
 #ifdef KOLF_TEST_AUTOMATION
 	void startOnlineAutomation(const QJsonObject &config);
 #endif

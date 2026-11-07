@@ -26,6 +26,11 @@
 #include <QApplication>
 #include <QCommandLineOption>
 #include <QCommandLineParser>
+#include <QTimer>
+#include <QLocalSocket>
+#include <QLocalServer>
+#include <QDir>
+#include <QCryptographicHash>
 #include <QDebug>
 #include <QFile>
 #include <QUrl>
@@ -144,9 +149,50 @@ int main(int argc, char **argv)
 		}
 	}
 
+	const QString lastArgument = parser.positionalArguments().isEmpty() ? QString() : parser.positionalArguments().constLast();
+	const bool inviteArgument = lastArgument.startsWith(QLatin1String("kolf:"), Qt::CaseInsensitive);
+	const QString instanceName = QStringLiteral("kolf-invites-%1").arg(QString::fromUtf8(
+		QCryptographicHash::hash(QDir::homePath().toUtf8(), QCryptographicHash::Sha256).toHex().left(16)));
+	if (inviteArgument) {
+		QLocalSocket running;
+		running.connectToServer(instanceName);
+		if (running.waitForConnected(500)) {
+			running.write(lastArgument.toUtf8().left(2048) + '\n');
+			running.waitForBytesWritten(1000);
+			running.disconnectFromServer();
+			return 0;
+		}
+	}
+
 	KolfWindow *top = new KolfWindow;
 
-	if (parser.positionalArguments().count() >= 1)
+	const bool automated = !qEnvironmentVariableIsEmpty("KOLF_UI_TEST_SCRIPT") || !qEnvironmentVariableIsEmpty("KOLF_ONLINE_TEST_CONFIG");
+	if (!automated) {
+		auto *invites = new QLocalServer(top);
+		invites->setSocketOptions(QLocalServer::UserAccessOption);
+		if (!invites->listen(instanceName)) {
+			QLocalServer::removeServer(instanceName);
+			invites->listen(instanceName);
+		}
+		QObject::connect(invites, &QLocalServer::newConnection, top, [invites, top] {
+			while (auto *client = invites->nextPendingConnection()) {
+				QObject::connect(client, &QLocalSocket::readyRead, top, [client, top] {
+					if (!client->canReadLine()) return;
+					const auto link = QString::fromUtf8(client->readLine(2048)).trimmed();
+					client->disconnectFromServer();
+					QTimer::singleShot(0, top, [top, link] { top->openInviteUrl(link); });
+				});
+				QObject::connect(client, &QLocalSocket::disconnected, client, &QObject::deleteLater);
+			}
+		});
+	}
+
+	if (inviteArgument)
+	{
+		top->closeGame();
+		QTimer::singleShot(0, top, [top, lastArgument] { top->openInviteUrl(lastArgument); });
+	}
+	else if (parser.positionalArguments().count() >= 1)
 	{
 		QUrl url = QUrl::fromUserInput(parser.positionalArguments().at(parser.positionalArguments().count() - 1));
 		top->openUrl(url);

@@ -51,6 +51,7 @@ target_sources(kolfprivate PRIVATE
     online/onlinewidget.cpp
     online/playerprofileeditor.cpp
     online/serverlist.cpp
+    online/invitelink.cpp
     online/serverprobe.cpp
     online/serversettings.cpp
     ui/gamehud.cpp
