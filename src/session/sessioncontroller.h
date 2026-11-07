@@ -109,6 +109,8 @@ private:
     bool m_ready = false, m_interrupted = false, m_awaitingResync = false, m_paused = false;
     QString m_pauseReason;
     QJsonObject m_lastCommitMessage;
+    QList<int> m_pendingDepartures;
+    void applyPendingDepartures();
     bool m_hostControlsEnabled = false, m_hostActionPending = false;
     bool m_allowVoting = true;
     QJsonObject m_hostProposal;

@@ -12,7 +12,7 @@ const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
 assert(['two-rematch', 'four-player', 'four-player-hazard', 'lobby-rules', 'custom-course',
   'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-skip', 'host-go',
-  'host-proposal-approve', 'host-proposal-reject', 'host-proposal-four-player', 'host-combined', 'shipped-download', 'lobby-resume', 'match-resume', 'host-resume'].includes(scenario),
+  'host-proposal-approve', 'host-proposal-reject', 'host-proposal-four-player', 'host-combined', 'shipped-download', 'lobby-resume', 'match-resume', 'host-resume', 'guest-leaves'].includes(scenario),
   'Unknown native scenario');
 const variableRoster = scenario.startsWith('four-player') || scenario === 'host-proposal-four-player' || scenario === 'lobby-rules';
 const hazardScenario = scenario === 'four-player-hazard';
@@ -120,6 +120,7 @@ try {
       customCourse: scenario === 'custom-course' ? customCourse : undefined,
       forceCourseDownload: (scenario === 'custom-course' || scenario === 'shipped-download') && client > 0,
       scriptedLobbyDrop: scenario === 'lobby-resume' && client === 1,
+      scriptedLeaveTurn: scenario === 'guest-leaves' && client === 1 ? 2 : undefined,
       scriptedMatchDropTurn: (scenario === 'match-resume' && client === 1) || (scenario === 'host-resume' && client === 0) ? 2 : undefined,
       expectedPlayers: variableRoster ? 4 : 2, matches: matchCount, logDirectory,
       additionalPlayers: variableRoster && client === 0
@@ -158,12 +159,15 @@ try {
   for (let i = 0; ; ++i) {
     await pause(500);
     const failed = clients.findIndex(client => exited(client) && client.exitCode !== 0);
+    if (scenario === 'guest-leaves' && exited(clients[0])) throw Error('the host exited before finishing');
     if (failed >= 0) throw Error(`client ${failed} failed (${clients[failed].exitCode}): ${clientLogs[failed].join('')}`);
     if (exited(relay)) throw Error(`online service exited early: ${relayLog.join('')}`);
     const interrupted = Array.from({ length: clientCount }, (_, client) => sessionDirectories(client))
       .flat().flatMap(sessionDirectory => events(sessionDirectory)).find(event => event.event === 'interrupted');
     if (interrupted) throw Error(`native session interrupted: ${interrupted.reason}`);
-    const complete = Array.from({ length: clientCount }, (_, client) => sessionDirectories(client)).every(directories =>
+    const finishers = scenario === 'guest-leaves' ? [0] : Array.from({ length: clientCount }, (_, client) => client);
+    const leaverDone = scenario !== 'guest-leaves' || (exited(clients[1]) && clients[1].exitCode === 0);
+    const complete = leaverDone && finishers.map(client => sessionDirectories(client)).every(directories =>
       directories.length === matchCount && directories.every(sessionDirectory => {
         const log = events(sessionDirectory);
         return log.some(event => event.event === 'sceneDestroyed')
@@ -173,7 +177,16 @@ try {
     if (i > 360) throw Error(`online native ${scenario} scenario exceeded 180 seconds`);
   }
 
+  if (scenario === 'guest-leaves') {
+    assert(existsSync(resolve(directory, 'client-1', 'left-match.txt')), 'the guest left during the match');
+    const [hostSession] = sessionDirectories(0);
+    const final = events(hostSession).filter(event => event.event === 'applied').at(-1);
+    assert.equal(final?.state?.phase, 'Finished');
+    const evidence = JSON.parse(readFileSync(resolve(hostSession, 'results.json'), 'utf8'));
+    assert(String(evidence.visibleText).includes('Left on hole'), 'Results show the departed player');
+  }
   for (let client = 0; client < clientCount; ++client) {
+    if (scenario === 'guest-leaves') break;
     const directories = sessionDirectories(client);
     if (scenario === 'lobby-rules') {
       const lobby = JSON.parse(readFileSync(resolve(directory, `client-${client}`, 'lobby.json'), 'utf8'));

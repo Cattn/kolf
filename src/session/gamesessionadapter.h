@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
+
+#include <QSet>
 #include "game.h"
 #include <QJsonObject>
 #include <QObject>
@@ -22,6 +24,8 @@ public:
     void rememberUndoCheckpoint(const QJsonObject &state);
     bool canUndoShot() const;
     bool undoShot();
+    QString removeSlots(const QList<int> &slots);
+    bool isDeparted(int slot) const { return m_departed.contains(slot); }
     void enableSimulation(bool enabled);
     void enableInput(bool enabled);
     int activeSlot() const;
@@ -42,6 +46,9 @@ private:
     KolfGame *g;
     bool m_scored = false;
     bool m_finished = false;
+    QSet<int> m_departed;
+    void applyDepartures();
+    QString advanceTurn();
     int m_choiceSlot = -1;
     int m_resolutionIndex = 0;
     QString m_choiceId;

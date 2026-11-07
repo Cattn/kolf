@@ -12,6 +12,7 @@ export interface PlayerStatistics {
   worstHole: HoleHighlight | null;
   acceptedShots: number;
   hazardChoices: number;
+  leftOnHole?: number;
 }
 
 /** Calculate only from committed scores and counted commands. Zero is an unfinished hole. */

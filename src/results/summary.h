@@ -25,6 +25,7 @@ struct Standing {
     int holesInOne = 0;
     std::optional<HoleHighlight> bestHole;
     std::optional<HoleHighlight> worstHole;
+    std::optional<int> leftOnHole;
 };
 
 // Mirrors server/service/result-stats.ts. A zero score is an unfinished hole.

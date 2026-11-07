@@ -168,7 +168,9 @@ void ResultsView::setSummary(const Summary &summary)
         const auto &standing = summary.standings.at(row);
         const auto &player = summary.players.value(standing.player);
         auto *name = new QTableWidgetItem(swatch(player.color), player.name);
-        QStringList values{QString::number(standing.rank), QString(), QString::number(standing.completedHoles),
+        const QString place = standing.leftOnHole ? i18nc("@item results place", "Left on hole %1", *standing.leftOnHole)
+                                                  : QString::number(standing.rank);
+        QStringList values{place, QString(), QString::number(standing.completedHoles),
             QString::number(standing.total), relativeText(standing.relativeToPar), QString::number(standing.holesInOne)};
         if (online) values << QStringLiteral("%1 / %2").arg(player.acceptedShots).arg(player.hazardChoices);
         for (int column = 0; column < values.size(); ++column) {

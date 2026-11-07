@@ -366,6 +366,17 @@ void SessionController::receive(const QJsonObject &message) {
     if (type == QLatin1String("ShotPending") || type == QLatin1String("ShotResolved")) {
         clearRemoteAim(); return;
     }
+    if (type == QLatin1String("PlayersLeft")) {
+        QStringList names;
+        for (const auto &value : m[QStringLiteral("slots")].toArray()) {
+            const int slot = value.toInt(-1);
+            if (slot >= 0 && slot < m_players.size()) names << m_players[slot].name();
+            if (m_role == Role::Authority) m_pendingDepartures.append(slot);
+        }
+        Q_EMIT noticeChanged(tr("%1 left the match. Play continues without them.").arg(names.join(QStringLiteral(", "))));
+        applyPendingDepartures();
+        return;
+    }
     if (type == QLatin1String("CommandRejected") && m[QStringLiteral("reason")] == QLatin1String("waiting for a player to reconnect")) {
         m_pending.clear();
         Q_EMIT noticeChanged(tr("Waiting for everyone to reconnect before the next shot."));
@@ -454,6 +465,7 @@ void SessionController::receive(const QJsonObject &message) {
         m_ready = true;
         m_adapter->enableSimulation(m_phase != QLatin1String("Finished")); refresh();
         const auto faultPhase = m_config[QStringLiteral("faultPhase")].toString();
+        applyPendingDepartures();
         if (!m_testFaultScheduled && faultPhase == m_phase) {
             m_testFaultScheduled = true;
             QTimer::singleShot(m_config[QStringLiteral("faultAfterMs")].toInt(300), this, [this] {
@@ -566,6 +578,20 @@ void SessionController::setPaused(bool paused, const QString &reason)
     m_pauseReason = reason;
     if (paused) m_pendingClock.restart();
     if (changed) refresh();
+}
+
+void SessionController::applyPendingDepartures()
+{
+    if (m_role != Role::Authority || m_pendingDepartures.isEmpty() || !m_adapter || m_interrupted) return;
+    if (!m_ready || !m_pending.isEmpty() || m_phase != QLatin1String("AwaitingShot")) {
+        m_adapter->removeSlots(m_pendingDepartures);
+        return;
+    }
+    const auto slots = m_pendingDepartures;
+    m_pendingDepartures.clear();
+    const auto phase = m_adapter->removeSlots(slots);
+    if (!phase.isEmpty()) commit(phase);
+    else refresh();
 }
 
 void SessionController::resumeAfterReconnect()

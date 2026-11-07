@@ -272,6 +272,17 @@ export class LobbyProtocolController {
 
   private departureDeliveries(departure: Departure | undefined, requestId?: string): Delivery[] {
     if (!departure) return [];
+    if (departure.leftRunningMatch && departure.matchId && departure.memberId) {
+      const match = this.matches.get(departure.matchId as MatchId);
+      const deliveries: Delivery[] = departure.state ? departure.recipients.map(connectionId => ({ connectionId,
+        message: envelope('LobbyState', { state: publicState(departure.state!) }, { requestId, lobbyId: departure.lobbyId }) })) : [];
+      if (match) {
+        this.log('match.player_left', { lobbyId: departure.lobbyId, matchId: departure.matchId });
+        deliveries.push(...this.applyMatchProgress(this.service.activeLobby(departure.lobbyId), match,
+          match.memberLeft(departure.memberId as MemberId)));
+      }
+      return deliveries;
+    }
     if (departure.matchId) this.matches.delete(departure.matchId);
     if (departure.closed) this.log('lobby.closed', { lobbyId: departure.lobbyId, reason: safeReason(departure.reason, this.debugLog) });
     const deliveries: Delivery[] = [];

@@ -62,6 +62,7 @@ export interface MatchResult {
   skippedHoles: number[];
   navigatedHoles: number[];
   durationMs: number;
+  departedPlayers?: Array<{ playerId: PlayerId; hole: number }>;
   status: 'Completed' | 'Interrupted';
   reason?: string;
   completedAt: number;
@@ -73,6 +74,7 @@ export interface MatchMetrics {
   skippedHoles: number[];
   navigatedHoles?: number[];
   completedHoles?: number[][];
+  departedPlayers?: Array<{ playerId: PlayerId; hole: number }>;
   durationMs: number;
 }
 export interface LobbyState {
@@ -455,16 +457,25 @@ export class LobbySession {
     this.requireMatch(matchId); this.requirePhase('Playing');
     const match = this.match!; this.validateScores(scores, match.roster.length);
     const totals = scores.map(row => row.reduce((sum, score) => sum + score, 0));
-    const low = Math.min(...totals);
-    const standings = resultStatistics(match.roster.map(player => player.playerId), scores, match.course.par ?? [],
-      metrics?.acceptedShots, metrics?.hazardChoices, metrics?.completedHoleCounts,
-      metrics?.skippedHoles, metrics?.completedHoles);
+    const departed = new Map((metrics?.departedPlayers ?? []).map(entry => [entry.playerId, entry.hole]));
+    const staying = match.roster.flatMap((player, index) => departed.has(player.playerId) ? [] : [index]);
+    const low = Math.min(...staying.map(index => totals[index]));
+    const pick = <T>(values: T[] | undefined, indexes: number[]) => values ? indexes.map(index => values[index]) : undefined;
+    const statistics = (indexes: number[]) => resultStatistics(indexes.map(index => match.roster[index].playerId),
+      indexes.map(index => scores[index]), match.course.par ?? [], pick(metrics?.acceptedShots, indexes),
+      pick(metrics?.hazardChoices, indexes), pick(metrics?.completedHoleCounts, indexes),
+      metrics?.skippedHoles, pick(metrics?.completedHoles, indexes));
+    const leaving = match.roster.flatMap((player, index) => departed.has(player.playerId) ? [index] : []);
+    const standings = [...statistics(staying),
+      ...statistics(leaving).map(entry => ({ ...entry, rank: 0, leftOnHole: departed.get(entry.playerId) }))];
     this.result = {
       matchId, courseId: match.course.courseId, courseName: match.course.displayName,
       courseHash: match.course.expectedHash,
       roster: cloneRoster(match.roster), scores: scores.map(row => [...row]), par: [...(match.course.par ?? [])], totals,
-      winnerPlayerIds: match.roster.filter((_, index) => totals[index] === low).map(player => player.playerId),
+      winnerPlayerIds: match.roster.filter((player, index) => !departed.has(player.playerId) && totals[index] === low)
+        .map(player => player.playerId),
       standings, skippedHoles: [...(metrics?.skippedHoles ?? [])],
+      ...(departed.size ? { departedPlayers: [...departed].map(([playerId, hole]) => ({ playerId, hole })) } : {}),
       navigatedHoles: [...(metrics?.navigatedHoles ?? [])], durationMs: metrics?.durationMs ?? 0,
       status: 'Completed', completedAt: this.now(),
     };

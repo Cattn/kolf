@@ -45,6 +45,8 @@ export class MatchCoordinator {
   private admissions = new Map<string, Admission>();
   private lastCommit = '';
   private readonly away = new Set<MemberId>();
+  private readonly departed = new Map<number, number>();
+  private departurePassPending = false;
   private lastFrame = 0;
   private lastAimAt = 0;
   private resyncRound = 0;
@@ -80,6 +82,25 @@ export class MatchCoordinator {
     if (!this.members.has(memberId) || this.interrupted) return;
     this.away.add(memberId);
     this.retireProposal('a player is reconnecting');
+  }
+
+  memberLeft(memberId: MemberId): MatchProgress {
+    if (!this.members.has(memberId) || memberId === this.match.authorityMemberId || this.interrupted) return this.progress();
+    const leaving = this.match.roster.filter(player => player.ownerMemberId === memberId);
+    const hole = this.state?.hole ?? 1;
+    for (const player of leaving) this.departed.set(player.engineIndex, hole);
+    this.members.delete(memberId); this.away.delete(memberId);
+    this.retireProposal('a player left');
+    if (this.state?.phase === 'AwaitingShot' && this.departed.has(this.state.activeSlot) && !this.pending && !this.hostAction)
+      this.departurePassPending = true;
+    this.broadcast('PlayersLeft', { slots: leaving.map(player => player.engineIndex),
+      playerIds: leaving.map(player => player.playerId), hole });
+    if (this.barrier && this.barrierPublished && this.state && [...this.members.values()].every(ready => ready.applied === this.syncId)) {
+      this.barrier = false;
+      this.broadcast('InputReady', { stateRevision: this.state.stateRevision, syncId: this.syncId });
+    }
+    this.pendingAt = this.now();
+    return this.progress();
   }
 
   memberBack(memberId: MemberId) {
@@ -383,6 +404,7 @@ export class MatchCoordinator {
           const hostSkip = !!this.hostAction && this.hostAction.action === 'skipHole';
           const hostGo = !!this.hostAction?.action.startsWith('go');
           const checkpoint = this.undoCandidate?.state;
+          const departurePass = this.departurePassPending && !this.pending && !this.hostAction;
           const oldHole = this.state.hole;
           const skipFinal = hostSkip && next.phase === 'Finished';
           const skipStarter = this.state.scores.reduce((best: { slot: number; score: number }, row: number[], slot: number) => {
@@ -424,6 +446,15 @@ export class MatchCoordinator {
               return row.length !== old.length || row.some((score, index) =>
                 score !== (index === next.hole - 1 ? 0 : old[index]));
             }))
+            : departurePass ? (this.state.phase !== 'AwaitingShot'
+            || (next.phase !== 'AwaitingShot' && next.phase !== 'Finished')
+            || next.hole < this.state.hole || next.hole > this.state.hole + 1
+            || (next.phase === 'AwaitingShot' && this.departed.has(next.activeSlot))
+            || next.courseHash !== this.state.courseHash
+            || next.scores.some((row: number[], slot: number) => {
+              const old = this.state!.scores[slot] as number[];
+              return row.length < old.length || row.some((score, index) => index < old.length ? score !== old[index] : score !== 0);
+            }))
             : (!this.pending || !allowed[this.state.phase]?.includes(next.phase))) throw Error('illegal phase transition');
           if (next.turnId !== this.state.turnId + (next.phase === 'AwaitingShot' ? 1 : 0)) throw Error('invalid turn progression');
           const holeDelta = next.hole - this.state.hole;
@@ -433,6 +464,7 @@ export class MatchCoordinator {
             throw Error('invalid generation progression');
         }
         const previous = this.state;
+        if (previous && this.departurePassPending && !this.pending && !this.hostAction) this.departurePassPending = false;
         this.retireProposal('match state changed');
         const appliedAction = this.hostAction;
         const wasPending = this.pending;
@@ -488,7 +520,10 @@ export class MatchCoordinator {
             this.skippedHoles.delete(source); this.navigatedHoles.delete(source);
             this.skippedHoles.delete(next.hole); this.navigatedHoles.delete(next.hole);
             this.clearHoleCounts(next.hole);
-            for (const completed of this.completedHoles) { completed.add(source); completed.delete(next.hole); }
+            this.completedHoles.forEach((completed, slot) => {
+              if (!this.departed.has(slot)) completed.add(source);
+              completed.delete(next.hole);
+            });
           } else {
             for (let slot = 0; slot < this.completedHoles.length; ++slot) {
               if (next.balls[slot]?.state === 2) this.completedHoles[slot].add(next.hole);
@@ -655,6 +690,7 @@ export class MatchCoordinator {
       skippedHoles: [...this.skippedHoles].sort((a, b) => a - b),
       navigatedHoles: [...this.navigatedHoles].sort((a, b) => a - b),
       completedHoles: this.completedHoles.map(holes => [...holes].sort((a, b) => a - b)),
+      departedPlayers: [...this.departed].map(([slot, hole]) => ({ playerId: this.match.roster[slot].playerId, hole })),
       completedHoleCounts: this.match.roster.map((_, index) => this.state
         ? Math.max(0, this.state.hole - 1) + (this.state.balls[index]?.state === 2 ? 1 : 0) : 0),
       durationMs: this.startedAt === undefined ? 0 : Math.max(0, this.now() - this.startedAt) };

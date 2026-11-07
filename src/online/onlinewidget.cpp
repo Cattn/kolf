@@ -730,6 +730,7 @@ void OnlineWidget::leaveOnline()
         m_matchActive = false;
         Q_EMIT matchEnded();
     }
+    if (m_coordinator.inLobby()) m_coordinator.leaveLobby();
     m_disconnectRequested = true;
     m_coordinator.disconnectFromService();
     if (m_coordinator.networkClient()->isDisconnected()) m_disconnectRequested = false;

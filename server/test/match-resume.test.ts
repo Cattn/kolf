@@ -10,7 +10,7 @@ const catalog = [{ courseId: 'classic', displayName: 'Classic', expectedHash: co
 const send = (controller: LobbyProtocolController, connectionId: string, message: Envelope) =>
   controller.receive(connectionId, JSON.stringify(message));
 
-function playingMatch() {
+function playingMatch(activeSlot = 0) {
   let now = 1_000;
   const controller = new LobbyProtocolController(catalog, undefined, () => now);
   const host = controller.connect(), guest = controller.connect();
@@ -29,7 +29,7 @@ function playingMatch() {
   for (const [client, requestId] of [[host, 'sh'], [guest, 'sg']])
     send(controller, client, envelope('SceneReady', { manifestHash: compatibilityId }, { requestId, lobbyId, matchId }));
   const initialState = {
-    stateRevision: 1, holeGeneration: 1, turnId: 1, activeSlot: 0, hole: 1, par: 3,
+    stateRevision: 1, holeGeneration: 1, turnId: 1, activeSlot, hole: 1, par: 3,
     phase: 'AwaitingShot', manifestHash: compatibilityId, courseHash,
     balls: [0, 1].map(i => ({ id: `ball/${i}`, kind: 'sprite', x: 100, y: 200, z: 1,
       visible: true, rotation: 0, opacity: 1, sprite: 'ball', frame: -1, state: 1 })),
@@ -44,7 +44,7 @@ function playingMatch() {
     commandId: `shot-${requestId}`, holeGeneration: 1, turnId: 1, playerId: match.roster[0].playerId,
     puttingMode: 'normal', directionRadians: 0.5, launchMagnitude: 3,
   }, { requestId, lobbyId, matchId }));
-  return { controller, host, guest, lobbyId, matchId, guestToken, hostToken, shot, advance: (ms: number) => { now += ms; } };
+  return { controller, host, guest, lobbyId, matchId, guestToken, hostToken, shot, initialState, advance: (ms: number) => { now += ms; } };
 }
 
 test('a guest who drops mid-match pauses it instead of ending it', () => {
@@ -74,13 +74,27 @@ test('a resumed guest rejoins the running match and play continues', () => {
   assert(!m.controller.tick().some(delivery => delivery.message.type === 'MatchResult'));
 });
 
-test('a guest who stays away for 60 s ends the match as before', () => {
+test('a guest who stays away for 60 s leaves, and the match continues without them', () => {
   const m = playingMatch();
   m.controller.disconnect(m.guest);
   m.advance(60_001);
-  const results = m.controller.tick().filter(delivery => delivery.message.type === 'MatchResult');
-  assert.equal(results.length, 1);
-  assert.equal((results[0].message.payload.result as any).status, 'Interrupted');
+  const after = m.controller.tick();
+  assert(!after.some(delivery => delivery.message.type === 'MatchResult'));
+  const left = after.find(delivery => delivery.message.type === 'PlayersLeft');
+  assert.equal(left?.connectionId, m.host);
+  assert.deepEqual(left?.message.payload.slots, [1]);
+  assert.equal(left?.message.payload.hole, 1);
+  assert.notEqual(m.shot('after')[0]?.message.payload.reason, 'waiting for a player to reconnect');
+});
+
+test('on the leaving player turn, the authority may pass it on once', () => {
+  const m = playingMatch(1);
+  const leave = send(m.controller, m.guest, envelope('LeaveLobby', {}, { requestId: 'l', lobbyId: m.lobbyId }));
+  assert(leave.some(delivery => delivery.message.type === 'PlayersLeft'));
+  assert(!leave.some(delivery => delivery.message.type === 'MatchResult'));
+  const passed = { ...m.initialState, stateRevision: 2, turnId: 2, activeSlot: 0 };
+  const committed = send(m.controller, m.host, envelope('CommitTransition', { state: passed }, { requestId: 'p', lobbyId: m.lobbyId, matchId: m.matchId }));
+  assert.deepEqual(committed.map(delivery => delivery.message.type), ['TransitionCommitted']);
 });
 
 test('a dropped authority pauses the match and resumes with its scene intact', () => {

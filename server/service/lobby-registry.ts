@@ -45,6 +45,7 @@ export interface Departure {
   activeMatchInterrupted: boolean;
   reason: string;
   memberId?: MemberId;
+  leftRunningMatch?: boolean;
 }
 
 /** Bounded indexes for every active v3 room and connection membership. */
@@ -234,7 +235,9 @@ export class LobbyRegistry {
     this.forgetMember(lobby.lobbyId, memberId);
     const before = lobby.state(), matchId = before.match?.matchId;
     let activeMatchInterrupted = false;
-    if (matchId && (before.phase === 'Preparing' || before.phase === 'Playing')) {
+    const leftRunningMatch = !!matchId && before.phase === 'Playing' && membership.memberId !== lobby.ownerMemberId
+      && before.match?.authorityMemberId !== membership.memberId;
+    if (matchId && !leftRunningMatch && (before.phase === 'Preparing' || before.phase === 'Playing')) {
       lobby.interruptMatch(matchId, reason); activeMatchInterrupted = true;
     }
     const ownerDeparted = membership.memberId === lobby.ownerMemberId;
@@ -242,7 +245,8 @@ export class LobbyRegistry {
       const state = lobby.removeMember(membership.memberId);
       const recipients = state.members.map(member => member.connectionId);
       if (state.phase === 'Closed') this.removeLobby(lobby);
-      return { lobbyId: lobby.lobbyId, matchId, recipients, state, closed: state.phase === 'Closed', activeMatchInterrupted, reason };
+      return { lobbyId: lobby.lobbyId, matchId, recipients, state, closed: state.phase === 'Closed', activeMatchInterrupted, reason,
+        memberId: membership.memberId, leftRunningMatch };
     }
     const terminalState = activeMatchInterrupted ? lobby.state() : undefined;
     const recipients = before.members.filter(member => member.connectionId !== connectionId).map(member => member.connectionId);

@@ -43,6 +43,7 @@ private:
     bool m_matchDropDone = false;
     bool m_resyncSeen = false;
     bool m_pauseCaptured = false;
+    bool m_leaveDone = false;
     bool m_customCourseSent = false;
     bool m_rulesSent = false;
     bool m_lobbyCaptured = false;

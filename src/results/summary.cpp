@@ -171,6 +171,7 @@ Summary Kolf::Results::summarizeMatchResult(const QJsonObject &result)
         standing.holesInOne = row.value(QStringLiteral("holesInOne")).toInt();
         standing.bestHole = highlightFromJson(row.value(QStringLiteral("bestHole")));
         standing.worstHole = highlightFromJson(row.value(QStringLiteral("worstHole")));
+        if (row.value(QStringLiteral("leftOnHole")).isDouble()) standing.leftOnHole = row.value(QStringLiteral("leftOnHole")).toInt();
         summary.players[player].acceptedShots = row.value(QStringLiteral("acceptedShots")).toInt();
         summary.players[player].hazardChoices = row.value(QStringLiteral("hazardChoices")).toInt();
         summary.standings.append(standing);

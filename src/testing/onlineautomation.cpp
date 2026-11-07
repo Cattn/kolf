@@ -3,6 +3,8 @@
 
 #include "online/onlinecoordinator.h"
 #include "online/onlinewidget.h"
+#include "online/onlinematchview.h"
+#include "ui/resultsview.h"
 #include "session/sessioncontroller.h"
 
 #include <QApplication>
@@ -99,6 +101,11 @@ void OnlineAutomation::writeResultsEvidence(const QJsonObject &state)
     if (evidence.open(QIODevice::WriteOnly | QIODevice::Truncate))
         evidence.write(QJsonDocument(QJsonObject{{QStringLiteral("result"), result},
             {QStringLiteral("visibleText"), m_widget->resultsText()}}).toJson());
+    const auto image = QDir(m_config.value(QStringLiteral("logDirectory")).toString()).filePath(matchId + QStringLiteral("/results.png"));
+    if (auto *view = m_widget->findChild<Kolf::Ui::ResultsView *>()) {
+        view->resize(m_widget->size());
+        view->grab().save(image);
+    }
 }
 
 void OnlineAutomation::advance(const QJsonObject &state)
@@ -381,6 +388,16 @@ void OnlineAutomation::sessionInputReady()
     if (m_resyncSeen) {
         m_resyncSeen = false;
         m_shotTurns.remove(turn);
+    }
+    const int leaveTurn = m_config.value(QStringLiteral("scriptedLeaveTurn")).toInt();
+    if (!authority && leaveTurn > 0 && turn >= leaveTurn && !m_leaveDone) {
+        m_leaveDone = true;
+        QFile marker(QDir(m_config.value(QStringLiteral("logDirectory")).toString()).filePath(QStringLiteral("left-match.txt")));
+        if (marker.open(QIODevice::WriteOnly | QIODevice::Truncate)) marker.write(QByteArray::number(turn));
+        if (auto *view = m_widget->window()->findChild<Online::OnlineMatchView *>())
+            QTimer::singleShot(0, view, [view] { Q_EMIT view->leaveRequested(); });
+        QTimer::singleShot(1500, qApp, [] { QCoreApplication::exit(0); });
+        return;
     }
     const int dropTurn = m_config.value(QStringLiteral("scriptedMatchDropTurn")).toInt();
     if (dropTurn > 0 && turn >= dropTurn && !m_matchDropDone) {

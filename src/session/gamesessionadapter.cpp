@@ -71,6 +71,7 @@ bool GameSessionAdapter::loadHole(int number) {
         while (p.numHoles() < unsigned(number)) p.addHole();
     }
     g->openFile();
+    applyDepartures();
     // Online holes are loaded directly, bypassing KolfGame::startNextHole's
     // visibility refresh for the newly created slope and other info items.
     g->setShowInfo(g->isInfoShowing());
@@ -377,24 +378,43 @@ void GameSessionAdapter::continueResolution() {
         }
     }
     g->inPlay = g->m_onlineShot = false;
+    applyDepartures();
+    const auto phase = advanceTurn();
+    if (!phase.isEmpty()) Q_EMIT transition(phase);
+}
+
+void GameSessionAdapter::applyDepartures()
+{
+    for (const int slot : std::as_const(m_departed)) {
+        if (slot < 0 || slot >= g->players->size()) continue;
+        auto *ball = (*g->players)[slot].ball();
+        ball->setState(Holed); ball->setVisible(false); ball->setVelocity(Vector());
+    }
+}
+
+QString GameSessionAdapter::advanceTurn()
+{
     bool allDone = true;
     for (const auto &p : std::as_const(*g->players)) if (p.ball()->curState() != Holed) allDone = false;
     if (allDone) {
         if (hole() >= g->highestHole) {
-            m_finished = true; enableSimulation(false); Q_EMIT transition(QStringLiteral("Finished")); return;
+            m_finished = true; enableSimulation(false); return QStringLiteral("Finished");
         }
-        int starter = 0;
-        for (int i = 1; i < g->players->size(); ++i) {
+        int starter = -1;
+        for (int i = 0; i < g->players->size(); ++i) {
+            if (m_departed.contains(i)) continue;
+            if (starter < 0) { starter = i; continue; }
             for (int h = hole(); h > 0; --h) {
                 const int a = (*g->players)[i].score(h), b = (*g->players)[starter].score(h);
                 if (a != b) { if (a < b) starter = i; break; }
             }
         }
+        if (starter < 0) starter = 0;
         if (!loadHole(hole() + 1)) {
             m_failure = QStringLiteral("next hole could not be loaded");
             enableSimulation(false);
             Q_EMIT failed(m_failure);
-            return;
+            return {};
         }
         for (auto &player : *g->players) player.resetScore(hole());
         g->curBall()->setVisible(false); g->curPlayer = g->players->begin() + starter;
@@ -404,7 +424,17 @@ void GameSessionAdapter::continueResolution() {
     }
     g->curBall()->setVisible(true);
     g->putter->setAngle(g->curBall());
-    Q_EMIT transition(QStringLiteral("AwaitingShot"));
+    return QStringLiteral("AwaitingShot");
+}
+
+QString GameSessionAdapter::removeSlots(const QList<int> &slots)
+{
+    for (const int slot : slots) if (slot >= 0 && slot < g->players->size()) m_departed.insert(slot);
+    if (g->m_role != Role::Authority || g->inPlay || g->m_onlineShot || m_choiceSlot >= 0 || m_finished) return {};
+    applyDepartures();
+    if (!m_departed.contains(activeSlot())) return {};
+    m_scored = false; m_resolutionIndex = 0;
+    return advanceTurn();
 }
 bool GameSessionAdapter::choose(const QString &action) {
     if (!g->maySimulate() || m_choiceSlot < 0 || (action != QLatin1String("drop") && action != QLatin1String("rehit"))) return false;
