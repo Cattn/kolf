@@ -148,6 +148,11 @@ Do not search, install, uninstall, update, rebuild from cache, pin versions, or 
 
 If a build seems to need one of those, stop and ask. Do not "fix" Craft by installing deps or upgrading packages.
 
+Installing any package (even an approved one such as `craft nsis`) first fast-forwards Craft core and `craft-blueprints-kde`. The newer recipes can move kolf to a version with no work folder and expect dependency versions that were never installed, which breaks `--compile` and `--package`. If that happens, ask the user before undoing it. The fix used in November 2026 was:
+
+- `kde/kdegames/kolf` and `kde/kdegames/libkdegames` pinned to `version = 26.08.1` in `C:\CraftRoot\etc\BlueprintSettings.ini`;
+- `git reset --hard` of `C:\CraftRoot\craft` and `C:\CraftRoot\etc\blueprints\locations\craft-blueprints-kde` back to their commits from before the update.
+
 ## Troubleshooting
 
 - If Craft looks stalled, send Enter in that PowerShell session.
