@@ -27,6 +27,8 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QTimer>
+#include <QSettings>
+#include <QCoreApplication>
 #include <QLocalSocket>
 #include <QLocalServer>
 #include <QDir>
@@ -167,6 +169,17 @@ int main(int argc, char **argv)
 	KolfWindow *top = new KolfWindow;
 
 	const bool automated = !qEnvironmentVariableIsEmpty("KOLF_UI_TEST_SCRIPT") || !qEnvironmentVariableIsEmpty("KOLF_ONLINE_TEST_CONFIG");
+#ifdef Q_OS_WIN
+	if (!automated) {
+		QSettings scheme(QStringLiteral("HKEY_CURRENT_USER\\Software\\Classes\\kolf"), QSettings::NativeFormat);
+		const QString command = QStringLiteral("\"%1\" \"%2\"").arg(QDir::toNativeSeparators(QCoreApplication::applicationFilePath()), QStringLiteral("%1"));
+		if (scheme.value(QStringLiteral("shell/open/command/Default")).toString() != command) {
+			scheme.setValue(QStringLiteral("Default"), QStringLiteral("URL:Kolf invite"));
+			scheme.setValue(QStringLiteral("URL Protocol"), QString());
+			scheme.setValue(QStringLiteral("shell/open/command/Default"), command);
+		}
+	}
+#endif
 	if (!automated) {
 		auto *invites = new QLocalServer(top);
 		invites->setSocketOptions(QLocalServer::UserAccessOption);
