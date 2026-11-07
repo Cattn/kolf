@@ -5,9 +5,11 @@ import { validId, validJoinCode } from './ids.ts';
 import { finite, integer, validRosterState } from './game-state.ts';
 import { COURSE_CHUNK_BYTES, MAX_COURSE_BYTES } from '../service/course-catalog.ts';
 
+export interface ClientInfo { appVersion: string; rulesBuildId: string }
+
 export type ClientMessage =
-  | Envelope<'CreateLobby', { displayName: string; colorMode: 'auto' | 'custom'; customColor?: string; courseId: string }>
-  | Envelope<'JoinLobby', { joinCode: string; displayName: string; colorMode: 'auto' | 'custom'; customColor?: string }>
+  | Envelope<'CreateLobby', { displayName: string; colorMode: 'auto' | 'custom'; customColor?: string; courseId: string; clientInfo?: ClientInfo }>
+  | Envelope<'JoinLobby', { joinCode: string; displayName: string; colorMode: 'auto' | 'custom'; customColor?: string; clientInfo?: ClientInfo }>
   | Envelope<'LeaveLobby', Record<string, never>>
   | Envelope<'UpdateMember', { displayName: string }>
   | Envelope<'AddPlayer', { displayName: string; colorMode: 'auto' | 'custom'; customColor?: string }>
@@ -54,6 +56,14 @@ const revision = (value: unknown): value is number => Number.isSafeInteger(value
 const color = (value: unknown): value is string => typeof value === 'string' && /^#[0-9a-fA-F]{8}$/.test(value);
 const colorChoice = (p: JsonObject) => (p.colorMode === 'auto' && p.customColor === undefined)
   || (p.colorMode === 'custom' && color(p.customColor));
+const optionalClientInfo = (value: unknown) => {
+  if (value === undefined) return true;
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const info = value as JsonObject;
+  return Object.keys(info).every(key => key === 'appVersion' || key === 'rulesBuildId')
+    && typeof info.appVersion === 'string' && /^[0-9A-Za-z.+_-]{1,40}$/.test(info.appVersion)
+    && typeof info.rulesBuildId === 'string' && /^[0-9a-f]{64}$/.test(info.rulesBuildId);
+};
 const ZERO_WIDTH_JOINER = String.fromCharCode(0x200d);
 const displayName = (value: unknown): value is string => typeof value === 'string' && value === value.trim()
   && [...value].length >= 1 && [...value].length <= 32 && !/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(value.replaceAll(ZERO_WIDTH_JOINER, ''));
@@ -100,11 +110,12 @@ export function decodeClientMessage(raw: string): ClientMessage {
     case 'CreateLobby':
       rejectExtraScope(message, false, false);
       if (!displayName(p.displayName) || !colorChoice(p)) throw new ProtocolError('InvalidPayload', 'invalid member profile');
+      if (!optionalClientInfo(p.clientInfo)) throw new ProtocolError('InvalidPayload', 'invalid client info');
       assertCourse(p.courseId);
       return message as ClientMessage;
     case 'JoinLobby':
       rejectExtraScope(message, false, false);
-      if (!validJoinCode(p.joinCode) || !displayName(p.displayName) || !colorChoice(p))
+      if (!validJoinCode(p.joinCode) || !displayName(p.displayName) || !colorChoice(p) || !optionalClientInfo(p.clientInfo))
         throw new ProtocolError('InvalidPayload', 'invalid join request');
       return message as ClientMessage;
     case 'LeaveLobby':

@@ -98,7 +98,7 @@ export class LobbyProtocolController {
           const profile = { displayName: message.payload.displayName };
           const player = { displayName: message.payload.displayName, colorMode: message.payload.colorMode,
             customColor: message.payload.customColor };
-          const created = this.service.create(connectionId, message.requestId!, profile, player, message.payload.courseId);
+          const created = this.service.create(connectionId, message.requestId!, profile, player, message.payload.courseId, message.payload.clientInfo);
           return [{ connectionId, message: envelope('LobbyCreated', {
             memberId: created.memberId, state: publicState(created.state),
           }, { requestId, lobbyId: created.state.lobbyId }) }];
@@ -107,7 +107,7 @@ export class LobbyProtocolController {
           const profile = { displayName: message.payload.displayName };
           const player = { displayName: message.payload.displayName, colorMode: message.payload.colorMode,
             customColor: message.payload.customColor };
-          const joined = this.service.join(connectionId, message.requestId!, message.payload.joinCode, profile, player);
+          const joined = this.service.join(connectionId, message.requestId!, message.payload.joinCode, profile, player, message.payload.clientInfo);
           return this.broadcast(joined.state, 'LobbyState', { joinedMemberId: joined.memberId }, requestId);
         }
         default: {
@@ -189,7 +189,7 @@ export class LobbyProtocolController {
       }
     } catch (error) {
       if (error instanceof ProtocolError) return [this.error(connectionId, requestId, error.code, error.message)];
-      if (error instanceof LobbyError) return [this.error(connectionId, requestId, error.code, error.message)];
+      if (error instanceof LobbyError) return [this.error(connectionId, requestId, error.code, error.message, error.details)];
       throw error;
     }
   }
@@ -277,8 +277,9 @@ export class LobbyProtocolController {
     }));
   }
 
-  private error(connectionId: ConnectionId, requestId: string | undefined, code: string, message: string): Delivery {
+  private error(connectionId: ConnectionId, requestId: string | undefined, code: string, message: string,
+    details?: Record<string, string>): Delivery {
     return { connectionId, message: envelope(code === 'UnsupportedProtocol' ? 'UnsupportedProtocol' : 'RequestRejected',
-      { code, message, supportedProtocolVersion: PROTOCOL_VERSION }, { requestId }) };
+      { code, message, supportedProtocolVersion: PROTOCOL_VERSION, ...(details ?? {}) }, { requestId }) };
   }
 }

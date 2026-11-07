@@ -7,6 +7,7 @@
 #include "session/onlineprotocol.h"
 #include "rules_build_id.h"
 
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
@@ -79,11 +80,38 @@ static QJsonObject colorChoice(const QString &mode, const QString &color)
     return choice;
 }
 
+static QJsonObject clientInfo()
+{
+    QString version;
+    for (const QChar character : QCoreApplication::applicationVersion())
+        if (character.isLetterOrNumber() || QStringLiteral(".+_-").contains(character)) version.append(character);
+    version = version.left(40);
+    return {{QStringLiteral("appVersion"), version.isEmpty() ? QStringLiteral("unknown") : version},
+            {QStringLiteral("rulesBuildId"), QStringLiteral(KOLF_RULES_BUILD_ID)}};
+}
+
+QString OnlineCoordinator::incompatibleBuildMessage(const QJsonObject &payload)
+{
+    const QString hostVersion = payload.value(QStringLiteral("hostVersion")).toString().left(40);
+    const QString yourVersion = payload.value(QStringLiteral("yourVersion")).toString().left(40);
+    if (hostVersion.isEmpty() || yourVersion.isEmpty())
+        return tr("This lobby was created with a different version of Kolf. You both need the same version to play together.");
+    if (hostVersion != yourVersion) {
+        if (isNewerClientVersion(hostVersion, yourVersion))
+            return tr("This lobby uses Kolf %1, and you have Kolf %2. Update Kolf to join: kolf.pro/download").arg(hostVersion, yourVersion);
+        return tr("This lobby uses Kolf %1, and you have Kolf %2. Ask the host to update Kolf, then join again.").arg(hostVersion, yourVersion);
+    }
+    return tr("This lobby uses a different build of Kolf %1 (build %2; yours is %3). You both need the same build to play together.")
+        .arg(hostVersion, payload.value(QStringLiteral("hostBuild")).toString().left(8),
+             payload.value(QStringLiteral("yourBuild")).toString().left(8));
+}
+
 void OnlineCoordinator::createLobby(const QString &displayName, const QString &colorMode, const QString &customColor, const QString &courseId)
 {
     auto payload = colorChoice(colorMode, customColor);
     payload[QStringLiteral("displayName")] = displayName.trimmed();
     payload[QStringLiteral("courseId")] = courseId;
+    payload[QStringLiteral("clientInfo")] = clientInfo();
     send(QStringLiteral("CreateLobby"), payload);
 }
 
@@ -92,6 +120,7 @@ void OnlineCoordinator::joinLobby(const QString &joinCode, const QString &displa
     auto payload = colorChoice(colorMode, customColor);
     payload[QStringLiteral("joinCode")] = joinCode.trimmed().toUpper();
     payload[QStringLiteral("displayName")] = displayName.trimmed();
+    payload[QStringLiteral("clientInfo")] = clientInfo();
     send(QStringLiteral("JoinLobby"), payload);
 }
 
@@ -211,6 +240,7 @@ void OnlineCoordinator::receive(const QJsonObject &message)
             : code == QLatin1String("ServiceFull") ? tr("The server is full. Try again later or choose another server.")
             : code == QLatin1String("LobbyNotFound") ? tr("That join code was not found. Check the code and try again.")
             : code == QLatin1String("LobbyFull") ? tr("That lobby is full.")
+            : code == QLatin1String("IncompatibleBuild") ? incompatibleBuildMessage(payload)
             : code == QLatin1String("ServiceRestarting") ? tr("The server is restarting for an update. Try again in a few minutes.")
             : code == QLatin1String("TooManyAttempts") ? tr("Too many join attempts with the wrong code. Wait a minute and try again.")
             : code == QLatin1String("TooManyConnections") ? tr("Too many Kolf windows are connected from your network. Close one and try again.")

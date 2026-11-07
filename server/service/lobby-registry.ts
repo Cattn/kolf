@@ -4,6 +4,7 @@ import { cryptoIds } from '../protocol/ids.ts';
 import type { CourseCatalogEntry, LobbyState, MemberProfile, PlayerProfile } from './lobby.ts';
 import { LobbySession } from './lobby.ts';
 import { LobbyError } from './errors.ts';
+import type { ClientInfo } from '../protocol/codecs.ts';
 import { RequestCache } from './request-cache.ts';
 
 interface Membership { lobbyId: string; memberId: MemberId }
@@ -46,6 +47,7 @@ export class LobbyRegistry {
   private readonly lobbyIdByJoinCode = new Map<string, string>();
   private readonly membershipByConnection = new Map<ConnectionId, Membership>();
   private readonly lastActivity = new Map<string, number>();
+  private readonly hostBuilds = new Map<string, ClientInfo>();
   private readonly requests: RequestCache;
   readonly catalog: CourseCatalogEntry[];
   readonly limits: ServiceLimits;
@@ -73,8 +75,9 @@ export class LobbyRegistry {
 
   expireUploads() { for (const lobby of this.lobbiesById.values()) lobby.transfers.expire(); }
 
-  create(connectionId: ConnectionId, requestId: RequestId, member: MemberProfile, player: PlayerProfile, courseId: string) {
-    return this.requests.run(`connection:${connectionId}`, requestId, 'CreateLobby', { member, player, courseId }, () => {
+  create(connectionId: ConnectionId, requestId: RequestId, member: MemberProfile, player: PlayerProfile, courseId: string,
+    clientInfo?: ClientInfo) {
+    return this.requests.run(`connection:${connectionId}`, requestId, 'CreateLobby', { member, player, courseId, clientInfo }, () => {
       if (this.membershipByConnection.has(connectionId)) throw new LobbyError('AlreadyJoined', 'connection already belongs to a lobby');
       if (this.lobbiesById.size >= this.limits.maximumLobbies) throw new LobbyError('ServiceFull', 'the service has reached its room limit');
       const joinCode = this.uniqueJoinCode(), memberId = this.ids.member(), lobbyId = this.ids.lobby();
@@ -89,16 +92,24 @@ export class LobbyRegistry {
       });
       this.lobbiesById.set(lobbyId, lobby); this.lobbyIdByJoinCode.set(joinCode, lobbyId);
       this.lastActivity.set(lobbyId, this.now());
+      if (clientInfo) this.hostBuilds.set(lobbyId, { ...clientInfo });
       this.membershipByConnection.set(connectionId, { lobbyId, memberId });
       return { memberId, state: lobby.state() };
     });
   }
 
-  join(connectionId: ConnectionId, requestId: RequestId, joinCode: string, member: MemberProfile, player: PlayerProfile) {
-    return this.requests.run(`connection:${connectionId}`, requestId, 'JoinLobby', { joinCode, member, player }, () => {
+  join(connectionId: ConnectionId, requestId: RequestId, joinCode: string, member: MemberProfile, player: PlayerProfile,
+    clientInfo?: ClientInfo) {
+    return this.requests.run(`connection:${connectionId}`, requestId, 'JoinLobby', { joinCode, member, player, clientInfo }, () => {
       if (this.membershipByConnection.has(connectionId)) throw new LobbyError('AlreadyJoined', 'connection already belongs to a lobby');
       const lobbyId = this.lobbyIdByJoinCode.get(joinCode), lobby = lobbyId ? this.lobbiesById.get(lobbyId) : undefined;
       if (!lobby || lobby.phase === 'Closed') throw new LobbyError('LobbyNotFound', 'join code does not identify an open lobby');
+      const hostBuild = this.hostBuilds.get(lobby.lobbyId);
+      if (hostBuild && hostBuild.rulesBuildId !== clientInfo?.rulesBuildId)
+        throw new LobbyError('IncompatibleBuild', 'this lobby was created with a different build of Kolf', {
+          hostVersion: hostBuild.appVersion, hostBuild: hostBuild.rulesBuildId.slice(0, 8),
+          yourVersion: clientInfo?.appVersion ?? 'unknown', yourBuild: clientInfo?.rulesBuildId.slice(0, 8) ?? 'unknown',
+        });
       const memberId = this.ids.member();
       const state = lobby.join({ connectionId, memberId, ...member }, {
         playerId: this.ids.player(), ownerMemberId: memberId, order: lobby.playerCount, ...player,
@@ -165,7 +176,7 @@ export class LobbyRegistry {
 
   private removeLobby(lobby: LobbySession) {
     this.lobbiesById.delete(lobby.lobbyId); this.lobbyIdByJoinCode.delete(lobby.joinCode);
-    this.lastActivity.delete(lobby.lobbyId);
+    this.lastActivity.delete(lobby.lobbyId); this.hostBuilds.delete(lobby.lobbyId);
     for (const [connectionId, membership] of this.membershipByConnection)
       if (membership.lobbyId === lobby.lobbyId) this.membershipByConnection.delete(connectionId);
   }

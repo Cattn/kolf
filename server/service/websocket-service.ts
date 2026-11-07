@@ -5,7 +5,7 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { hostname } from 'node:os';
 import { MAX_MESSAGE_BYTES } from '../protocol/envelope.ts';
-import type { ConnectionId } from '../protocol/ids.ts';
+import type { ConnectionId, IdFactory } from '../protocol/ids.ts';
 import type { CourseCatalogEntry } from './lobby.ts';
 import { LobbyError } from './errors.ts';
 import { LobbyProtocolController } from './connection.ts';
@@ -23,7 +23,7 @@ import type { BlockList } from 'node:net';
 
 interface Options {
   host?: string; port?: number; catalog: CourseCatalogEntry[]; limits?: Partial<ServiceLimits>; info?: ServerInfo;
-  abuse?: Partial<AbuseLimits>; trustedProxies?: string; now?: () => number; log?: Logger; debugLog?: boolean;
+  abuse?: Partial<AbuseLimits>; trustedProxies?: string; now?: () => number; log?: Logger; debugLog?: boolean; ids?: IdFactory;
 }
 
 /** Thin WebSocket transport for the bounded v3 room registry. */
@@ -55,7 +55,7 @@ export class LobbyWebSocketService {
     this.trustedProxies = parseTrustedProxies(options.trustedProxies);
     this.addresses = new AddressCounter(this.abuse.maximumConnectionsPerAddress);
     this.joinFailures = new AttemptThrottle(this.abuse.joinFailuresPerWindow, this.abuse.joinFailureWindowMs, this.now);
-    this.controller = new LobbyProtocolController(options.catalog, undefined, this.now, options.limits, info);
+    this.controller = new LobbyProtocolController(options.catalog, options.ids, this.now, options.limits, info);
     this.controller.log = this.log; this.controller.debugLog = this.debugLog;
     this.server = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE_BYTES, perMessageDeflate: false });
     this.server.on('connection', (socket: WebSocket, request: IncomingMessage) => this.accept(socket, request));
