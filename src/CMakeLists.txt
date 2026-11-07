@@ -156,6 +156,8 @@ target_sources(kolfprivate PRIVATE
 target_sources(kolfprivate PRIVATE
     ball.cpp
     ball.h
+    ballstep.cpp
+    ballstep.h
     canvasitem.cpp
     canvasitem.h
     config.cpp

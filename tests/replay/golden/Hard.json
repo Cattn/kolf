@@ -133,8 +133,8 @@
             "shots": [
                 {
                     "ball": [
-                        112.813,
-                        44.698
+                        95.712,
+                        48.114
                     ],
                     "direction": -2.376,
                     "magnitude": 4.163,
@@ -142,32 +142,87 @@
                         "5-floater@288,52|16": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 173.967,
-                            "y": 42.853
+                            "x": 211.845,
+                            "y": 45.891
                         },
                         "5-floater@294,95|10": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 235.883,
-                            "y": 150.86
+                            "x": 165.434,
+                            "y": 218.573
                         },
                         "5-floater@33,319|15": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 56.38,
-                            "y": 229.253
+                            "x": 49.537,
+                            "y": 255.519
                         }
                     },
                     "state": 1,
-                    "steps": 302,
+                    "steps": 264,
                     "strokes": 1
                 },
                 {
-                    "direction": -2.66,
-                    "holed": true,
+                    "ball": [
+                        110.979,
+                        82.482
+                    ],
+                    "direction": -2.594,
                     "magnitude": 2.428,
-                    "steps": 58,
+                    "objects": {
+                        "5-floater@288,52|16": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 209.45,
+                            "y": 45.699
+                        },
+                        "5-floater@294,95|10": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 161.296,
+                            "y": 222.551
+                        },
+                        "5-floater@33,319|15": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 38.849,
+                            "y": 296.549
+                        }
+                    },
+                    "state": 1,
+                    "steps": 221,
                     "strokes": 2
+                },
+                {
+                    "ball": [
+                        62.252,
+                        56.724
+                    ],
+                    "direction": -2.658,
+                    "magnitude": 1.388,
+                    "objects": {
+                        "5-floater@288,52|16": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 271.252,
+                            "y": 50.657
+                        },
+                        "5-floater@294,95|10": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 276.238,
+                            "y": 112.072
+                        },
+                        "5-floater@33,319|15": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 38.315,
+                            "y": 298.596
+                        }
+                    },
+                    "state": 1,
+                    "steps": 61,
+                    "strokes": 3
                 }
             ]
         },
@@ -434,8 +489,8 @@
             "shots": [
                 {
                     "ball": [
-                        146.175,
-                        185.139
+                        138.813,
+                        176.849
                     ],
                     "direction": 1.001,
                     "magnitude": 4.163,
@@ -443,104 +498,104 @@
                         "11-floater@127,241|13": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 60.078,
-                            "y": 237.478
+                            "x": 57.225,
+                            "y": 237.328
                         },
                         "11-floater@127,241|13/left-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 60.078,
-                            "y": 237.478
+                            "x": 57.225,
+                            "y": 237.328
                         },
                         "11-floater@127,241|13/right-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 60.078,
-                            "y": 237.478
+                            "x": 57.225,
+                            "y": 237.328
                         },
                         "11-floater@127,241|13/top-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 60.078,
-                            "y": 237.478
+                            "x": 57.225,
+                            "y": 237.328
                         }
                     },
                     "state": 1,
-                    "steps": 66,
+                    "steps": 62,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        147.693,
-                        187.939
+                        140.488,
+                        201.478
                     ],
-                    "direction": 1.525,
+                    "direction": 1.51,
                     "magnitude": 2.428,
                     "objects": {
                         "11-floater@127,241|13": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 80.05,
-                            "y": 238.529
+                            "x": 70.064,
+                            "y": 238.003
                         },
                         "11-floater@127,241|13/left-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 80.05,
-                            "y": 238.529
+                            "x": 70.064,
+                            "y": 238.003
                         },
                         "11-floater@127,241|13/right-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 80.05,
-                            "y": 238.529
+                            "x": 70.064,
+                            "y": 238.003
                         },
                         "11-floater@127,241|13/top-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 80.05,
-                            "y": 238.529
+                            "x": 70.064,
+                            "y": 238.003
                         }
                     },
                     "state": 1,
-                    "steps": 29,
+                    "steps": 19,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        151.961,
-                        195.119
+                        146.403,
+                        192.996
                     ],
-                    "direction": 1.089,
+                    "direction": 1.007,
                     "magnitude": 1.388,
                     "objects": {
                         "11-floater@127,241|13": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 88.61,
-                            "y": 238.979
+                            "x": 82.903,
+                            "y": 238.679
                         },
                         "11-floater@127,241|13/left-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 88.61,
-                            "y": 238.979
+                            "x": 82.903,
+                            "y": 238.679
                         },
                         "11-floater@127,241|13/right-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 88.61,
-                            "y": 238.979
+                            "x": 82.903,
+                            "y": 238.679
                         },
                         "11-floater@127,241|13/top-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 88.61,
-                            "y": 238.979
+                            "x": 82.903,
+                            "y": 238.679
                         }
                     },
                     "state": 1,
-                    "steps": 11,
+                    "steps": 17,
                     "strokes": 3
                 }
             ]

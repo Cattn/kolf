@@ -157,7 +157,7 @@ namespace Kolf
 	{
 		public:
 			Bridge(QGraphicsItem* parent, b2World* world);
-			bool collision(Ball* ball) override;
+			void onBall(Kolf::BallStepContext &context) override;
 	};
 
 	class Floater : public Kolf::RectangleItem

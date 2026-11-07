@@ -357,21 +357,21 @@
             "shots": [
                 {
                     "ball": [
-                        259.881,
-                        381.295
+                        263.168,
+                        382.826
                     ],
                     "direction": -2.184,
                     "magnitude": 4.163,
                     "state": 1,
-                    "steps": 440,
+                    "steps": 442,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        297.217,
-                        380.007
+                        298.386,
+                        381.399
                     ],
-                    "direction": -1.386,
+                    "direction": -1.396,
                     "magnitude": 2.428,
                     "state": 1,
                     "steps": 175,
@@ -379,10 +379,10 @@
                 },
                 {
                     "ball": [
-                        270.388,
-                        355.471
+                        271.442,
+                        354.044
                     ],
-                    "direction": -1.953,
+                    "direction": -1.955,
                     "magnitude": 1.388,
                     "state": 1,
                     "steps": 99,

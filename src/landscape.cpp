@@ -21,6 +21,7 @@
 #include "ball.h"
 #include "game.h"
 #include "objectregistry.h"
+#include "ballstep.h"
 
 #include <QDoubleSpinBox>
 #include <QBoxLayout>
@@ -219,11 +220,10 @@ Kolf::Sand::Sand(QGraphicsItem* parent, b2World* world)
 	setZBehavior(CanvasItem::FixedZValue, 2);
 }
 
-bool Kolf::Sand::collision(Ball* ball)
+void Kolf::Sand::onBall(Kolf::BallStepContext &context)
 {
-	if (contains(ball->pos() - pos()))
-		ball->setFrictionMultiplier(7);
-	return true;
+	if (contains(context.ball()->pos() - pos()))
+		context.surface(QStringLiteral("sand"), 7, 1);
 }
 
 //END Kolf::Sand
@@ -476,9 +476,10 @@ void Kolf::Slope::updateInfo()
 	}
 }
 
-bool Kolf::Slope::collision(Ball* ball)
+void Kolf::Slope::onBall(Kolf::BallStepContext &context)
 {
-	Vector v = ball->velocity();
+	Ball *ball = context.ball();
+	Vector v;
 	double addto = 0.013 * m_grade;
 
 	const bool diag = m_type == Kolf::DiagonalSlope || m_type == Kolf::CrossDiagonalSlope;
@@ -523,15 +524,7 @@ bool Kolf::Slope::collision(Ball* ball)
 			v.ry() += sin(slopeAngle) * addto;
 			break;
 	}
-	ball->setVelocity(v);
-	ball->setState(v.isNull() ? Stopped : Rolling);
-	// do NOT do terrain collidingItems
-	return false;
-}
-
-bool Kolf::Slope::terrainCollisions() const
-{
-	return true;
+	context.force(QStringLiteral("slope"), v);
 }
 
 QList<QGraphicsItem*> Kolf::Slope::infoItems() const

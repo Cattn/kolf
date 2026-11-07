@@ -21,6 +21,7 @@
 #include "ball.h"
 #include "game.h"
 #include "objectregistry.h"
+#include "ballstep.h"
 #include "shape.h"
 
 #include <QCheckBox>
@@ -510,10 +511,11 @@ Kolf::Bridge::Bridge(QGraphicsItem* parent, b2World* world)
 	setZBehavior(CanvasItem::IsStrut, 0);
 }
 
-bool Kolf::Bridge::collision(Ball* ball)
+void Kolf::Bridge::onBall(Kolf::BallStepContext &context)
 {
-	ball->setFrictionMultiplier(.63);
-	return false;
+	context.surface(QStringLiteral("bridge"), .63, 2);
+	context.claimContact();
+	context.cover();
 }
 
 //END Kolf::Bridge

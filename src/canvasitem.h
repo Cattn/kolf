@@ -43,6 +43,8 @@ namespace Kolf
 
 enum RttiCodes { Rtti_NoCollision = 1001, Rtti_DontPlaceOn = 1002, Rtti_Putter = 1004 };
 
+namespace Kolf { class BallStepContext; }
+
 class CanvasItem
 {
 public:
@@ -58,8 +60,7 @@ public:
 	virtual void shotStarted() {}
 	///called when the edit mode has been changed.
 	virtual void editModeChanged(bool editing);
-	///Returns whether all items of this type of item (based on data()) that are "colliding" (ie, in the same spot) with ball should get collision() called.
-	virtual bool terrainCollisions() const { return false; }
+	virtual void onBall(Kolf::BallStepContext &context);
 	///Returns a Config that can be used to configure this item by the user. The default implementation returns one that says 'No configuration options'.
 	virtual Config *config(QWidget *parent) { return new DefaultConfig(parent); }
 	///Returns other items that should be movable (besides this one of course).

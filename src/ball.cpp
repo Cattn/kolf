@@ -18,6 +18,7 @@
 */
 
 #include "ball.h"
+#include "ballstep.h"
 #include "game.h"
 #include "overlay.h"
 #include "shape.h"
@@ -135,7 +136,7 @@ void Ball::collisionDetect()
 
 	const QList<QGraphicsItem *> items = collidingItems();
 
-	bool doTerrainCollisions = true;
+	Kolf::BallStepContext context(this);
 	for (QGraphicsItem* item : items) {
 		if (item->data(0) == Rtti_NoCollision || item->data(0) == Rtti_Putter)
 		{
@@ -143,39 +144,18 @@ void Ball::collisionDetect()
 				game->playSound(Sound::Wall);
 			continue;
 		}
-	
+
 		if (!isVisible() || state == Holed)
 			return;
 
 		CanvasItem *citem = dynamic_cast<CanvasItem *>(item);
-		if (citem)
-		{
-			if (!citem->terrainCollisions())
-			{
-				//do collision
-				const bool allowTerrainCollisions = citem->collision(this);
-				doTerrainCollisions = doTerrainCollisions && allowTerrainCollisions;
-			}
+		if (!citem)
+			continue;
+		if (context.covered())
 			break;
-		}
+		citem->onBall(context);
 	}
-
-	if (doTerrainCollisions)
-	{
-		for (QGraphicsItem* item : items) {
-			CanvasItem *citem = dynamic_cast<CanvasItem *>(item);
-			if (citem && citem->terrainCollisions())
-			{
-				// slopes return false
-				// as only one should be processed
-				// however that might not always be true
-				if (!citem->collision(this))
-				{
-					break;
-				}
-			}
-		}
-	}
+	context.apply();
 
 	const double currentVelocity = Vector(velocity()).magnitude();
 	const double velocityChange = qAbs(initialVelocity - currentVelocity);

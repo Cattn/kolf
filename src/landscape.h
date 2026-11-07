@@ -87,7 +87,7 @@ namespace Kolf
 	{
 		public:
 			Sand(QGraphicsItem* parent, b2World* world);
-			bool collision(Ball* ball) override;
+			void onBall(Kolf::BallStepContext &context) override;
 	};
 
 	enum SlopeType
@@ -118,8 +118,7 @@ namespace Kolf
 			QVariantMap properties() const override;
 			void applyProperties(const QVariantMap &values) override;
 
-			bool collision(Ball* ball) override;
-			bool terrainCollisions() const override;
+			void onBall(Kolf::BallStepContext &context) override;
 			QList<QGraphicsItem*> infoItems() const override;
 			Config* config(QWidget* parent) override;
 		public Q_SLOTS:

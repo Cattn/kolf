@@ -21,6 +21,7 @@
 #include "game.h"
 #include "landscape.h"
 #include "objectregistry.h"
+#include "ballstep.h"
 #include "overlay.h"
 #include "shape.h"
 
@@ -177,6 +178,17 @@ void CanvasItem::moveBy(double dx, double dy)
 	QGraphicsItem* qitem = dynamic_cast<QGraphicsItem*>(this);
 	if (qitem)
 		updateZ(qitem);
+}
+
+void CanvasItem::onBall(Kolf::BallStepContext &context)
+{
+	if (m_zBehavior == CanvasItem::IsStrut) {
+		context.claimContact();
+		context.cover();
+		return;
+	}
+	if (context.claimContact() && !collision(context.ball()))
+		context.blockForces();
 }
 
 void CanvasItem::load(KConfigGroup *group)
