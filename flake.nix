@@ -15,6 +15,7 @@
             src = self;
             buildInputs = (old.buildInputs or [ ]) ++ [
               pkgs.kdePackages.qtwebsockets
+              pkgs.kdePackages.qtsvg
               pkgs.kdePackages.kjobwidgets
             ];
             cmakeFlags = (old.cmakeFlags or [ ]) ++ [ "-DKOLF_TEST_AUTOMATION=OFF" ];

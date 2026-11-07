@@ -16,4 +16,12 @@ ecm_add_test(objectregistrytest.cpp
     TEST_NAME objectregistrytest
     LINK_LIBRARIES kolfprivate Qt6::Test)
 target_include_directories(objectregistrytest PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_compile_definitions(objectregistrytest PRIVATE KOLF_OBJECT_CATALOG="${CMAKE_SOURCE_DIR}/protocol/object-catalog.json")
+target_compile_definitions(objectregistrytest PRIVATE KOLF_OBJECT_CATALOG="${CMAKE_SOURCE_DIR}/protocol/object-catalog.json"
+    KOLF_SOURCE_OBJECTS="${CMAKE_SOURCE_DIR}/objects")
+set_tests_properties(objectregistrytest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+ecm_add_test(dataobjecttest.cpp
+    TEST_NAME dataobjecttest
+    LINK_LIBRARIES kolfprivate Qt6::Test)
+target_include_directories(dataobjecttest PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_compile_definitions(dataobjecttest PRIVATE KOLF_SOURCE_OBJECTS="${CMAKE_SOURCE_DIR}/objects")
+set_tests_properties(dataobjecttest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

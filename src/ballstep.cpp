@@ -27,6 +27,14 @@ void Kolf::BallStepContext::force(const QString &kind, const Vector &delta)
 	m_hasForce = true;
 }
 
+void Kolf::BallStepContext::impulse(const Vector &delta)
+{
+	if (m_covered)
+		return;
+	m_force += delta;
+	m_hasForce = true;
+}
+
 double Kolf::BallStepContext::frictionMultiplier() const
 {
 	int top = 0;

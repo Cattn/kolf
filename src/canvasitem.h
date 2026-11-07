@@ -61,6 +61,7 @@ public:
 	///called when the edit mode has been changed.
 	virtual void editModeChanged(bool editing);
 	virtual void onBall(Kolf::BallStepContext &context);
+	virtual bool isHazardAt(const QPointF &scenePoint) const { Q_UNUSED(scenePoint) return false; }
 	///Returns a Config that can be used to configure this item by the user. The default implementation returns one that says 'No configuration options'.
 	virtual Config *config(QWidget *parent) { return new DefaultConfig(parent); }
 	///Returns other items that should be movable (besides this one of course).

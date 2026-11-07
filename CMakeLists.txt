@@ -35,6 +35,7 @@ find_package(Qt6 ${QT_MIN_VERSION} REQUIRED COMPONENTS
     Gui
     Widgets
     Network
+    Svg
     WebSockets
 )
 
@@ -68,6 +69,7 @@ if(BUILD_TESTING)
 endif()
 add_subdirectory(sounds)
 add_subdirectory(courses)
+add_subdirectory(objects)
 add_subdirectory(pics)
 add_subdirectory(themes)
 add_subdirectory(doc)

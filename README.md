@@ -26,7 +26,7 @@ Kolf is a CMake project. It needs:
 | Dependency | Version |
 | --- | --- |
 | CMake and Extra CMake Modules (ECM) | 3.16, 6.0 |
-| Qt 6: Core, Gui, Widgets, Network, WebSockets, Test | 6.5 |
+| Qt 6: Core, Gui, Widgets, Network, Svg, WebSockets, Test | 6.5 |
 | KDE Frameworks 6: Completion, Config, ConfigWidgets, CoreAddons, Crash, DocTools, I18n, IconThemes, JobWidgets, KIO, TextWidgets, WidgetsAddons, XmlGui | 6.0 |
 | libkdegames (KDEGames6) | 6.0 |
 

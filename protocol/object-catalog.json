@@ -1,5 +1,5 @@
 {
-    "catalogHash": "f9606ea95afab30897ae7f9c58a75eea4510c5823762daa89255d4c63b326964",
+    "catalogHash": "f71cd1ea67670175413bd247a941270530836ca51a69d62ecce6f6e6251e882b",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -209,6 +209,52 @@
             "runtime": [
                 "position",
                 "velocity"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "terrain",
+            "id": "ice",
+            "name": "Ice",
+            "properties": [
+                {
+                    "default": 60,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": 0.25,
+                    "key": "slipperiness",
+                    "label": "Friction",
+                    "max": 1,
+                    "min": 0.05,
+                    "step": 0.05,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
             ]
         },
         {

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "objectregistry.h"
+#include "dataobject.h"
 #include "online/coursefile.h"
 
 #include <QGraphicsRectItem>
@@ -97,12 +98,13 @@ private Q_SLOTS:
 
 	void committedCatalogIsCurrent()
 	{
+		QCOMPARE(Kolf::DataObjectLibrary::loadDirectory(QStringLiteral(KOLF_SOURCE_OBJECTS)), QStringList());
 		QString difference;
 		QVERIFY2(Kolf::ObjectRegistry::instance().catalogMatchesFile(QStringLiteral(KOLF_OBJECT_CATALOG), difference),
 			qPrintable(difference));
 	}
 };
 
-QTEST_GUILESS_MAIN(ObjectRegistryTest)
+QTEST_MAIN(ObjectRegistryTest)
 
 #include "objectregistrytest.moc"

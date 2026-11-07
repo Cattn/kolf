@@ -28,6 +28,7 @@ public:
 
 	void surface(const QString &kind, double frictionMultiplier, int priority);
 	void force(const QString &kind, const Vector &delta);
+	void impulse(const Vector &delta);
 
 	double frictionMultiplier() const;
 	bool hasForce() const { return m_hasForce; }

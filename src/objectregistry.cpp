@@ -307,7 +307,7 @@ QJsonObject Kolf::PropertySpec::toJson() const
 {
 	QJsonObject result{
 		{QStringLiteral("key"), m_key},
-		{QStringLiteral("label"), QString::fromUtf8(m_label.untranslatedText())},
+		{QStringLiteral("label"), m_plainLabel.isEmpty() ? QString::fromUtf8(m_label.untranslatedText()) : m_plainLabel},
 		{QStringLiteral("type"), propertyTypeId(m_type)},
 	};
 	switch (m_type) {
@@ -400,4 +400,80 @@ QString Kolf::ObjectType::signature() const
 {
 	const QByteArray json = QJsonDocument(toJson()).toJson(QJsonDocument::Compact);
 	return QString::fromLatin1(QCryptographicHash::hash(json, QCryptographicHash::Sha256).toHex().left(16));
+}
+
+bool Kolf::ObjectRegistry::remove(const QString &id)
+{
+	for (int i = 0; i < m_types.size(); ++i) {
+		if (m_types.at(i).id() == id) {
+			m_types.removeAt(i);
+			return true;
+		}
+	}
+	return false;
+}
+
+std::optional<Kolf::PropertySpec> Kolf::PropertySpec::fromJson(const QString &key, const QJsonObject &json, QString &error)
+{
+	const QString type = json.value(QStringLiteral("type")).toString();
+	const QString label = json.value(QStringLiteral("label")).toString(key);
+	if (label.isEmpty() || label.size() > 64) {
+		error = QStringLiteral("label must be 1 to 64 characters");
+		return std::nullopt;
+	}
+	const auto readNumber = [&](const char *name, double fallback, bool &ok) {
+		const QJsonValue value = json.value(QLatin1String(name));
+		if (value.isUndefined()) return fallback;
+		if (!value.isDouble() || !std::isfinite(value.toDouble())) { ok = false; error = QStringLiteral("%1 must be a number").arg(QLatin1String(name)); }
+		return value.toDouble();
+	};
+	bool ok = true;
+	std::optional<PropertySpec> spec;
+	if (type == QLatin1String("number") || type == QLatin1String("int")) {
+		const double minimum = readNumber("min", 0, ok), maximum = readNumber("max", 100, ok), step = readNumber("step", 1, ok);
+		const double fallback = readNumber("default", minimum, ok);
+		if (!ok) return std::nullopt;
+		if (minimum > maximum || fallback < minimum || fallback > maximum || std::abs(minimum) > MaximumCoordinate || std::abs(maximum) > MaximumCoordinate) {
+			error = QStringLiteral("needs min <= default <= max within +-100000");
+			return std::nullopt;
+		}
+		if (type == QLatin1String("int")) {
+			if (minimum != std::floor(minimum) || maximum != std::floor(maximum) || fallback != std::floor(fallback)) {
+				error = QStringLiteral("int properties need whole numbers");
+				return std::nullopt;
+			}
+			spec = integer(key, KLazyLocalizedString(), int(fallback), int(minimum), int(maximum));
+		} else {
+			spec = number(key, KLazyLocalizedString(), fallback, minimum, maximum, step);
+		}
+	} else if (type == QLatin1String("bool")) {
+		const QJsonValue value = json.value(QStringLiteral("default"));
+		if (!value.isUndefined() && !value.isBool()) { error = QStringLiteral("default must be true or false"); return std::nullopt; }
+		spec = boolean(key, KLazyLocalizedString(), value.toBool(false));
+	} else if (type == QLatin1String("angle")) {
+		const double fallback = readNumber("default", 0, ok);
+		if (!ok) return std::nullopt;
+		if (fallback < 0 || fallback > 359 || fallback != std::floor(fallback)) { error = QStringLiteral("default must be a whole angle from 0 to 359"); return std::nullopt; }
+		spec = angle(key, KLazyLocalizedString(), int(fallback));
+	} else if (type == QLatin1String("enum")) {
+		QStringList values;
+		for (const auto value : json.value(QStringLiteral("values")).toArray()) {
+			if (!value.isString() || value.toString().isEmpty() || value.toString().size() > 64) { error = QStringLiteral("values must be short strings"); return std::nullopt; }
+			values << value.toString();
+		}
+		const QString fallback = json.value(QStringLiteral("default")).toString(values.value(0));
+		if (values.isEmpty() || values.size() > 32 || !values.contains(fallback)) { error = QStringLiteral("needs 1 to 32 values including the default"); return std::nullopt; }
+		spec = choice(key, KLazyLocalizedString(), values, fallback);
+	} else if (type == QLatin1String("text")) {
+		const double maximumLength = readNumber("maxLength", 200, ok);
+		if (!ok) return std::nullopt;
+		const QString fallback = json.value(QStringLiteral("default")).toString();
+		if (maximumLength < 1 || maximumLength > 1000 || fallback.size() > maximumLength) { error = QStringLiteral("maxLength must be 1 to 1000 and fit the default"); return std::nullopt; }
+		spec = text(key, KLazyLocalizedString(), fallback, int(maximumLength));
+	} else {
+		error = QStringLiteral("type must be number, int, bool, angle, enum or text");
+		return std::nullopt;
+	}
+	spec->m_plainLabel = label;
+	return spec;
 }

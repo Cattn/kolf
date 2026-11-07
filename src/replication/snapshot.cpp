@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "snapshot.h"
+#include "dataobject.h"
 #include "canvasitem.h"
 #include <QJsonArray>
 #include <QPen>
@@ -9,6 +10,7 @@ namespace Kolf::Replication {
 QString visualKind(QGraphicsItem *item) {
     if (dynamic_cast<QGraphicsLineItem *>(item)) return QStringLiteral("line");
     if (dynamic_cast<Tagaro::SpriteObjectItem *>(item)) return QStringLiteral("sprite");
+    if (dynamic_cast<Kolf::DataObject *>(item)) return QStringLiteral("data");
     return QStringLiteral("unsupported");
 }
 QJsonObject captureVisual(const QString &id, QGraphicsItem *item) {
@@ -55,7 +57,7 @@ bool validateVisual(const QJsonObject &v) {
     } else if (kind == QLatin1String("sprite")) {
         if (v[QStringLiteral("sprite")].toString().isEmpty() || v[QStringLiteral("sprite")].toString().size() > 128
             || !v[QStringLiteral("frame")].isDouble() || v[QStringLiteral("frame")].toInt(-2) < -1 || v[QStringLiteral("frame")].toInt() > 10000) return false;
-    } else return false;
+    } else if (kind != QLatin1String("data")) return false;
     return !v.contains(QStringLiteral("color")) || QColor(v[QStringLiteral("color")].toString()).isValid();
 }
 void applyVisual(const QJsonObject &v, QGraphicsItem *item) {

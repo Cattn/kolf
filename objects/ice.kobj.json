@@ -1,0 +1,15 @@
+{
+  "kolfObject": 1,
+  "id": "ice",
+  "name": "Ice",
+  "category": "terrain",
+  "help": "Slippery ground: the ball keeps rolling much further.",
+  "shape": { "type": "rect", "size": [60, 40], "resizable": true, "rotatable": true },
+  "visual": { "sprite": "ice.svg", "layer": "ground" },
+  "properties": {
+    "slipperiness": { "type": "number", "label": "Friction", "min": 0.05, "max": 1, "step": 0.05, "default": 0.25 }
+  },
+  "components": [
+    { "type": "surface", "friction": "$slipperiness", "priority": 1 }
+  ]
+}

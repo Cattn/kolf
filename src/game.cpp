@@ -1502,8 +1502,8 @@ void KolfGame::shotDone()
 					bool keepMoving = false;
 					for (auto *item : std::as_const(m_topLevelQItems))
 					{
-						auto *puddle = dynamic_cast<Kolf::Puddle *>(item);
-						if (puddle && puddle->contains(ball->pos() - puddle->pos()))
+						auto *hazard = dynamic_cast<CanvasItem *>(item);
+						if (hazard && hazard->isHazardAt(ball->pos()))
 						{
 							keepMoving = true;
 							break;

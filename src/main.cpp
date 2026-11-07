@@ -19,6 +19,7 @@
 #include "kolf.h"
 #include "kolf_version.h"
 #include "objectregistry.h"
+#include "dataobject.h"
 #include "session/onlineprotocol.h"
 #include <QJsonDocument>
 
@@ -113,6 +114,8 @@ int main(int argc, char **argv)
     aboutData.setupCommandLine(&parser);
     parser.process(app);
     aboutData.processCommandLine(&parser);
+    for (const auto &error : Kolf::DataObjectLibrary::loadInstalled())
+        qWarning().noquote() << "Object definition rejected:" << error;
 
     if (parser.isSet(QStringLiteral("dump-object-catalog")))
         return Kolf::ObjectRegistry::instance().writeCatalog(parser.value(QStringLiteral("dump-object-catalog"))) ? 0 : 1;

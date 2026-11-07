@@ -1,0 +1,84 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+#pragma once
+
+#include "canvasitem.h"
+#include "objectregistry.h"
+
+#include <QGraphicsObject>
+#include <QJsonObject>
+#include <QSizeF>
+#include <QStringList>
+#include <memory>
+
+class QSvgRenderer;
+
+namespace Kolf
+{
+struct DataComponent
+{
+	QString type;
+	QJsonObject parameters;
+};
+
+struct DataObjectDefinition
+{
+	QString id;
+	QString name;
+	QString help;
+	QString file;
+	QString shape;
+	QSizeF size;
+	bool resizable = false;
+	bool rotatable = false;
+	QString layer;
+	QList<DataComponent> components;
+	std::shared_ptr<QSvgRenderer> sprite;
+};
+
+QString sanitizeSvg(const QByteArray &svg);
+
+class DataObjectLibrary
+{
+public:
+	static std::shared_ptr<const DataObjectDefinition> parse(const QByteArray &json, const QString &file, const QByteArray &sprite, QString &error);
+	static bool loadFile(const QString &path, QString &error);
+	static QStringList loadDirectory(const QString &directory);
+	static QStringList loadInstalled();
+};
+
+class DataObject : public QGraphicsObject, public CanvasItem
+{
+	Q_OBJECT
+public:
+	DataObject(std::shared_ptr<const DataObjectDefinition> definition, QGraphicsItem *parent, b2World *world);
+
+	QRectF boundingRect() const override;
+	QPainterPath shape() const override;
+	void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+
+	QPointF getPosition() const override { return pos(); }
+	void moveBy(double dx, double dy) override;
+	void setSize(const QSizeF &size) override;
+
+	QVariantMap properties() const override;
+	void applyProperties(const QVariantMap &values) override;
+	QVariantMap runtimeState() const override;
+	void setRuntimeState(const QVariantMap &state) override;
+	void onBall(BallStepContext &context) override;
+	bool isHazardAt(const QPointF &point) const override;
+
+protected:
+	Kolf::Overlay *createOverlay() override;
+
+private:
+	QVariant parameter(const DataComponent &component, const QString &name, const QVariant &fallback) const;
+	bool containsPoint(const QPointF &point) const;
+	void playSound(const QString &event);
+	void updateGeometry();
+
+	std::shared_ptr<const DataObjectDefinition> m_definition;
+	QVariantMap m_values;
+	QSizeF m_size;
+	qint64 m_lastBoost = -1000000;
+};
+}

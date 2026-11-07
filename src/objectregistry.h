@@ -9,6 +9,7 @@
 #include <QStringList>
 #include <QVariant>
 #include <QVariantMap>
+#include <functional>
 #include <optional>
 
 class KConfigGroup;
@@ -36,9 +37,10 @@ public:
 	static PropertySpec point(const QString &key, const KLazyLocalizedString &label, const QPoint &defaultValue);
 	static PropertySpec pointF(const QString &key, const KLazyLocalizedString &label, const QPointF &defaultValue);
 	static PropertySpec text(const QString &key, const KLazyLocalizedString &label, const QString &defaultValue, int maximumLength);
+	static std::optional<PropertySpec> fromJson(const QString &key, const QJsonObject &json, QString &error);
 
 	QString key() const { return m_key; }
-	QString label() const { return m_label.toString(); }
+	QString label() const { return m_plainLabel.isEmpty() ? m_label.toString() : m_plainLabel; }
 	PropertyType type() const { return m_type; }
 	QVariant defaultValue() const { return m_default; }
 	double minimum() const { return m_minimum; }
@@ -56,6 +58,7 @@ private:
 
 	QString m_key;
 	KLazyLocalizedString m_label;
+	QString m_plainLabel;
 	PropertyType m_type;
 	QVariant m_default;
 	double m_minimum = 0;
@@ -67,9 +70,10 @@ private:
 class ObjectType
 {
 public:
-	using Creator = QGraphicsItem *(*)(QGraphicsItem *parent, b2World *world);
+	using Creator = std::function<QGraphicsItem *(QGraphicsItem *parent, b2World *world)>;
 
 	ObjectType(const QString &id, const KLazyLocalizedString &name) : m_id(id), m_name(name) {}
+	static ObjectType withPlainName(const QString &id, const QString &name) { ObjectType type(id, KLazyLocalizedString()); type.m_plainName = name; return type; }
 
 	ObjectType &category(ObjectCategory category) { m_category = category; return *this; }
 	ObjectType &decoration() { m_affectsGameplay = false; return *this; }
@@ -80,12 +84,12 @@ public:
 	ObjectType &runtime(const QStringList &fields) { m_runtime = fields; return *this; }
 
 	QString id() const { return m_id; }
-	QString name() const { return m_name.toString(); }
-	QString untranslatedName() const { return QString::fromUtf8(m_name.untranslatedText()); }
+	QString name() const { return m_plainName.isEmpty() ? m_name.toString() : m_plainName; }
+	QString untranslatedName() const { return m_plainName.isEmpty() ? QString::fromUtf8(m_name.untranslatedText()) : m_plainName; }
 	ObjectCategory objectCategory() const { return m_category; }
 	bool affectsGameplay() const { return m_affectsGameplay; }
 	bool isAddedOnNewHole() const { return m_addOnNewHole; }
-	bool hasCreator() const { return m_creator; }
+	bool hasCreator() const { return bool(m_creator); }
 	QGraphicsItem *create(QGraphicsItem *parent, b2World *world) const { return m_creator ? m_creator(parent, world) : nullptr; }
 	QList<PropertySpec> propertySpecs() const { return m_properties; }
 	QStringList runtimeFields() const { return m_runtime; }
@@ -99,6 +103,7 @@ public:
 private:
 	QString m_id;
 	KLazyLocalizedString m_name;
+	QString m_plainName;
 	ObjectCategory m_category = ObjectCategory::Obstacle;
 	bool m_affectsGameplay = true;
 	bool m_addOnNewHole = false;
@@ -119,6 +124,7 @@ public:
 	const ObjectType *find(const QString &id) const;
 	QGraphicsItem *create(const QString &id, QGraphicsItem *parent, b2World *world) const;
 	bool isKnownGroup(const QString &type) const;
+	bool remove(const QString &id);
 
 	QJsonObject catalog() const;
 	QByteArray catalogJson() const;

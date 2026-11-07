@@ -25,6 +25,7 @@ function validVisual(value: JsonObject): boolean {
     return Array.isArray(value.line) && value.line.length === 4
       && value.line.every((component: unknown) => finite(component, -1_000_000, 1_000_000));
   }
+  if (value.kind === 'data') return true;
   return value.kind === 'sprite' && typeof value.sprite === 'string' && value.sprite.length > 0
     && value.sprite.length <= 128 && integer(value.frame, -1, 10_000);
 }

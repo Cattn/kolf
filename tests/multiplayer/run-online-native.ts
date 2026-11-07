@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
 assert(['two-rematch', 'four-player', 'four-player-hazard', 'lobby-rules', 'custom-course',
-  'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-undo-dynamics', 'host-skip', 'host-go',
+  'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-undo-dynamics', 'host-skip', 'host-go', 'data-object',
   'host-proposal-approve', 'host-proposal-reject', 'host-proposal-four-player', 'host-combined', 'shipped-download', 'lobby-resume', 'match-resume', 'host-resume', 'guest-leaves'].includes(scenario),
   'Unknown native scenario');
 const variableRoster = scenario.startsWith('four-player') || scenario === 'host-proposal-four-player' || scenario === 'lobby-rules';
@@ -28,7 +28,7 @@ const turnCount = slopeScenario ? 2 : hazardScenario ? 40 : scenario === 'host-p
 const directory = resolve(root, 'server/local-session', `online-${scenario}-${Date.now()}`);
 const joinCodeFile = resolve(directory, 'join-code.txt');
 const course = slopeScenario ? resolve(directory, 'slope-practice-hole-1.kolf')
-  : resolve(root, `tests/multiplayer/fixtures/${hazardScenario ? 'water' : scenario === 'host-undo-dynamics' ? 'dynamics' : 'static'}.kolf`);
+  : resolve(root, `tests/multiplayer/fixtures/${hazardScenario ? 'water' : scenario === 'host-undo-dynamics' ? 'dynamics' : scenario === 'data-object' ? 'ice' : 'static'}.kolf`);
 mkdirSync(directory, { recursive: true });
 if (slopeScenario) {
   const shipped = readFileSync(resolve(root, 'courses/Practice'), 'utf8');
@@ -252,6 +252,14 @@ try {
     assert.deepEqual(applied[1].find(event => event.state.turnId === 4)?.state,
       applied[0].find(event => event.state.turnId === 4)?.state,
       'guest reconciled exactly to the authority undo state');
+  }
+  if (scenario === 'data-object') {
+    for (let client = 0; client < clientCount; ++client) {
+      const states = events(sessionDirectories(client)[0]).filter(event => event.event === 'applied' || event.event === 'commit');
+      assert(states.length > 0, `client ${client} applied match state`);
+      const ice = states[0].state.objects.find((object: { id: string }) => object.id.startsWith('1-ice@'));
+      assert(ice && ice.kind === 'data' && ice.visible === true, `client ${client} received the data-defined ice object`);
+    }
   }
   if (scenario === 'host-skip') {
     const skipped = Array.from({ length: clientCount }, (_, client) =>

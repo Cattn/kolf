@@ -80,6 +80,7 @@ namespace Kolf
 	{
 		public:
 			Puddle(QGraphicsItem* parent, b2World* world);
+			bool isHazardAt(const QPointF &scenePoint) const override { return contains(scenePoint - pos()); }
 			bool collision(Ball* ball) override;
 	};
 

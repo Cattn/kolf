@@ -158,6 +158,8 @@ target_sources(kolfprivate PRIVATE
     ball.h
     ballstep.cpp
     ballstep.h
+    dataobject.cpp
+    dataobject.h
     canvasitem.cpp
     canvasitem.h
     config.cpp
@@ -212,6 +214,7 @@ target_link_libraries(kolfprivate
     Qt6::Gui
     Qt6::Widgets
     Qt6::Network
+    Qt6::Svg
     Qt6::WebSockets
 )
 

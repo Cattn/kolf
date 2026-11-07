@@ -95,6 +95,7 @@ npm run test:native:hazard
 node ../tests/multiplayer/run-online-native.ts host-reset
 node ../tests/multiplayer/run-online-native.ts host-undo
 node ../tests/multiplayer/run-online-native.ts host-undo-dynamics
+node ../tests/multiplayer/run-online-native.ts data-object
 node ../tests/multiplayer/run-online-native.ts host-skip
 node ../tests/multiplayer/run-online-native.ts host-go
 node ../tests/multiplayer/run-online-native.ts host-proposal-approve
@@ -119,6 +120,9 @@ exact reconciliation, and completion after the guest retries.
 host-undo-dynamics runs the same checks on `fixtures/dynamics.kolf`, which has
 one of every built-in object, and requires the checkpoint to carry floater and
 windmill runtime state.
+data-object plays `fixtures/ice.kolf`, whose ice patch is defined in
+`objects/ice.kobj.json`, and requires every client to receive it as a `data`
+object.
 The host-skip scenario has the owner score once, skips with the guest still
 unscored, then checks retained scores, next-hole turn order, exact guest
 reconciliation, and completion.

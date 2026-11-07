@@ -454,8 +454,8 @@ bool GameSessionAdapter::choose(const QString &action) {
         for (int step = 0; step < 1000; ++step) {
             bool inHazard = false;
             for (auto *item : std::as_const(g->m_topLevelQItems)) {
-                auto *puddle = dynamic_cast<Kolf::Puddle *>(item);
-                if (puddle && puddle->contains(ball->pos() - puddle->pos())) {
+                auto *hazard = dynamic_cast<CanvasItem *>(item);
+                if (hazard && hazard->isHazardAt(ball->pos())) {
                     inHazard = true;
                     break;
                 }
