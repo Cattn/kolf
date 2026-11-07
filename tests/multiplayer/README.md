@@ -96,6 +96,7 @@ node ../tests/multiplayer/run-online-native.ts host-reset
 node ../tests/multiplayer/run-online-native.ts host-undo
 node ../tests/multiplayer/run-online-native.ts host-undo-dynamics
 node ../tests/multiplayer/run-online-native.ts data-object
+node ../tests/multiplayer/run-online-native.ts host-undo-channels
 node ../tests/multiplayer/run-online-native.ts host-skip
 node ../tests/multiplayer/run-online-native.ts host-go
 node ../tests/multiplayer/run-online-native.ts host-proposal-approve
@@ -123,6 +124,9 @@ windmill runtime state.
 data-object plays `fixtures/ice.kolf`, whose ice patch is defined in
 `objects/ice.kobj.json`, and requires every client to receive it as a `data`
 object.
+host-undo-channels runs the host undo checks on `fixtures/channels.kolf`: a
+pressure plate beside the tee toggles a gate over channel `a`, the undone shot
+must have toggled it, and the undo must restore it on both clients.
 The host-skip scenario has the owner score once, skips with the guest still
 unscored, then checks retained scores, next-hole turn order, exact guest
 reconciliation, and completion.

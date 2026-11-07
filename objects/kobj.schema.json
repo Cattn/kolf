@@ -4,107 +4,514 @@
   "title": "Kolf object definition",
   "type": "object",
   "additionalProperties": false,
-  "required": ["kolfObject", "id", "name", "category", "shape", "visual", "components"],
+  "required": [
+    "kolfObject",
+    "id",
+    "name",
+    "category",
+    "shape",
+    "visual",
+    "components"
+  ],
   "properties": {
-    "kolfObject": { "const": 1 },
-    "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,31}$", "not": { "enum": ["ball", "course", "hole"] } },
-    "name": { "type": "string", "minLength": 1, "maxLength": 64 },
-    "category": { "enum": ["terrain", "obstacle", "hazard", "mechanism", "decoration", "course"] },
-    "help": { "type": "string", "maxLength": 500 },
-    "affectsGameplay": { "type": "boolean", "default": true },
+    "kolfObject": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,31}$",
+      "not": {
+        "enum": [
+          "ball",
+          "course",
+          "hole"
+        ]
+      }
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "category": {
+      "enum": [
+        "terrain",
+        "obstacle",
+        "hazard",
+        "mechanism",
+        "decoration",
+        "course"
+      ]
+    },
+    "help": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "affectsGameplay": {
+      "type": "boolean",
+      "default": true
+    },
     "shape": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "size"],
+      "required": [
+        "type",
+        "size"
+      ],
       "properties": {
-        "type": { "enum": ["rect", "ellipse"] },
-        "size": { "type": "array", "items": { "type": "number", "minimum": 1, "maximum": 2000 }, "minItems": 2, "maxItems": 2 },
-        "resizable": { "type": "boolean", "default": false },
-        "rotatable": { "type": "boolean", "default": false }
+        "type": {
+          "enum": [
+            "rect",
+            "ellipse"
+          ]
+        },
+        "size": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 2000
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "resizable": {
+          "type": "boolean",
+          "default": false
+        },
+        "rotatable": {
+          "type": "boolean",
+          "default": false
+        }
       }
     },
     "visual": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["sprite"],
+      "required": [
+        "sprite"
+      ],
       "properties": {
-        "sprite": { "type": "string", "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}\\.svg$" },
-        "layer": { "enum": ["ground", "raised", "canopy"], "default": "ground" }
+        "sprite": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}\\.svg$"
+        },
+        "layer": {
+          "enum": [
+            "ground",
+            "raised",
+            "canopy"
+          ],
+          "default": "ground"
+        }
       }
     },
     "properties": {
       "type": "object",
       "maxProperties": 32,
-      "propertyNames": { "pattern": "^[a-z][A-Za-z0-9_]{0,31}$", "not": { "enum": ["width", "height", "rotation", "dummykey"] } },
-      "additionalProperties": { "$ref": "#/$defs/property" }
+      "propertyNames": {
+        "pattern": "^[a-z][A-Za-z0-9_]{0,31}$",
+        "not": {
+          "enum": [
+            "width",
+            "height",
+            "rotation",
+            "dummykey"
+          ]
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/property"
+      }
     },
-    "components": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "$ref": "#/$defs/component" } }
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/component"
+      }
+    }
   },
   "$defs": {
-    "binding": { "type": "string", "pattern": "^\\$[a-z][A-Za-z0-9_]{0,31}$" },
+    "binding": {
+      "type": "string",
+      "pattern": "^\\$[a-z][A-Za-z0-9_]{0,31}$"
+    },
     "property": {
       "type": "object",
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "properties": {
-        "type": { "enum": ["number", "int", "bool", "angle", "enum", "text"] },
-        "label": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "type": {
+          "enum": [
+            "number",
+            "int",
+            "bool",
+            "angle",
+            "enum",
+            "text"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
         "default": {},
-        "min": { "type": "number" },
-        "max": { "type": "number" },
-        "step": { "type": "number" },
-        "values": { "type": "array", "items": { "type": "string", "maxLength": 64 }, "minItems": 1, "maxItems": 32 },
-        "maxLength": { "type": "integer", "minimum": 1, "maximum": 1000 }
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "minItems": 1,
+          "maxItems": 32
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
       }
     },
     "component": {
       "type": "object",
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "oneOf": [
         {
           "additionalProperties": false,
-          "required": ["friction"],
+          "required": [
+            "friction"
+          ],
           "properties": {
-            "type": { "const": "surface" },
-            "friction": { "oneOf": [{ "type": "number", "minimum": 0.05, "maximum": 20 }, { "$ref": "#/$defs/binding" }] },
-            "priority": { "oneOf": [{ "type": "integer", "minimum": 0, "maximum": 10 }, { "$ref": "#/$defs/binding" }] }
+            "type": {
+              "const": "surface"
+            },
+            "friction": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.05,
+                  "maximum": 20
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "priority": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            }
           }
         },
         {
           "additionalProperties": false,
-          "required": ["strength"],
+          "required": [
+            "strength"
+          ],
           "properties": {
-            "type": { "const": "force" },
-            "direction": { "oneOf": [{ "type": "integer", "minimum": 0, "maximum": 359 }, { "$ref": "#/$defs/binding" }] },
-            "strength": { "oneOf": [{ "type": "number", "minimum": 0, "maximum": 20 }, { "$ref": "#/$defs/binding" }] }
+            "type": {
+              "const": "force"
+            },
+            "direction": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 359
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "strength": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 20
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            }
           }
         },
         {
           "additionalProperties": false,
-          "required": ["impulse"],
+          "required": [
+            "impulse"
+          ],
           "properties": {
-            "type": { "const": "boost" },
-            "direction": { "oneOf": [{ "type": "integer", "minimum": 0, "maximum": 359 }, { "$ref": "#/$defs/binding" }] },
-            "impulse": { "oneOf": [{ "type": "number", "minimum": 0, "maximum": 10 }, { "$ref": "#/$defs/binding" }] },
-            "cooldown": { "oneOf": [{ "type": "integer", "minimum": 0, "maximum": 600 }, { "$ref": "#/$defs/binding" }] }
+            "type": {
+              "const": "boost"
+            },
+            "direction": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 359
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "impulse": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "cooldown": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 600
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            }
           }
         },
         {
           "additionalProperties": false,
-          "required": ["outcome"],
-          "properties": { "type": { "const": "hazard" }, "outcome": { "const": "water" } }
-        },
-        {
-          "additionalProperties": false,
-          "required": ["on", "key"],
+          "required": [
+            "outcome"
+          ],
           "properties": {
-            "type": { "const": "sound" },
-            "on": { "enum": ["boost", "hazard"] },
-            "key": { "enum": ["blackhole", "bumper", "hit", "puddle", "wall", "woohoo"] }
+            "type": {
+              "const": "hazard"
+            },
+            "outcome": {
+              "const": "water"
+            }
           }
         },
         {
           "additionalProperties": false,
-          "properties": { "type": { "const": "decor" } }
+          "required": [
+            "on",
+            "key"
+          ],
+          "properties": {
+            "type": {
+              "const": "sound"
+            },
+            "on": {
+              "enum": [
+                "boost",
+                "hazard"
+              ]
+            },
+            "key": {
+              "enum": [
+                "blackhole",
+                "bumper",
+                "hit",
+                "puddle",
+                "wall",
+                "woohoo"
+              ]
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "decor"
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "solid"
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": [
+            "on",
+            "channel"
+          ],
+          "properties": {
+            "type": {
+              "const": "trigger"
+            },
+            "on": {
+              "oneOf": [
+                {
+                  "enum": [
+                    "occupied",
+                    "enter",
+                    "exit",
+                    "stop"
+                  ]
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "channel": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,32}$"
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": [
+            "channel",
+            "action"
+          ],
+          "properties": {
+            "type": {
+              "const": "receiver"
+            },
+            "channel": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,32}$"
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "action": {
+              "oneOf": [
+                {
+                  "enum": [
+                    "open",
+                    "close",
+                    "toggle",
+                    "start",
+                    "stop"
+                  ]
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "mode": {
+              "oneOf": [
+                {
+                  "enum": [
+                    "latch",
+                    "momentary"
+                  ]
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": [
+            "speed"
+          ],
+          "properties": {
+            "type": {
+              "const": "motion"
+            },
+            "dx": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": -1000,
+                  "maximum": 1000
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "dy": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": -1000,
+                  "maximum": 1000
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "speed": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "autostart": {
+              "oneOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            }
+          }
         }
       ]
     }

@@ -1,0 +1,18 @@
+{
+  "kolfObject": 1,
+  "id": "gate",
+  "name": "Gate",
+  "category": "mechanism",
+  "help": "A barrier that opens, closes or toggles when its channel is signalled.",
+  "shape": { "type": "rect", "size": [60, 8], "resizable": true, "rotatable": true },
+  "visual": { "sprite": "gate.svg", "layer": "raised" },
+  "properties": {
+    "channel": { "type": "text", "label": "Channel", "default": "a", "maxLength": 32 },
+    "action": { "type": "enum", "label": "On signal", "values": ["open", "close", "toggle"], "default": "open" },
+    "mode": { "type": "enum", "label": "Mode", "values": ["latch", "momentary"], "default": "latch" }
+  },
+  "components": [
+    { "type": "solid" },
+    { "type": "receiver", "channel": "$channel", "action": "$action", "mode": "$mode" }
+  ]
+}

@@ -48,8 +48,8 @@ private Q_SLOTS:
 			<< Sprite << QStringLiteral("components[0].impulse: '$strenght' is not a property");
 		QTest::newRow("unknown component") << definition(QStringLiteral("pad_b"), QStringLiteral(R"([{"type": "lava"}])"))
 			<< Sprite << QStringLiteral("components[0].type: unknown component 'lava'");
-		QTest::newRow("planned component") << definition(QStringLiteral("pad_c"), QStringLiteral(R"([{"type": "solid"}])"))
-			<< Sprite << QStringLiteral("components[0].type: 'solid' is not available yet");
+		QTest::newRow("planned component") << definition(QStringLiteral("pad_c"), QStringLiteral(R"([{"type": "teleport"}])"))
+			<< Sprite << QStringLiteral("components[0].type: 'teleport' is not available yet");
 		QTest::newRow("out of range") << definition(QStringLiteral("pad_d"), QStringLiteral(R"([{"type": "surface", "friction": 50}])"))
 			<< Sprite << QStringLiteral("components[0].friction: must be a number from 0.05 to 20");
 		QTest::newRow("unknown parameter") << definition(QStringLiteral("pad_e"), QStringLiteral(R"([{"type": "surface", "friction": 2, "grip": 1}])"))

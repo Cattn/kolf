@@ -123,11 +123,13 @@ namespace Kolf
 
 			QRectF rect() const;
 			void setRect(const QRectF& rect);
+			void setAngle(qreal degrees);
 		protected:
 			b2Shape* createShape() override;
 			void createOutlines(QPainterPath& activationOutline, QPainterPath& interactionOutline) override;
 		private:
 			QRectF m_rect;
+			qreal m_angle = 0;
 	};
 
 	class LineShape : public Kolf::Shape

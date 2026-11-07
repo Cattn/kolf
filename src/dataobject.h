@@ -11,6 +11,9 @@
 #include <memory>
 
 class QSvgRenderer;
+class Ball;
+
+namespace Kolf { class RectShape; }
 
 namespace Kolf
 {
@@ -66,6 +69,9 @@ public:
 	void setRuntimeState(const QVariantMap &state) override;
 	void onBall(BallStepContext &context) override;
 	bool isHazardAt(const QPointF &point) const override;
+	void setGame(KolfGame *game) override;
+	void receiveChannel(const QString &channel, bool level, bool pulse);
+	bool hasComponent(const QString &type) const;
 
 protected:
 	Kolf::Overlay *createOverlay() override;
@@ -75,10 +81,24 @@ private:
 	bool containsPoint(const QPointF &point) const;
 	void playSound(const QString &event);
 	void updateGeometry();
+	void step();
+	void setOpen(bool open);
+	void perform(const QString &action);
 
 	std::shared_ptr<const DataObjectDefinition> m_definition;
 	QVariantMap m_values;
 	QSizeF m_size;
 	qint64 m_lastBoost = -1000000;
+	Kolf::RectShape *m_solidShape = nullptr;
+	bool m_open = false;
+	bool m_running = true;
+	double m_t = 0;
+	int m_direction = 1;
+	int m_occupied = 0;
+	bool m_resyncInside = true;
+	QPointF m_basePosition;
+	bool m_baseSet = false;
+	QList<Ball *> m_insideBalls;
+	QList<Ball *> m_stoppedBalls;
 };
 }

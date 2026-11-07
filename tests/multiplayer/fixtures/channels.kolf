@@ -1,0 +1,26 @@
+[0-course@-50,-50]
+Name=Channel test
+author=Kolf online tests
+
+[1-hole@-50,-50|0]
+par=2
+maxstrokes=5
+borderWalls=true
+
+[1-ball@100,200|0]
+dummy=1
+
+[1-cup@330,200|1]
+dummy=1
+
+[1-plate@122,200|2]
+channel=a
+trigger=enter
+
+[1-gate@200,330|3]
+width=80
+height=8
+rotation=0
+channel=a
+action=toggle
+mode=latch

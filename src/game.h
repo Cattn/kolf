@@ -264,6 +264,8 @@ public:
 	void stepSimulation() { fastTimeout(); }
 	void writeHole(KConfig *target);
 	QVariantMap newObjectProperties(const QString &identifier, QStringList *runtimeFields = nullptr);
+	QList<Ball *> balls() const;
+	void emitChannel(const QString &channel, bool level, bool pulse);
 	~KolfGame() override;
 	void setFilename(const QString &filename);
 	QString curFilename() const { return filename; }
@@ -397,6 +399,9 @@ private:
 	quint32 m_randomSeed = 0;
 	QRandomGenerator m_rng;
 	bool m_manualStepping = false;
+	struct ChannelEvent { QString channel; bool level; bool pulse; };
+	QList<ChannelEvent> m_channelQueue;
+	void deliverChannels();
 	Tagaro::Scene *course;
 	Tagaro::Board *courseBoard;
 	Putter *putter;

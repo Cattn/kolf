@@ -1,5 +1,5 @@
 {
-    "catalogHash": "f71cd1ea67670175413bd247a941270530836ca51a69d62ecce6f6e6251e882b",
+    "catalogHash": "1316e7187e3771c66ce4d542cfeef0f1b15a6548a122c44fb0ecc36390bb8b12",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -214,6 +214,72 @@
         {
             "addOnNewHole": false,
             "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "gate",
+            "name": "Gate",
+            "properties": [
+                {
+                    "default": 60,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 8,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": "open",
+                    "key": "action",
+                    "label": "On signal",
+                    "type": "enum",
+                    "values": [
+                        "open",
+                        "close",
+                        "toggle"
+                    ]
+                },
+                {
+                    "default": "a",
+                    "key": "channel",
+                    "label": "Channel",
+                    "maxLength": 32,
+                    "type": "text"
+                },
+                {
+                    "default": "latch",
+                    "key": "mode",
+                    "label": "Mode",
+                    "type": "enum",
+                    "values": [
+                        "latch",
+                        "momentary"
+                    ]
+                }
+            ],
+            "runtime": [
+                "open"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
             "category": "terrain",
             "id": "ice",
             "name": "Ice",
@@ -255,6 +321,37 @@
                 }
             ],
             "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "plate",
+            "name": "Pressure Plate",
+            "properties": [
+                {
+                    "default": "a",
+                    "key": "channel",
+                    "label": "Channel",
+                    "maxLength": 32,
+                    "type": "text"
+                },
+                {
+                    "default": "occupied",
+                    "key": "trigger",
+                    "label": "Signal when",
+                    "type": "enum",
+                    "values": [
+                        "occupied",
+                        "enter",
+                        "exit",
+                        "stop"
+                    ]
+                }
+            ],
+            "runtime": [
+                "occupied"
             ]
         },
         {

@@ -5,6 +5,7 @@
 #include "ballstep.h"
 #include "game.h"
 #include "overlay.h"
+#include "shape.h"
 
 #include <QDir>
 #include <QFile>
@@ -27,22 +28,22 @@ constexpr qsizetype MaximumEmbeddedImageBytes = 1024 * 1024;
 const QStringList &componentTypes()
 {
 	static const QStringList types{QStringLiteral("surface"), QStringLiteral("force"), QStringLiteral("boost"),
-		QStringLiteral("hazard"), QStringLiteral("sound"), QStringLiteral("decor")};
+		QStringLiteral("hazard"), QStringLiteral("sound"), QStringLiteral("decor"), QStringLiteral("solid"),
+		QStringLiteral("trigger"), QStringLiteral("receiver"), QStringLiteral("motion")};
 	return types;
 }
 
 const QStringList &plannedComponentTypes()
 {
-	static const QStringList types{QStringLiteral("solid"), QStringLiteral("animation"), QStringLiteral("teleport"),
-		QStringLiteral("capture"), QStringLiteral("motion"), QStringLiteral("body"), QStringLiteral("trigger"),
-		QStringLiteral("receiver")};
+	static const QStringList types{QStringLiteral("animation"), QStringLiteral("teleport"),
+		QStringLiteral("capture"), QStringLiteral("body")};
 	return types;
 }
 
 struct ParameterRule
 {
 	QString name;
-	enum Kind { Number, Integer, Angle, Choice } kind;
+	enum Kind { Number, Integer, Angle, Choice, Text, Bool } kind;
 	double minimum = 0;
 	double maximum = 0;
 	QStringList choices;
@@ -67,6 +68,20 @@ QList<ParameterRule> parameterRules(const QString &type)
 		return {{QStringLiteral("on"), ParameterRule::Choice, 0, 0, {QStringLiteral("boost"), QStringLiteral("hazard")}, true},
 			{QStringLiteral("key"), ParameterRule::Choice, 0, 0, {QStringLiteral("blackhole"), QStringLiteral("bumper"),
 				QStringLiteral("hit"), QStringLiteral("puddle"), QStringLiteral("wall"), QStringLiteral("woohoo")}, true}};
+	if (type == QLatin1String("trigger"))
+		return {{QStringLiteral("on"), ParameterRule::Choice, 0, 0, {QStringLiteral("occupied"), QStringLiteral("enter"),
+				QStringLiteral("exit"), QStringLiteral("stop")}, true},
+			{QStringLiteral("channel"), ParameterRule::Text, 0, 0, {}, true}};
+	if (type == QLatin1String("receiver"))
+		return {{QStringLiteral("channel"), ParameterRule::Text, 0, 0, {}, true},
+			{QStringLiteral("action"), ParameterRule::Choice, 0, 0, {QStringLiteral("open"), QStringLiteral("close"),
+				QStringLiteral("toggle"), QStringLiteral("start"), QStringLiteral("stop")}, true},
+			{QStringLiteral("mode"), ParameterRule::Choice, 0, 0, {QStringLiteral("latch"), QStringLiteral("momentary")}, false}};
+	if (type == QLatin1String("motion"))
+		return {{QStringLiteral("dx"), ParameterRule::Number, -1000, 1000, {}, false},
+			{QStringLiteral("dy"), ParameterRule::Number, -1000, 1000, {}, false},
+			{QStringLiteral("speed"), ParameterRule::Number, 0, 10, {}, true},
+			{QStringLiteral("autostart"), ParameterRule::Bool, 0, 0, {}, false}};
 	return {};
 }
 
@@ -241,6 +256,7 @@ std::shared_ptr<const Kolf::DataObjectDefinition> Kolf::DataObjectLibrary::parse
 	if (!affectsGameplay)
 		type.decoration();
 	QMap<QString, PropertyType> propertyTypes;
+	QMap<QString, QStringList> propertyChoices;
 	if (definition->resizable) {
 		type.property(PropertySpec::number(QStringLiteral("width"), kli18n("Width"), definition->size.width(), 1, 2000, 1));
 		type.property(PropertySpec::number(QStringLiteral("height"), kli18n("Height"), definition->size.height(), 1, 2000, 1));
@@ -272,6 +288,7 @@ std::shared_ptr<const Kolf::DataObjectDefinition> Kolf::DataObjectLibrary::parse
 			return fail(path, problem);
 		type.property(*spec);
 		propertyTypes.insert(it.key(), spec->type());
+		propertyChoices.insert(it.key(), spec->choices());
 	}
 
 	const QJsonValue componentsValue = root.value(QStringLiteral("components"));
@@ -298,18 +315,49 @@ std::shared_ptr<const Kolf::DataObjectDefinition> Kolf::DataObjectLibrary::parse
 			if (rule == rules.cend())
 				return fail(path + QLatin1Char('.') + key, QStringLiteral("unknown parameter"));
 			const QJsonValue value = component.value(key);
-			if (value.isString() && value.toString().startsWith(QLatin1Char('$')) && rule->kind != ParameterRule::Choice) {
+			if (value.isString() && value.toString().startsWith(QLatin1Char('$'))) {
 				const QString bound = value.toString().mid(1);
 				if (!propertyTypes.contains(bound))
 					return fail(path + QLatin1Char('.') + key, QStringLiteral("'%1' is not a property").arg(value.toString()));
 				const PropertyType boundType = propertyTypes.value(bound);
-				if (boundType != PropertyType::Number && boundType != PropertyType::Int && boundType != PropertyType::Angle)
-					return fail(path + QLatin1Char('.') + key, QStringLiteral("'%1' is not a numeric property").arg(value.toString()));
+				bool compatible = false;
+				switch (rule->kind) {
+				case ParameterRule::Number:
+				case ParameterRule::Integer:
+				case ParameterRule::Angle:
+					compatible = boundType == PropertyType::Number || boundType == PropertyType::Int || boundType == PropertyType::Angle;
+					break;
+				case ParameterRule::Choice: {
+					compatible = boundType == PropertyType::Choice;
+					for (const auto &choice : propertyChoices.value(bound))
+						compatible = compatible && rule->choices.contains(choice);
+					break;
+				}
+				case ParameterRule::Text:
+					compatible = boundType == PropertyType::Text || boundType == PropertyType::Choice;
+					break;
+				case ParameterRule::Bool:
+					compatible = boundType == PropertyType::Bool;
+					break;
+				}
+				if (!compatible)
+					return fail(path + QLatin1Char('.') + key, QStringLiteral("'%1' has the wrong type for this parameter").arg(value.toString()));
 				continue;
 			}
 			if (rule->kind == ParameterRule::Choice) {
 				if (!rule->choices.contains(value.toString()))
 					return fail(path + QLatin1Char('.') + key, QStringLiteral("must be one of %1").arg(rule->choices.join(QStringLiteral(", "))));
+				continue;
+			}
+			if (rule->kind == ParameterRule::Text) {
+				static const QRegularExpression channel(QStringLiteral("^[A-Za-z0-9_-]{1,32}$"));
+				if (!value.isString() || !channel.match(value.toString()).hasMatch())
+					return fail(path + QLatin1Char('.') + key, QStringLiteral("must be a channel name (letters, digits, - and _) or a $property"));
+				continue;
+			}
+			if (rule->kind == ParameterRule::Bool) {
+				if (!value.isBool())
+					return fail(path + QLatin1Char('.') + key, QStringLiteral("must be true or false or a $property"));
 				continue;
 			}
 			const double number = value.toDouble(qQNaN());
@@ -334,8 +382,20 @@ std::shared_ptr<const Kolf::DataObjectDefinition> Kolf::DataObjectLibrary::parse
 		return fail(QStringLiteral("affectsGameplay"), QStringLiteral("must be false when no component affects the ball"));
 	if (!affectsGameplay && gameplayComponent)
 		return fail(QStringLiteral("affectsGameplay"), QStringLiteral("must be true when a component affects the ball"));
+	QStringList runtime;
 	if (boost)
-		type.runtime({QStringLiteral("lastBoost")});
+		runtime << QStringLiteral("lastBoost");
+	const auto uses = [&definition](const char *component) {
+		return std::any_of(definition->components.cbegin(), definition->components.cend(),
+			[component](const DataComponent &c) { return c.type == QLatin1String(component); });
+	};
+	if (uses("trigger"))
+		runtime << QStringLiteral("occupied");
+	if (uses("receiver"))
+		runtime << QStringLiteral("open");
+	if (uses("motion"))
+		runtime << QStringLiteral("t") << QStringLiteral("direction") << QStringLiteral("running");
+	type.runtime(runtime);
 
 	std::shared_ptr<const DataObjectDefinition> shared = definition;
 	type.creator([shared](QGraphicsItem *parent, b2World *world) -> QGraphicsItem * {
@@ -405,8 +465,137 @@ Kolf::DataObject::DataObject(std::shared_ptr<const DataObjectDefinition> definit
 		setZBehavior(CanvasItem::FixedZValue, 5000);
 	else
 		setZBehavior(CanvasItem::FixedZValue, 2);
-	setSimulationType(CanvasItem::NoSimulation);
+	if (hasComponent(QStringLiteral("solid"))) {
+		m_solidShape = new Kolf::RectShape(boundingRect());
+		addShape(m_solidShape);
+		setSimulationType(CanvasItem::CollisionSimulation);
+	} else {
+		setSimulationType(CanvasItem::NoSimulation);
+	}
+	for (const auto &component : m_definition->components)
+		if (component.type == QLatin1String("motion"))
+			m_running = parameter(component, QStringLiteral("autostart"), true).toBool();
 	updateGeometry();
+}
+
+bool Kolf::DataObject::hasComponent(const QString &type) const
+{
+	for (const auto &component : m_definition->components)
+		if (component.type == type)
+			return true;
+	return false;
+}
+
+void Kolf::DataObject::setGame(KolfGame *game)
+{
+	CanvasItem::setGame(game);
+	if (game && (hasComponent(QStringLiteral("trigger")) || hasComponent(QStringLiteral("motion"))))
+		connect(game, &KolfGame::simulationStepped, this, &DataObject::step, Qt::UniqueConnection);
+}
+
+void Kolf::DataObject::step()
+{
+	if (!game || !game->maySimulate())
+		return;
+	if (!m_baseSet) {
+		m_basePosition = pos();
+		m_baseSet = true;
+	}
+	for (const auto &component : m_definition->components) {
+		if (component.type != QLatin1String("motion") || !m_running)
+			continue;
+		const QPointF offset(parameter(component, QStringLiteral("dx"), 0).toDouble(), parameter(component, QStringLiteral("dy"), 0).toDouble());
+		const double length = std::hypot(offset.x(), offset.y());
+		if (length <= 0)
+			continue;
+		m_t += m_direction * parameter(component, QStringLiteral("speed"), 0).toDouble() / length;
+		if (m_t >= 1) { m_t = 1; m_direction = -1; }
+		if (m_t <= 0) { m_t = 0; m_direction = 1; }
+		const QPointF target = m_basePosition + offset * m_t;
+		moveBy(target.x() - x(), target.y() - y());
+	}
+	if (!hasComponent(QStringLiteral("trigger")))
+		return;
+	QList<Ball *> inside, stopped;
+	for (Ball *ball : game->balls()) {
+		if (!ball->isVisible() || ball->curState() == Holed || !containsPoint(ball->pos()))
+			continue;
+		inside << ball;
+		if (ball->curState() == Stopped)
+			stopped << ball;
+	}
+	if (m_resyncInside) {
+		m_resyncInside = false;
+		m_insideBalls = inside;
+		m_stoppedBalls = stopped;
+		m_occupied = int(inside.size());
+		return;
+	}
+	for (const auto &component : m_definition->components) {
+		if (component.type != QLatin1String("trigger"))
+			continue;
+		const QString on = parameter(component, QStringLiteral("on"), QString()).toString();
+		const QString channel = parameter(component, QStringLiteral("channel"), QString()).toString();
+		if (on == QLatin1String("occupied")) {
+			if (m_insideBalls.isEmpty() != inside.isEmpty())
+				game->emitChannel(channel, !inside.isEmpty(), false);
+		} else if (on == QLatin1String("enter")) {
+			for (Ball *ball : std::as_const(inside))
+				if (!m_insideBalls.contains(ball))
+					game->emitChannel(channel, true, true);
+		} else if (on == QLatin1String("exit")) {
+			for (Ball *ball : std::as_const(m_insideBalls))
+				if (!inside.contains(ball))
+					game->emitChannel(channel, true, true);
+		} else if (on == QLatin1String("stop")) {
+			for (Ball *ball : std::as_const(stopped))
+				if (!m_stoppedBalls.contains(ball))
+					game->emitChannel(channel, true, true);
+		}
+	}
+	m_insideBalls = inside;
+	m_stoppedBalls = stopped;
+	m_occupied = int(inside.size());
+}
+
+void Kolf::DataObject::receiveChannel(const QString &channel, bool level, bool pulse)
+{
+	for (const auto &component : m_definition->components) {
+		if (component.type != QLatin1String("receiver") || parameter(component, QStringLiteral("channel"), QString()).toString() != channel)
+			continue;
+		const QString action = parameter(component, QStringLiteral("action"), QString()).toString();
+		const bool momentary = parameter(component, QStringLiteral("mode"), QStringLiteral("latch")).toString() == QLatin1String("momentary");
+		if (pulse || level) {
+			perform(action);
+		} else if (momentary) {
+			static const QMap<QString, QString> inverse{{QStringLiteral("open"), QStringLiteral("close")},
+				{QStringLiteral("close"), QStringLiteral("open")}, {QStringLiteral("start"), QStringLiteral("stop")},
+				{QStringLiteral("stop"), QStringLiteral("start")}, {QStringLiteral("toggle"), QStringLiteral("toggle")}};
+			perform(inverse.value(action));
+		}
+	}
+}
+
+void Kolf::DataObject::perform(const QString &action)
+{
+	if (action == QLatin1String("open"))
+		setOpen(true);
+	else if (action == QLatin1String("close"))
+		setOpen(false);
+	else if (action == QLatin1String("toggle"))
+		setOpen(!m_open);
+	else if (action == QLatin1String("start"))
+		m_running = true;
+	else if (action == QLatin1String("stop"))
+		m_running = false;
+}
+
+void Kolf::DataObject::setOpen(bool open)
+{
+	m_open = open;
+	if (m_solidShape)
+		setSimulationType(open ? CanvasItem::NoSimulation : CanvasItem::CollisionSimulation);
+	setOpacity(open ? 0.35 : 1.0);
 }
 
 QRectF Kolf::DataObject::boundingRect() const
@@ -459,15 +648,34 @@ void Kolf::DataObject::applyProperties(const QVariantMap &values)
 
 QVariantMap Kolf::DataObject::runtimeState() const
 {
-	for (const auto &component : m_definition->components)
-		if (component.type == QLatin1String("boost"))
-			return {{QStringLiteral("lastBoost"), double(m_lastBoost)}};
-	return {};
+	QVariantMap state;
+	const auto *type = ObjectRegistry::instance().find(m_definition->id);
+	const QStringList fields = type ? type->runtimeFields() : QStringList();
+	if (fields.contains(QStringLiteral("lastBoost")))
+		state.insert(QStringLiteral("lastBoost"), double(m_lastBoost));
+	if (fields.contains(QStringLiteral("occupied")))
+		state.insert(QStringLiteral("occupied"), m_occupied);
+	if (fields.contains(QStringLiteral("open")))
+		state.insert(QStringLiteral("open"), m_open);
+	if (fields.contains(QStringLiteral("running")))
+		state.insert(QStringLiteral("running"), m_running);
+	if (fields.contains(QStringLiteral("t"))) {
+		state.insert(QStringLiteral("t"), m_t);
+		state.insert(QStringLiteral("direction"), m_direction);
+	}
+	return state;
 }
 
 void Kolf::DataObject::setRuntimeState(const QVariantMap &state)
 {
 	m_lastBoost = qint64(state.value(QStringLiteral("lastBoost"), double(m_lastBoost)).toDouble());
+	m_occupied = state.value(QStringLiteral("occupied"), m_occupied).toInt();
+	m_running = state.value(QStringLiteral("running"), m_running).toBool();
+	m_t = qBound(0.0, state.value(QStringLiteral("t"), m_t).toDouble(), 1.0);
+	m_direction = state.value(QStringLiteral("direction"), m_direction).toInt() < 0 ? -1 : 1;
+	if (state.contains(QStringLiteral("open")))
+		setOpen(state.value(QStringLiteral("open")).toBool());
+	m_resyncInside = true;
 }
 
 void Kolf::DataObject::updateGeometry()
@@ -477,6 +685,10 @@ void Kolf::DataObject::updateGeometry()
 		m_size = QSizeF(m_values.value(QStringLiteral("width")).toDouble(), m_values.value(QStringLiteral("height")).toDouble());
 	if (m_definition->rotatable)
 		setRotation(m_values.value(QStringLiteral("rotation")).toInt());
+	if (m_solidShape) {
+		m_solidShape->setRect(boundingRect());
+		m_solidShape->setAngle(rotation());
+	}
 	update();
 	propagateUpdate();
 }

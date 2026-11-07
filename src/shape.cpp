@@ -17,6 +17,8 @@
 */
 
 #include "shape.h"
+#include <QTransform>
+#include <QtMath>
 #include "canvasitem.h"
 #include "overlay.h"
 #include <QGraphicsScene>
@@ -222,16 +224,30 @@ b2Shape* Kolf::RectShape::createShape()
 		m_rect.width() * Kolf::Box2DScaleFactor / 2,
 		m_rect.height() * Kolf::Box2DScaleFactor / 2,
 		toB2Vec2(m_rect.center() * Kolf::Box2DScaleFactor),
-		0 //intrinsic rotation angle
+		qDegreesToRadians(m_angle)
 	);
 	return shape;
 }
 
+void Kolf::RectShape::setAngle(qreal degrees)
+{
+	if (!qFuzzyCompare(m_angle, degrees))
+	{
+		m_angle = degrees;
+		update();
+	}
+}
+
 void Kolf::RectShape::createOutlines(QPainterPath& activationOutline, QPainterPath& interactionOutline)
 {
-	interactionOutline.addRect(m_rect);
 	const qreal& p = Kolf::Shape::ActivationOutlinePadding;
-	activationOutline.addRect(m_rect.adjusted(-p, -p, p, p));
+	QTransform rotation;
+	rotation.rotate(m_angle);
+	QPainterPath exact, padded;
+	exact.addRect(m_rect);
+	padded.addRect(m_rect.adjusted(-p, -p, p, p));
+	interactionOutline.addPath(rotation.map(exact));
+	activationOutline.addPath(rotation.map(padded));
 }
 
 //END Kolf::RectShape

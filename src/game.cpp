@@ -20,6 +20,7 @@
 #include "ui/hazardprompt.h"
 #include "game.h"
 #include "objectregistry.h"
+#include "dataobject.h"
 #include "kcomboboxdialog.h"
 #include "landscape.h"
 #include "obstacles.h"
@@ -1214,6 +1215,7 @@ void KolfGame::fastTimeout()
 	m_world->Step(timeStep, 10, 10); //parameters 2/3 = iteration counts (TODO: optimize)
 	++m_physicsSteps;
 	Q_EMIT simulationStepped();
+	deliverChannels();
 	//conclude simulation
 	for (b2Body* body = m_world->GetBodyList(); body; body = body->GetNext())
 	{
@@ -2248,6 +2250,33 @@ void KolfGame::randHole()
 {
 	const int newHole = highestHole > 1 ? m_rng.bounded(1, highestHole) : 1;
 	switchHole(newHole);
+}
+
+QList<Ball *> KolfGame::balls() const
+{
+	QList<Ball *> result;
+	if (players)
+		for (const auto &player : std::as_const(*players))
+			result << player.ball();
+	return result;
+}
+
+void KolfGame::emitChannel(const QString &channel, bool level, bool pulse)
+{
+	if (m_channelQueue.size() < 256)
+		m_channelQueue.append({channel, level, pulse});
+}
+
+void KolfGame::deliverChannels()
+{
+	for (int hop = 0; hop < 8 && !m_channelQueue.isEmpty(); ++hop) {
+		const auto events = std::exchange(m_channelQueue, {});
+		for (const auto &event : events)
+			for (QGraphicsItem *item : std::as_const(m_topLevelQItems))
+				if (auto *object = dynamic_cast<Kolf::DataObject *>(item))
+					object->receiveChannel(event.channel, event.level, event.pulse);
+	}
+	m_channelQueue.clear();
 }
 
 QVariantMap KolfGame::newObjectProperties(const QString &identifier, QStringList *runtimeFields)

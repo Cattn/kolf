@@ -1,0 +1,16 @@
+{
+  "kolfObject": 1,
+  "id": "plate",
+  "name": "Pressure Plate",
+  "category": "mechanism",
+  "help": "Signals its channel when a ball rolls onto it, stops on it or leaves it.",
+  "shape": { "type": "rect", "size": [24, 24] },
+  "visual": { "sprite": "plate.svg", "layer": "ground" },
+  "properties": {
+    "channel": { "type": "text", "label": "Channel", "default": "a", "maxLength": 32 },
+    "trigger": { "type": "enum", "label": "Signal when", "values": ["occupied", "enter", "exit", "stop"], "default": "occupied" }
+  },
+  "components": [
+    { "type": "trigger", "on": "$trigger", "channel": "$channel" }
+  ]
+}
