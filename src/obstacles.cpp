@@ -25,7 +25,6 @@
 #include <QCheckBox>
 #include <QGridLayout>
 #include <QLabel>
-#include <QRandomGenerator>
 #include <QSlider>
 #include <QTimer>
 #include <KConfigGroup>
@@ -47,16 +46,12 @@ Kolf::Bumper::Bumper(QGraphicsItem* parent, b2World* world)
 bool Kolf::Bumper::collision(Ball* ball)
 {
 	if (game && !game->maySimulate()) return false;
-	if (game) game->recordGameplayRandom();
 	const double maxSpeed = ball->getMaxBumperBounceSpeed();
 	const double speed = qMin(maxSpeed, 1.8 + Vector(ball->velocity()).magnitude() * .9);
 	ball->reduceMaxBumperBounceSpeed();
 
 	Vector betweenVector(ball->pos() - pos());
-	betweenVector.setMagnitudeDirection(speed,
-		// add some randomness so we don't go indefinitely
-		betweenVector.direction() + deg2rad((game ? game->rng().bounded(3) : QRandomGenerator::global()->bounded(3)) - 1)
-	);
+	betweenVector.setMagnitudeDirection(speed, betweenVector.direction());
 
 	ball->setVelocity(betweenVector);
 	ball->setState(Rolling);

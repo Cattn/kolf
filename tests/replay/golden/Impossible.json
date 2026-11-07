@@ -138,8 +138,8 @@
                 },
                 {
                     "ball": [
-                        285.61,
-                        334.768
+                        288.124,
+                        334.955
                     ],
                     "direction": -0.23,
                     "magnitude": 2.428,
@@ -176,15 +176,15 @@
                         }
                     },
                     "state": 1,
-                    "steps": 187,
+                    "steps": 188,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        269.455,
-                        358.054
+                        273.17,
+                        357.068
                     ],
-                    "direction": -1.793,
+                    "direction": -1.809,
                     "magnitude": 1.388,
                     "objects": {
                         "3-floater@87,154|13": {
@@ -219,7 +219,7 @@
                         }
                     },
                     "state": 1,
-                    "steps": 99,
+                    "steps": 97,
                     "strokes": 3
                 }
             ]
@@ -303,33 +303,33 @@
             "shots": [
                 {
                     "ball": [
-                        292.47,
-                        89.126
+                        289.331,
+                        86.436
                     ],
                     "direction": -0.996,
                     "hazardDrops": 1,
                     "magnitude": 4.163,
                     "state": 1,
-                    "steps": 133,
+                    "steps": 118,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        234.305,
-                        66.959
+                        232.333,
+                        69.312
                     ],
-                    "direction": -2.558,
+                    "direction": -2.628,
                     "hazardDrops": 1,
                     "magnitude": 2.428,
                     "state": 1,
-                    "steps": 36,
+                    "steps": 31,
                     "strokes": 4
                 },
                 {
-                    "direction": 0.623,
+                    "direction": 0.52,
                     "holed": true,
                     "magnitude": 1.388,
-                    "steps": 14,
+                    "steps": 15,
                     "strokes": 5
                 }
             ]
@@ -356,7 +356,7 @@
                     "direction": -0.817,
                     "magnitude": 2.428,
                     "state": 1,
-                    "steps": 83,
+                    "steps": 82,
                     "strokes": 2
                 },
                 {
@@ -377,35 +377,35 @@
             "shots": [
                 {
                     "ball": [
-                        187.082,
-                        353.939
+                        231.24,
+                        156.656
                     ],
                     "direction": -1.289,
                     "magnitude": 4.163,
                     "state": 1,
-                    "steps": 435,
+                    "steps": 494,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        255.722,
-                        331.038
+                        378.373,
+                        213.513
                     ],
-                    "direction": -0.775,
+                    "direction": -0.524,
                     "magnitude": 2.428,
                     "state": 1,
-                    "steps": 193,
+                    "steps": 245,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        254.779,
-                        288.455
+                        372.974,
+                        156.707
                     ],
-                    "direction": -1.421,
+                    "direction": -2.074,
                     "magnitude": 1.388,
                     "state": 1,
-                    "steps": 103,
+                    "steps": 245,
                     "strokes": 3
                 }
             ]
@@ -415,8 +415,8 @@
             "shots": [
                 {
                     "ball": [
-                        267.113,
-                        36.248
+                        256.689,
+                        34.534
                     ],
                     "direction": 0.895,
                     "magnitude": 4.163,
@@ -424,87 +424,87 @@
                         "9-floater@54,43|21": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 44.712,
-                            "y": 63.124
+                            "x": 43.275,
+                            "y": 66.237
                         },
                         "9-floater@54,43|21/top-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 44.712,
-                            "y": 63.124
+                            "x": 43.275,
+                            "y": 66.237
                         },
                         "9-floater@80,296|9": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 101.89,
-                            "y": 296.592
+                            "x": 103.603,
+                            "y": 296.638
                         },
                         "9-floater@80,296|9/right-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 101.89,
-                            "y": 296.592
+                            "x": 103.603,
+                            "y": 296.638
                         },
                         "9-floater@82,99|0": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 53.959,
-                            "y": 98.15
+                            "x": 51.752,
+                            "y": 98.083
                         },
                         "9-floater@82,99|0/top-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 53.959,
-                            "y": 98.15
+                            "x": 51.752,
+                            "y": 98.083
                         }
                     },
                     "state": 1,
-                    "steps": 313,
+                    "steps": 306,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        77.504,
-                        32.493
+                        73.539,
+                        24.995
                     ],
-                    "direction": 2.624,
+                    "direction": 2.567,
                     "magnitude": 2.428,
                     "objects": {
                         "9-floater@54,43|21": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 45.143,
-                            "y": 62.191
+                            "x": 47.058,
+                            "y": 58.04
                         },
                         "9-floater@54,43|21/top-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 45.143,
-                            "y": 62.191
+                            "x": 47.058,
+                            "y": 58.04
                         },
                         "9-floater@80,296|9": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 108.378,
-                            "y": 296.767
+                            "x": 106.093,
+                            "y": 296.705
                         },
                         "9-floater@80,296|9/right-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 108.378,
-                            "y": 296.767
+                            "x": 106.093,
+                            "y": 296.705
                         },
                         "9-floater@82,99|0": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 81.859,
-                            "y": 98.996
+                            "x": 71.86,
+                            "y": 98.693
                         },
                         "9-floater@82,99|0/top-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 81.859,
-                            "y": 98.996
+                            "x": 71.86,
+                            "y": 98.693
                         }
                     },
                     "state": 1,
@@ -513,47 +513,47 @@
                 },
                 {
                     "ball": [
-                        108.359,
-                        30.293
+                        104.523,
+                        38.341
                     ],
-                    "direction": 1.123,
+                    "direction": 1.121,
                     "magnitude": 1.388,
                     "objects": {
                         "9-floater@54,43|21": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 45.675,
-                            "y": 61.037
+                            "x": 47.112,
+                            "y": 57.924
                         },
                         "9-floater@54,43|21/top-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 45.675,
-                            "y": 61.037
+                            "x": 47.112,
+                            "y": 57.924
                         },
                         "9-floater@80,296|9": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 136.367,
-                            "y": 297.523
+                            "x": 134.654,
+                            "y": 297.477
                         },
                         "9-floater@80,296|9/right-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 136.367,
-                            "y": 297.523
+                            "x": 134.654,
+                            "y": 297.477
                         },
                         "9-floater@82,99|0": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 76.083,
-                            "y": 98.821
+                            "x": 68.372,
+                            "y": 98.587
                         },
                         "9-floater@82,99|0/top-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 76.083,
-                            "y": 98.821
+                            "x": 68.372,
+                            "y": 98.587
                         }
                     },
                     "state": 1,
@@ -567,8 +567,8 @@
             "shots": [
                 {
                     "ball": [
-                        364.545,
-                        339.061
+                        375.931,
+                        353.217
                     ],
                     "direction": -2.325,
                     "magnitude": 4.163,
@@ -576,140 +576,140 @@
                         "10-blackhole@255,206|4": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 221.347,
-                            "y": 211.572
+                            "x": 223.32,
+                            "y": 211.245
                         },
                         "10-floater@220,184|2": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 143.87,
-                            "y": 196.604
+                            "x": 145.843,
+                            "y": 196.278
                         },
                         "10-floater@220,184|2/bottom-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 143.87,
-                            "y": 196.604
+                            "x": 145.843,
+                            "y": 196.278
                         },
                         "10-floater@220,184|2/left-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 143.87,
-                            "y": 196.604
+                            "x": 145.843,
+                            "y": 196.278
                         },
                         "10-floater@220,184|2/right-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 143.87,
-                            "y": 196.604
+                            "x": 145.843,
+                            "y": 196.278
                         },
                         "10-floater@220,184|2/top-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 143.87,
-                            "y": 196.604
+                            "x": 145.843,
+                            "y": 196.278
                         }
                     },
                     "state": 1,
-                    "steps": 381,
+                    "steps": 384,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        345.518,
-                        315.5
+                        352.634,
+                        292.093
                     ],
-                    "direction": -1.951,
+                    "direction": -1.946,
                     "magnitude": 2.428,
                     "objects": {
                         "10-blackhole@255,206|4": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 178.267,
-                            "y": 218.704
+                            "x": 180.24,
+                            "y": 218.378
                         },
                         "10-floater@220,184|2": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 100.789,
-                            "y": 203.737
+                            "x": 102.763,
+                            "y": 203.41
                         },
                         "10-floater@220,184|2/bottom-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 100.789,
-                            "y": 203.737
+                            "x": 102.763,
+                            "y": 203.41
                         },
                         "10-floater@220,184|2/left-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 100.789,
-                            "y": 203.737
+                            "x": 102.763,
+                            "y": 203.41
                         },
                         "10-floater@220,184|2/right-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 100.789,
-                            "y": 203.737
+                            "x": 102.763,
+                            "y": 203.41
                         },
                         "10-floater@220,184|2/top-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 100.789,
-                            "y": 203.737
+                            "x": 102.763,
+                            "y": 203.41
                         }
                     },
                     "state": 1,
-                    "steps": 199,
+                    "steps": 195,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        379.19,
-                        338.664
+                        368.314,
+                        312.503
                     ],
-                    "direction": -2.398,
+                    "direction": -2.453,
                     "magnitude": 1.388,
                     "objects": {
                         "10-blackhole@255,206|4": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 223.211,
-                            "y": 211.263
+                            "x": 219.264,
+                            "y": 211.917
                         },
                         "10-floater@220,184|2": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 145.733,
-                            "y": 196.296
+                            "x": 141.787,
+                            "y": 196.949
                         },
                         "10-floater@220,184|2/bottom-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 145.733,
-                            "y": 196.296
+                            "x": 141.787,
+                            "y": 196.949
                         },
                         "10-floater@220,184|2/left-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 145.733,
-                            "y": 196.296
+                            "x": 141.787,
+                            "y": 196.949
                         },
                         "10-floater@220,184|2/right-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 145.733,
-                            "y": 196.296
+                            "x": 141.787,
+                            "y": 196.949
                         },
                         "10-floater@220,184|2/top-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 145.733,
-                            "y": 196.296
+                            "x": 141.787,
+                            "y": 196.949
                         }
                     },
                     "state": 1,
-                    "steps": 109,
+                    "steps": 107,
                     "strokes": 3
                 }
             ]
@@ -719,35 +719,35 @@
             "shots": [
                 {
                     "ball": [
-                        199.68,
-                        89.435
+                        203.426,
+                        86.91
                     ],
                     "direction": 1.899,
                     "magnitude": 4.163,
                     "state": 1,
-                    "steps": 369,
+                    "steps": 361,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        224.009,
-                        231.665
+                        221.89,
+                        230.313
                     ],
-                    "direction": 2.467,
+                    "direction": 2.476,
                     "magnitude": 2.428,
                     "state": 1,
-                    "steps": 191,
+                    "steps": 182,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        209.844,
-                        223.944
+                        207.987,
+                        223.467
                     ],
-                    "direction": 2.666,
+                    "direction": 2.651,
                     "magnitude": 1.388,
                     "state": 1,
-                    "steps": 92,
+                    "steps": 96,
                     "strokes": 3
                 }
             ]
@@ -795,38 +795,38 @@
             "shots": [
                 {
                     "ball": [
-                        350.265,
-                        85.706
+                        350.062,
+                        83.633
                     ],
                     "direction": -0.858,
                     "hazardDrops": 1,
                     "magnitude": 4.163,
                     "state": 1,
-                    "steps": 122,
+                    "steps": 121,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        318.642,
-                        10.913
+                        322.506,
+                        14.266
                     ],
-                    "direction": -2.711,
+                    "direction": -2.749,
                     "hazardDrops": 1,
                     "magnitude": 2.428,
                     "state": 1,
-                    "steps": 73,
+                    "steps": 70,
                     "strokes": 4
                 },
                 {
                     "ball": [
-                        334.796,
-                        32.411
+                        337.932,
+                        36.629
                     ],
-                    "direction": 1.864,
+                    "direction": 1.925,
                     "hazardDrops": 1,
                     "magnitude": 1.388,
                     "state": 1,
-                    "steps": 57,
+                    "steps": 55,
                     "strokes": 6
                 }
             ]
@@ -869,12 +869,12 @@
                         }
                     },
                     "state": 1,
-                    "steps": 217,
+                    "steps": 221,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        112.834,
+                        111.942,
                         318.528
                     ],
                     "direction": -0.812,
@@ -883,8 +883,8 @@
                         "14-blackhole@317,208|10": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 263.141,
-                            "y": 172.944
+                            "x": 244.942,
+                            "y": 161.099
                         },
                         "14-floater@113,315|3": {
                             "rotation": 0,
@@ -919,32 +919,32 @@
                         "14-floater@281,189|5": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 195.954,
-                            "y": 133.645
+                            "x": 177.755,
+                            "y": 121.799
                         },
                         "14-floater@281,189|5/bottom-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 195.954,
-                            "y": 133.645
+                            "x": 177.755,
+                            "y": 121.799
                         },
                         "14-floater@281,189|5/left-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 195.954,
-                            "y": 133.645
+                            "x": 177.755,
+                            "y": 121.799
                         },
                         "14-floater@281,189|5/right-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 195.954,
-                            "y": 133.645
+                            "x": 177.755,
+                            "y": 121.799
                         },
                         "14-floater@281,189|5/top-wall": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 195.954,
-                            "y": 133.645
+                            "x": 177.755,
+                            "y": 121.799
                         }
                     },
                     "state": 1,
@@ -996,33 +996,33 @@
             "shots": [
                 {
                     "ball": [
-                        303.278,
-                        372.503
+                        303.078,
+                        372.937
                     ],
                     "direction": 1.05,
                     "hazardDrops": 1,
                     "magnitude": 4.163,
                     "state": 1,
-                    "steps": 78,
+                    "steps": 79,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        275.63,
-                        334.862
+                        274.078,
+                        333.102
                     ],
-                    "direction": -2.192,
+                    "direction": -2.187,
                     "hazardDrops": 1,
                     "magnitude": 2.428,
                     "state": 1,
-                    "steps": 19,
+                    "steps": 20,
                     "strokes": 4
                 },
                 {
-                    "direction": -2.927,
+                    "direction": -2.949,
                     "holed": true,
                     "magnitude": 1.388,
-                    "steps": 56,
+                    "steps": 54,
                     "strokes": 5
                 }
             ]
@@ -1032,21 +1032,21 @@
             "shots": [
                 {
                     "ball": [
-                        57.61,
-                        80.751
+                        57.858,
+                        72.589
                     ],
                     "direction": 1.387,
                     "magnitude": 4.163,
                     "state": 1,
-                    "steps": 303,
+                    "steps": 306,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        22.815,
-                        46.83
+                        24.539,
+                        38.167
                     ],
-                    "direction": 1.81,
+                    "direction": 1.821,
                     "magnitude": 2.428,
                     "state": 1,
                     "steps": 175,
@@ -1054,10 +1054,10 @@
                 },
                 {
                     "ball": [
-                        46.365,
-                        114.089
+                        46.603,
+                        105.927
                     ],
-                    "direction": 1.234,
+                    "direction": 1.256,
                     "magnitude": 1.388,
                     "state": 1,
                     "steps": 99,
@@ -1070,8 +1070,8 @@
             "shots": [
                 {
                     "ball": [
-                        982.674,
-                        205.049
+                        982.806,
+                        203.801
                     ],
                     "direction": -0.849,
                     "hazardDrops": 2,
@@ -1080,27 +1080,27 @@
                         "18-floater@55,53|1": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 50.143,
-                            "y": 121.005
+                            "x": 50.305,
+                            "y": 118.725
                         }
                     },
                     "state": 1,
-                    "steps": 101,
+                    "steps": 102,
                     "strokes": 3
                 },
                 {
                     "ball": [
-                        982.674,
-                        205.049
+                        982.806,
+                        203.801
                     ],
-                    "direction": -2.624,
+                    "direction": -2.626,
                     "magnitude": 2.428,
                     "objects": {
                         "18-floater@55,53|1": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 50.143,
-                            "y": 121.005
+                            "x": 50.305,
+                            "y": 118.725
                         }
                     },
                     "state": 1,
@@ -1109,17 +1109,17 @@
                 },
                 {
                     "ball": [
-                        982.674,
-                        205.049
+                        982.806,
+                        203.801
                     ],
-                    "direction": -3.06,
+                    "direction": -3.062,
                     "magnitude": 1.388,
                     "objects": {
                         "18-floater@55,53|1": {
                             "rotation": 0,
                             "visible": true,
-                            "x": 50.143,
-                            "y": 121.005
+                            "x": 50.305,
+                            "y": 118.725
                         }
                     },
                     "state": 1,

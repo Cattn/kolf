@@ -66,7 +66,7 @@ public:
 	virtual void setVisible(bool yes);
 
 	double getMaxBumperBounceSpeed() { return maxBumperBounceSpeed; }
-	void reduceMaxBumperBounceSpeed() { if(maxBumperBounceSpeed > 0.4) maxBumperBounceSpeed -= 0.35; }
+	void reduceMaxBumperBounceSpeed() { maxBumperBounceSpeed = qMax(0.0, maxBumperBounceSpeed - 0.35); }
 
 public Q_SLOTS:
 	void update() { }

@@ -141,12 +141,8 @@ QString firstDifference(const QJsonValue &expected, const QJsonValue &actual, co
     return QStringLiteral("%1: expected %2, got %3").arg(path, text(expected), text(actual));
 }
 
-}
-
-QJsonObject replayCourse(const QString &courseFile, quint32 seed, QString &error)
+QJsonObject replayHole(const Kolf::ItemFactory &factory, const QString &courseFile, int hole, quint32 seed, int &holeCount, QString &error)
 {
-    Kolf::ItemFactory factory;
-    registerTypes(factory);
     PlayerList players;
     Player player;
     player.setId(1);
@@ -156,79 +152,89 @@ QJsonObject replayCourse(const QString &courseFile, quint32 seed, QString &error
 
     QWidget host;
     auto *game = new KolfGame(factory, &players, courseFile, &host, Role::Authority);
-    game->setRandomSeed(seed);
     game->setManualStepping(true);
     game->setSound(false);
     auto *adapter = new GameSessionAdapter(game);
     QString phase;
     QObject::connect(adapter, &GameSessionAdapter::transition, adapter, [&phase](const QString &next) { phase = next; });
 
-    QJsonArray holes;
-    int holeCount = 1;
-    for (int hole = 1; hole <= holeCount; ++hole) {
-        if (!adapter->loadHole(hole)) {
-            error = QStringLiteral("hole %1 could not be loaded").arg(hole);
+    QJsonArray shots;
+    if (!adapter->loadHole(hole)) {
+        error = QStringLiteral("hole %1 could not be loaded").arg(hole);
+        delete game;
+        return {};
+    }
+    holeCount = adapter->highestHole();
+    game->setRandomSeed(seed + quint32(hole));
+    adapter->enableSimulation(true);
+    const auto initialObjects = objectState(*adapter);
+    for (const auto &fixed : FixedShots) {
+        Ball *ball = players.first().ball();
+        if (adapter->hole() != hole || ball->curState() == Holed) break;
+        const auto intent = fixedIntent(fixed, ball->pos(), cupPosition(game, ball->pos()));
+        QJsonObject shot{{QStringLiteral("direction"), intent.directionRadians}, {QStringLiteral("magnitude"), intent.launchMagnitude}};
+        if (!adapter->shoot(intent)) {
+            shot[QStringLiteral("rejected")] = adapter->failure();
+            shots.append(shot);
             break;
         }
-        holeCount = adapter->highestHole();
-        game->setRandomSeed(seed + quint32(hole));
-        adapter->enableSimulation(true);
-        const auto initialObjects = objectState(*adapter);
-        QJsonArray shots;
-        for (const auto &fixed : FixedShots) {
-            Ball *ball = players.first().ball();
-            if (adapter->hole() != hole || ball->curState() == Holed) break;
-            const auto intent = fixedIntent(fixed, ball->pos(), cupPosition(game, ball->pos()));
-            QJsonObject shot{{QStringLiteral("direction"), intent.directionRadians}, {QStringLiteral("magnitude"), intent.launchMagnitude}};
-            if (!adapter->shoot(intent)) {
-                shot[QStringLiteral("rejected")] = adapter->failure();
-                shots.append(shot);
-                break;
-            }
-            phase.clear();
-            int steps = 0;
-            int choices = 0;
-            while (steps < MaximumStepsPerShot) {
-                game->stepSimulation();
-                game->timeout();
+        phase.clear();
+        int steps = 0;
+        int choices = 0;
+        while (steps < MaximumStepsPerShot) {
+            game->stepSimulation();
+            game->timeout();
+            QCoreApplication::processEvents();
+            ++steps;
+            if (phase == QLatin1String("AwaitingHazardChoice")) {
+                ++choices;
+                phase.clear();
+                if (!adapter->choose(QStringLiteral("drop"))) break;
                 QCoreApplication::processEvents();
-                ++steps;
-                if (phase == QLatin1String("AwaitingHazardChoice")) {
-                    ++choices;
-                    phase.clear();
-                    if (!adapter->choose(QStringLiteral("drop"))) break;
-                    QCoreApplication::processEvents();
-                }
-                if (phase == QLatin1String("Simulating")) phase.clear();
-                if (!phase.isEmpty()) break;
             }
-            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-            shot[QStringLiteral("steps")] = steps;
-            if (choices) shot[QStringLiteral("hazardDrops")] = choices;
-            shot[QStringLiteral("strokes")] = players.first().score(hole);
-            if (phase.isEmpty()) {
-                shot[QStringLiteral("unsettled")] = true;
-                shots.append(shot);
-                break;
-            }
-            if (adapter->hole() != hole || phase == QLatin1String("Finished")) {
-                shot[QStringLiteral("holed")] = true;
-                shots.append(shot);
-                break;
-            }
-            shot[QStringLiteral("ball")] = QJsonArray{rounded(ball->x()), rounded(ball->y())};
-            shot[QStringLiteral("state")] = int(ball->curState());
-            const auto objects = objectState(*adapter);
-            QJsonObject moved;
-            for (auto it = objects.cbegin(); it != objects.cend(); ++it)
-                if (initialObjects.value(it.key()) != it.value()) moved.insert(it.key(), it.value());
-            if (!moved.isEmpty()) shot[QStringLiteral("objects")] = moved;
-            shots.append(shot);
+            if (phase == QLatin1String("Simulating")) phase.clear();
+            if (!phase.isEmpty()) break;
         }
-        holes.append(QJsonObject{{QStringLiteral("hole"), hole}, {QStringLiteral("shots"), shots}});
-        if (!error.isEmpty()) break;
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        shot[QStringLiteral("steps")] = steps;
+        if (choices) shot[QStringLiteral("hazardDrops")] = choices;
+        shot[QStringLiteral("strokes")] = players.first().score(hole);
+        if (phase.isEmpty()) {
+            shot[QStringLiteral("unsettled")] = true;
+            shots.append(shot);
+            break;
+        }
+        if (adapter->hole() != hole || phase == QLatin1String("Finished")) {
+            shot[QStringLiteral("holed")] = true;
+            shots.append(shot);
+            break;
+        }
+        shot[QStringLiteral("ball")] = QJsonArray{rounded(ball->x()), rounded(ball->y())};
+        shot[QStringLiteral("state")] = int(ball->curState());
+        const auto objects = objectState(*adapter);
+        QJsonObject moved;
+        for (auto it = objects.cbegin(); it != objects.cend(); ++it)
+            if (initialObjects.value(it.key()) != it.value()) moved.insert(it.key(), it.value());
+        if (!moved.isEmpty()) shot[QStringLiteral("objects")] = moved;
+        shots.append(shot);
     }
     delete game;
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    return {{QStringLiteral("hole"), hole}, {QStringLiteral("shots"), shots}};
+}
+
+}
+
+QJsonObject replayCourse(const QString &courseFile, quint32 seed, QString &error)
+{
+    Kolf::ItemFactory factory;
+    registerTypes(factory);
+    QJsonArray holes;
+    int holeCount = 1;
+    for (int hole = 1; hole <= holeCount && error.isEmpty(); ++hole) {
+        const auto result = replayHole(factory, courseFile, hole, seed, holeCount, error);
+        if (error.isEmpty()) holes.append(result);
+    }
     return {{QStringLiteral("course"), QFileInfo(courseFile).fileName()}, {QStringLiteral("seed"), double(seed)},
         {QStringLiteral("holes"), holes}};
 }

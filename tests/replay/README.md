@@ -22,10 +22,10 @@ On other platforms, set the variables yourself and run `kolf`:
 | `KOLF_REPLAY_UPDATE=1` | Write the golden files instead of comparing |
 | `KOLF_REPLAY_OUTPUT` | Folder to also write this run's results to |
 | `KOLF_REPLAY_RUNS` | Play each course this many times and require identical results |
-| `KOLF_REPLAY_SEED` | Base random seed (default 1); hole *n* uses seed + *n* |
+| `KOLF_REPLAY_SEED` | Base random seed (default 1); hole *n* uses seed + *n* (advanced putting and random hole only; bumpers are not random) |
 
 Set `QT_QPA_PLATFORM=offscreen`. Each shot aims at the nearest cup: full
 direction at 60% power, 25° off at 35%, then straight at 20%. The harness steps
-the physics itself instead of using timers, settles the turn through the online
+the physics itself instead of using timers, loads a fresh game for every hole, settles the turn through the online
 authority path, and drops the ball out of water hazards. A shot records the
 ball position and state, strokes, physics steps, and any objects that moved.

@@ -47,35 +47,35 @@
             "shots": [
                 {
                     "ball": [
-                        262.602,
-                        58.263
+                        280.072,
+                        97.657
                     ],
                     "direction": -0.082,
                     "magnitude": 4.163,
                     "state": 1,
-                    "steps": 806,
+                    "steps": 648,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        295.082,
-                        58.526
+                        293.628,
+                        78.404
                     ],
-                    "direction": 1.88,
+                    "direction": 2.238,
                     "magnitude": 2.428,
                     "state": 1,
-                    "steps": 1259,
+                    "steps": 1353,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        151.009,
-                        115.04
+                        178.312,
+                        81.075
                     ],
-                    "direction": 1.875,
+                    "direction": 1.954,
                     "magnitude": 1.388,
                     "state": 1,
-                    "steps": 481,
+                    "steps": 684,
                     "strokes": 3
                 }
             ]
@@ -85,35 +85,35 @@
             "shots": [
                 {
                     "ball": [
-                        196.142,
-                        62.233
+                        278.123,
+                        19.378
                     ],
                     "direction": 1.336,
                     "magnitude": 4.163,
                     "state": 1,
-                    "steps": 513,
+                    "steps": 212,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        315.736,
-                        137.744
+                        261.613,
+                        112.811
                     ],
-                    "direction": 0.894,
+                    "direction": 1.4,
                     "magnitude": 2.428,
                     "state": 1,
-                    "steps": 166,
+                    "steps": 375,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        293.806,
-                        128.746
+                        329.522,
+                        134.415
                     ],
-                    "direction": 0.163,
+                    "direction": 0.308,
                     "magnitude": 1.388,
                     "state": 1,
-                    "steps": 120,
+                    "steps": 99,
                     "strokes": 3
                 }
             ]
@@ -123,35 +123,35 @@
             "shots": [
                 {
                     "ball": [
-                        146.964,
-                        263.478
+                        152.705,
+                        262.882
                     ],
                     "direction": -2.356,
                     "magnitude": 4.163,
                     "state": 1,
-                    "steps": 391,
+                    "steps": 385,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        305.86,
-                        271.279
+                        301.558,
+                        286.573
                     ],
-                    "direction": -0.728,
+                    "direction": -0.787,
                     "magnitude": 2.428,
                     "state": 1,
-                    "steps": 227,
+                    "steps": 206,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        246.328,
-                        273.749
+                        243.968,
+                        279.061
                     ],
-                    "direction": -2.517,
+                    "direction": -2.423,
                     "magnitude": 1.388,
                     "state": 1,
-                    "steps": 134,
+                    "steps": 133,
                     "strokes": 3
                 }
             ]
@@ -199,59 +199,35 @@
             "shots": [
                 {
                     "ball": [
-                        138.422,
-                        54.813
+                        114.507,
+                        62.121
                     ],
                     "direction": 1.556,
                     "magnitude": 4.163,
-                    "objects": {
-                        "6-sand@86,349|34": {
-                            "rotation": 0,
-                            "visible": false,
-                            "x": 86,
-                            "y": 349
-                        }
-                    },
                     "state": 1,
-                    "steps": 421,
+                    "steps": 442,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        104.429,
-                        52.91
+                        148.316,
+                        63.524
                     ],
-                    "direction": 2.105,
+                    "direction": 2.031,
                     "magnitude": 2.428,
-                    "objects": {
-                        "6-sand@86,349|34": {
-                            "rotation": 0,
-                            "visible": false,
-                            "x": 86,
-                            "y": 349
-                        }
-                    },
                     "state": 1,
-                    "steps": 239,
+                    "steps": 201,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        179.004,
-                        38.893
+                        174.837,
+                        61.348
                     ],
-                    "direction": 1.563,
+                    "direction": 1.702,
                     "magnitude": 1.388,
-                    "objects": {
-                        "6-sand@86,349|34": {
-                            "rotation": 0,
-                            "visible": false,
-                            "x": 86,
-                            "y": 349
-                        }
-                    },
                     "state": 1,
-                    "steps": 185,
+                    "steps": 239,
                     "strokes": 3
                 }
             ]
@@ -261,35 +237,35 @@
             "shots": [
                 {
                     "ball": [
-                        54.342,
-                        295.032
+                        66.535,
+                        293.173
                     ],
                     "direction": -0.88,
                     "magnitude": 4.163,
                     "state": 1,
-                    "steps": 221,
+                    "steps": 228,
                     "strokes": 1
                 },
                 {
                     "ball": [
-                        290.927,
-                        219.97
+                        303.952,
+                        215.808
                     ],
-                    "direction": -0.265,
+                    "direction": -0.281,
                     "magnitude": 2.428,
                     "state": 1,
-                    "steps": 303,
+                    "steps": 305,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        335.47,
-                        215.522
+                        250.578,
+                        21.414
                     ],
-                    "direction": -1.166,
+                    "direction": -1.216,
                     "magnitude": 1.388,
                     "state": 1,
-                    "steps": 157,
+                    "steps": 627,
                     "strokes": 3
                 }
             ]
@@ -300,7 +276,7 @@
                 {
                     "ball": [
                         202.052,
-                        319.426
+                        319.402
                     ],
                     "direction": -1.567,
                     "hazardDrops": 1,
@@ -311,8 +287,8 @@
                 },
                 {
                     "ball": [
-                        201.807,
-                        319.943
+                        201.808,
+                        319.919
                     ],
                     "direction": -1.13,
                     "hazardDrops": 1,
@@ -324,7 +300,7 @@
                 {
                     "ball": [
                         201.806,
-                        320.167
+                        320.17
                     ],
                     "direction": -1.566,
                     "hazardDrops": 1,
@@ -381,8 +357,8 @@
             "shots": [
                 {
                     "ball": [
-                        279.944,
-                        376.812
+                        259.881,
+                        381.295
                     ],
                     "direction": -2.184,
                     "magnitude": 4.163,
@@ -392,10 +368,10 @@
                 },
                 {
                     "ball": [
-                        300.718,
-                        374.092
+                        297.217,
+                        380.007
                     ],
-                    "direction": -1.462,
+                    "direction": -1.386,
                     "magnitude": 2.428,
                     "state": 1,
                     "steps": 175,
@@ -403,10 +379,10 @@
                 },
                 {
                     "ball": [
-                        272.51,
-                        360.4
+                        270.388,
+                        355.471
                     ],
-                    "direction": -1.973,
+                    "direction": -1.953,
                     "magnitude": 1.388,
                     "state": 1,
                     "steps": 99,
@@ -441,13 +417,13 @@
                 },
                 {
                     "ball": [
-                        98.122,
-                        95.485
+                        99.166,
+                        96.401
                     ],
                     "direction": 0.72,
                     "magnitude": 1.388,
                     "state": 1,
-                    "steps": 107,
+                    "steps": 108,
                     "strokes": 3
                 }
             ]
