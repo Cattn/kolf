@@ -94,6 +94,7 @@ npm run test:native:four-player
 npm run test:native:hazard
 node ../tests/multiplayer/run-online-native.ts host-reset
 node ../tests/multiplayer/run-online-native.ts host-undo
+node ../tests/multiplayer/run-online-native.ts host-undo-dynamics
 node ../tests/multiplayer/run-online-native.ts host-skip
 node ../tests/multiplayer/run-online-native.ts host-go
 node ../tests/multiplayer/run-online-native.ts host-proposal-approve
@@ -115,6 +116,9 @@ scores, exact guest reconciliation, and completion after the reset.
 The host-undo scenario has the guest take a shot, then the owner undoes it.
 It checks pre-shot balls, objects, scores, and active turn on both clients,
 exact reconciliation, and completion after the guest retries.
+host-undo-dynamics runs the same checks on `fixtures/dynamics.kolf`, which has
+one of every built-in object, and requires the checkpoint to carry floater and
+windmill runtime state.
 The host-skip scenario has the owner score once, skips with the guest still
 unscored, then checks retained scores, next-hole turn order, exact guest
 reconciliation, and completion.
