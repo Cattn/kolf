@@ -3,22 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kolf Privacy</title>
+<title>Kolf privacy</title>
+<link rel="icon" href="/kolf.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<main>
-  <h1>Privacy</h1>
-  <p>Kolf has no accounts and sends no telemetry.</p>
-  <h2>What the kolf.pro server handles</h2>
-  <ul>
-    <li>The display names and colors you choose, the course, and match state, only while your lobby exists. Nothing is stored after the lobby closes.</li>
-    <li>Your IP address, in memory, to limit connections and wrong join codes per address.</li>
-  </ul>
-  <h2>Logs</h2>
-  <p>The server logs events such as "lobby created" or "match finished" with random IDs, durations, and player counts. Logs do not contain display names, join codes, or IP addresses, and are kept for about 7 days.</p>
-  <p>The web server in front of kolf.pro may keep standard access logs for up to 7 days to keep the service running and secure.</p>
-  <footer><a href="/">Back to Kolf</a></footer>
-</main>
+<div class="page">
+  <div class="text">
+    <a class="home" href="/"><img src="/kolf.svg" width="28" height="28" alt="">Kolf</a>
+    <h1>Privacy</h1>
+    <p class="lede">Kolf has no accounts and sends no usage data.</p>
+
+    <h2>While you play online</h2>
+    <p>The kolf.pro server keeps these in memory only while your lobby is open, and forgets them when it closes:</p>
+    <ul>
+      <li>the names and colours you pick for your players</li>
+      <li>the course and the state of the match</li>
+      <li>your IP address, to limit how many connections and wrong join codes come from one place</li>
+    </ul>
+
+    <h2>Logs</h2>
+    <p>The server records events like a lobby opening or a match finishing, with random IDs, how long the match took, and how many played. Names, join codes, and IP addresses are not logged. Logs are deleted after about 7 days.</p>
+    <p>The web server in front of kolf.pro keeps standard access logs, which include IP addresses, for up to 7 days to keep the service running and secure.</p>
+  </div>
+
+  <footer>
+    <a href="/">Kolf</a>
+    <a href="https://github.com/Cattn/kolf">Source code</a>
+  </footer>
+</div>
 </body>
 </html>
