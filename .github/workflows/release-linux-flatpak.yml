@@ -1,0 +1,71 @@
+name: Linux release (Flatpak)
+
+on:
+  push:
+    tags:
+      - "v*-cattn.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to attach the bundle to (for example v26.08.1-cattn.2)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  flatpak:
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.11
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the version
+        id: version
+        run: |
+          base=$(sed -n 's/^set(KOLF_BASE_VERSION "\(.*\)")$/\1/p' CMakeLists.txt)
+          fork=$(sed -n 's/^set(KOLF_FORK_RELEASE "\(.*\)")$/\1/p' CMakeLists.txt)
+          echo "version=$base-cattn.$fork" >> "$GITHUB_OUTPUT"
+      - uses: flathub-infra/flatpak-github-actions/flatpak-builder@933e9e8ca36e85046ebca8e211f0785c6becac40
+        with:
+          bundle: kolf-${{ steps.version.outputs.version }}-linux-x86_64.flatpak
+          manifest-path: .flatpak-manifest.json
+          cache-key: flatpak-builder-${{ github.sha }}
+          upload-artifact: true
+      - name: Smoke-test the bundle
+        run: |
+          bundle=kolf-${{ steps.version.outputs.version }}-linux-x86_64.flatpak
+          flatpak install --user -y --noninteractive "$bundle"
+          flatpak run --command=kolf org.kde.kolf --version | tee version.txt
+          grep -q "${{ steps.version.outputs.version }}" version.txt
+          sha256sum "$bundle" > "$bundle.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kolf-linux-release
+          path: |
+            kolf-${{ steps.version.outputs.version }}-linux-x86_64.flatpak
+            kolf-${{ steps.version.outputs.version }}-linux-x86_64.flatpak.sha256
+
+  publish:
+    needs: flatpak
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: kolf-linux-release
+      - name: Attach to the GitHub release
+        run: |
+          tag="${{ github.event_name == 'push' && github.ref_name || inputs.tag }}"
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              gh release upload "$tag" kolf-*.flatpak kolf-*.flatpak.sha256 --clobber --repo "$GITHUB_REPOSITORY" && exit 0
+            elif gh release create "$tag" kolf-*.flatpak kolf-*.flatpak.sha256 --repo "$GITHUB_REPOSITORY" --verify-tag \
+                --title "Kolf ${tag#v}" --notes "Kolf ${tag#v}. Check each download against its .sha256 file."; then
+              exit 0
+            fi
+            sleep 30
+          done
+          exit 1

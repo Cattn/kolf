@@ -1,57 +1,87 @@
 # Kolf
 
-Kolf is a miniature golf game from KDE. This branch is developing an integrated
-online multiplayer mode alongside the existing local game.
+Kolf is a miniature golf game from KDE. This fork adds online play with friends:
+host a game, share its code or invite link, and play together on
+[kolf.pro](https://kolf.pro) or your own server.
 
-For a private online service, set `KOLF_ONLINE_DEFAULT_ENDPOINT` to its `wss://`
-or `ws://` address before launching Kolf. You may also set
-`KOLF_ONLINE_DEFAULT_SERVER_NAME` for a friendly label. Kolf remembers the last
-server that connected successfully and preselects it when Online is opened again.
-Choose **Connect** to join it, or choose another recent server or edit the address.
-**Change Server** returns to the Connect page from the connected entry, lobby,
-game, or Results; **Leave Online** returns to the paused local game. Without a
-configured or saved server, Online prompts for an address. Use remote
-`ws://` addresses only on trusted networks.
+## Play
 
-During an online match, the lobby owner can check **Enable Host Controls**.
-With it enabled and the match settled, **Hole > Reset** (Ctrl+R) confirms and
-restarts the current hole for every player. **Hole > Undo Shot** restores the
-last settled shot on this hole, including a guest's shot, to its pre-shot ball,
-object, turn, and score state. Guests see host action notices but cannot issue
-the actions. **Hole > Skip Hole** asks for confirmation, keeps each player's
-current strokes, marks that hole unfinished in Results, and advances everyone
-together; an unplayed player remains unscored. **Hole > Go** actions (Next,
-Previous, First, Last, Random, and Switch to Hole) confirm before moving the
-whole match. They leave the current hole unfinished, restart the destination,
-and clear its earlier scores and shot counts. Only the owner can use them while
-Host Controls are enabled and the match is ready for a shot.
-The **Allow Voting** option starts on in each match. While Host Controls are
-enabled, any member can propose one of those actions and vote Yes or No. The
-proposal panel shows its score effect, member vote tally, and expiry. Votes
-are advisory: only the lobby owner's explicit **Approve** executes the action;
-**Reject** and **Withdraw** close it without changing the match. The owner can
-turn voting off to close an outstanding proposal.
+Download Kolf for Windows (installer) or Linux (Flatpak bundle) from the
+[Releases](https://github.com/Cattn/kolf/releases) page. Each download has a
+`.sha256` file to check it against.
 
-## How to play?
-### Download a binary
-1. Locate a binary for you platform in the [Releases](https://github.com/Cattn/kolf/releases) tab<br>
-2. Run the installer/binary!
+```sh
+flatpak install --user kolf-<version>-linux-x86_64.flatpak
+flatpak run org.kde.kolf
+```
 
-## Building on Windows with KDE Craft
+Choose **Play Online** to connect to kolf.pro. Host a game and send the code or
+the invite link, or enter a code a friend sent you. Other servers can be added
+under **Settings → Configure Kolf → Servers**.
 
-Set up Craft using the [KDE Windows development guide](https://community.kde.org/Get_Involved/development/Windows) with the Qt 6 / Visual Studio 2022 MSVC environment. Open a PowerShell session in Craft's Kolf source checkout and run:
+## Build
+
+Kolf is a CMake project. It needs:
+
+| Dependency | Version |
+| --- | --- |
+| CMake and Extra CMake Modules (ECM) | 3.16, 6.0 |
+| Qt 6: Core, Gui, Widgets, Network, WebSockets, Test | 6.5 |
+| KDE Frameworks 6: Completion, Config, ConfigWidgets, CoreAddons, Crash, DocTools, I18n, IconThemes, JobWidgets, KIO, TextWidgets, WidgetsAddons, XmlGui | 6.0 |
+| libkdegames (KDEGames6) | 6.0 |
+
+```sh
+cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=$HOME/.local
+cmake --build build
+ctest --test-dir build
+cmake --install build
+```
+
+`KOLF_DEFAULT_SERVER_URL` and `KOLF_DEFAULT_SERVER_NAME` change the built-in
+server (default `wss://kolf.pro/ws`, `kolf.pro`). `KOLF_TEST_AUTOMATION=OFF`
+leaves out the scripted test drivers.
+
+### Linux with Flatpak
+
+The quickest reproducible build uses the KDE Flatpak runtime, which provides
+every dependency:
+
+```sh
+flatpak install --user flathub org.kde.Platform//6.11 org.kde.Sdk//6.11
+flatpak-builder --user --install --force-clean build-dir .flatpak-manifest.json
+flatpak run org.kde.kolf
+```
+
+### Windows with KDE Craft
+
+Set up Craft with the Qt 6 / Visual Studio 2022 environment from the
+[KDE Windows development guide](https://community.kde.org/Get_Involved/development/Windows),
+then, in Craft's Kolf source checkout (`cs kolf` in a Craft shell):
 
 ```powershell
 .\scripts\build-windows-craft.ps1
-```
-
-The helper installs Qt WebSockets, applies the Windows libkdegames audio shutdown fix, then builds and installs libkdegames and Kolf. Run it again after changing source. To launch Kolf, initialize Craft in the same PowerShell session as the run command:
-
-```powershell
 & C:\CraftRoot\craft\craftenv.ps1
 craft --run kolf
 ```
 
-Craft builds the source checkout associated with its Kolf blueprint. Use `cs kolf` in a Craft shell to locate that checkout; a clone elsewhere on disk is not automatically the source used by `craft kolf`. The upstream Kolf blueprint currently omits Qt WebSockets. libkdegames currently destroys its OpenAL runtime during Windows DLL unload, which can stall process exit; the helper ties that runtime to `QApplication` instead.
-Modified by Cattn <br>
-Originally by the KDE Team.
+The helper installs Qt WebSockets (the upstream Kolf blueprint does not declare
+it) and applies a libkdegames fix for a stall when Kolf exits on Windows, then
+builds libkdegames and Kolf. `scripts/release-windows.ps1` packages an installer.
+
+## Online server
+
+The server lives in `server/` and needs Node.js 22.18 or newer:
+
+```sh
+cd server
+npm ci
+npm test
+KOLF_PORT=3011 npm start
+```
+
+Point Kolf at it with **Settings → Configure Kolf → Servers → Add**
+(`localhost` or a LAN address works without TLS). `deploy/README.md` covers
+running a public server behind nginx, and `tests/multiplayer/README.md` lists
+the server settings and the native test scenarios.
+
+Modified by Cattn. Originally by the KDE team.

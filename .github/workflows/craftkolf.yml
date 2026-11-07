@@ -1,9 +1,7 @@
-name: Linux release
+name: Linux AppImage (self-hosted Craft)
 
 on:
-  push:
-    tags:
-      - "v*-cattn.*"
+  workflow_dispatch:
 
 jobs:
   build:
