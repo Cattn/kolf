@@ -37,7 +37,7 @@ jobs:
         run: |
           bundle=kolf-${{ steps.version.outputs.version }}-linux-x86_64.flatpak
           flatpak install --user -y --noninteractive "$bundle"
-          flatpak run --command=kolf org.kde.kolf --version | tee version.txt
+          flatpak run --env=QT_QPA_PLATFORM=offscreen --command=kolf org.kde.kolf --version | tee version.txt
           grep -q "${{ steps.version.outputs.version }}" version.txt
           sha256sum "$bundle" > "$bundle.sha256"
       - uses: actions/upload-artifact@v4
