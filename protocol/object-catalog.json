@@ -1,5 +1,5 @@
 {
-    "catalogHash": "0e76885202141e83cd3df8eb0df64e82a74694cb4fd7087905aea09d0c8c6d41",
+    "catalogHash": "f9606ea95afab30897ae7f9c58a75eea4510c5823762daa89255d4c63b326964",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -207,6 +207,8 @@
                 }
             ],
             "runtime": [
+                "position",
+                "velocity"
             ]
         },
         {
@@ -512,6 +514,7 @@
                 }
             ],
             "runtime": [
+                "velocity"
             ]
         }
     ]

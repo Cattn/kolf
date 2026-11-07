@@ -14,6 +14,13 @@ function validVisual(value: JsonObject): boolean {
   if (!['x', 'y', 'z', 'rotation', 'opacity'].every(key => finite(value[key], -1_000_000, 1_000_000))
     || !finite(value.opacity, 0, 1)) return false;
   if ('color' in value && (typeof value.color !== 'string' || !/^#[a-fA-F0-9]{8}$/.test(value.color))) return false;
+  if ('runtime' in value) {
+    const runtime = value.runtime;
+    if (!runtime || typeof runtime !== 'object' || Array.isArray(runtime)) return false;
+    const entries = Object.entries(runtime as JsonObject);
+    if (entries.length > 16 || !entries.every(([key, item]) => key.length > 0 && key.length <= 64
+      && (typeof item === 'boolean' || finite(item, -1_000_000, 1_000_000)))) return false;
+  }
   if (value.kind === 'line') {
     return Array.isArray(value.line) && value.line.length === 4
       && value.line.every((component: unknown) => finite(component, -1_000_000, 1_000_000));

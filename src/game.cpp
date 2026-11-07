@@ -2250,11 +2250,13 @@ void KolfGame::randHole()
 	switchHole(newHole);
 }
 
-QVariantMap KolfGame::newObjectProperties(const QString &identifier)
+QVariantMap KolfGame::newObjectProperties(const QString &identifier, QStringList *runtimeFields)
 {
 	QGraphicsItem *item = Kolf::ObjectRegistry::instance().create(identifier, courseBoard, m_world.get());
 	auto *citem = dynamic_cast<CanvasItem *>(item);
 	const QVariantMap values = citem ? citem->properties() : QVariantMap();
+	if (runtimeFields)
+		*runtimeFields = citem ? citem->runtimeState().keys() : QStringList();
 	if (citem)
 		delete citem;
 	else

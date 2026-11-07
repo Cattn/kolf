@@ -165,6 +165,8 @@ namespace Kolf
 		Q_OBJECT
 		public:
 			Floater(QGraphicsItem* parent, b2World* world);
+			QVariantMap runtimeState() const override;
+			void setRuntimeState(const QVariantMap &state) override;
 			void editModeChanged(bool changed) override;
 			void moveBy(double dx, double dy) override;
 
@@ -180,7 +182,6 @@ namespace Kolf
 		protected:
 			Kolf::Overlay* createOverlay() override;
 		private:
-			friend class Kolf::Session::GameSessionAdapter;
 			void setMlPosition(qreal position);
 
 			QLineF m_motionLine;
@@ -228,6 +229,8 @@ namespace Kolf
 		Q_OBJECT
 		public:
 			Windmill(QGraphicsItem* parent, b2World* world);
+			QVariantMap runtimeState() const override;
+			void setRuntimeState(const QVariantMap &state) override;
 			QMap<QString, QGraphicsItem *> presentationChildren() const override;
 			~Windmill() override;
 
@@ -244,7 +247,6 @@ namespace Kolf
 		protected:
 			void updateWallPosition() override;
 		private:
-			friend class Kolf::Session::GameSessionAdapter;
 			Kolf::Wall* m_leftWall;
 			Kolf::Wall* m_rightWall;
 			Kolf::Wall* m_guardWall;

@@ -52,6 +52,9 @@ public:
 
 	bool beginningOfHole() const { return m_beginningOfHole; }
 	void setBeginningOfHole(bool yes) { m_beginningOfHole = yes; }
+	void restoreState(BallState restored) { state = restored; }
+	QVariantMap runtimeState() const override;
+	void setRuntimeState(const QVariantMap &runtime) override;
 
 	bool forceStillGoing() const { return m_forceStillGoing; }
 	void setForceStillGoing(bool yes) { m_forceStillGoing = yes; }
@@ -76,7 +79,6 @@ protected:
 	void endSimulation() override;
 
 private:
-	friend class Kolf::Session::GameSessionAdapter;
 	BallState state;
 
 	int m_collisionId;

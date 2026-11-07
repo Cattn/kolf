@@ -78,20 +78,8 @@ bool Kolf::ObjectRegistry::isKnownGroup(const QString &type) const
 QJsonObject Kolf::ObjectRegistry::catalog() const
 {
 	QJsonArray types;
-	for (const auto &type : m_types) {
-		QJsonArray properties;
-		for (const auto &spec : type.propertySpecs())
-			properties.append(spec.toJson());
-		types.append(QJsonObject{
-			{QStringLiteral("id"), type.id()},
-			{QStringLiteral("name"), type.untranslatedName()},
-			{QStringLiteral("category"), categoryId(type.objectCategory())},
-			{QStringLiteral("affectsGameplay"), type.affectsGameplay()},
-			{QStringLiteral("addOnNewHole"), type.isAddedOnNewHole()},
-			{QStringLiteral("properties"), properties},
-			{QStringLiteral("runtime"), QJsonArray()},
-		});
-	}
+	for (const auto &type : m_types)
+		types.append(type.toJson());
 	QJsonObject result{
 		{QStringLiteral("catalogVersion"), 1},
 		{QStringLiteral("structuralGroups"), QJsonArray::fromStringList(structuralGroups())},
@@ -390,4 +378,26 @@ void Kolf::ObjectType::writeProperties(KConfigGroup &group, const QVariantMap &v
 	for (const auto &spec : m_properties)
 		if (values.contains(spec.key()))
 			group.writeEntry(spec.key(), values.value(spec.key()));
+}
+
+QJsonObject Kolf::ObjectType::toJson() const
+{
+	QJsonArray properties;
+	for (const auto &spec : m_properties)
+		properties.append(spec.toJson());
+	return {
+		{QStringLiteral("id"), m_id},
+		{QStringLiteral("name"), untranslatedName()},
+		{QStringLiteral("category"), categoryId(m_category)},
+		{QStringLiteral("affectsGameplay"), m_affectsGameplay},
+		{QStringLiteral("addOnNewHole"), m_addOnNewHole},
+		{QStringLiteral("properties"), properties},
+		{QStringLiteral("runtime"), QJsonArray::fromStringList(m_runtime)},
+	};
+}
+
+QString Kolf::ObjectType::signature() const
+{
+	const QByteArray json = QJsonDocument(toJson()).toJson(QJsonDocument::Compact);
+	return QString::fromLatin1(QCryptographicHash::hash(json, QCryptographicHash::Sha256).toHex().left(16));
 }

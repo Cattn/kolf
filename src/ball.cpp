@@ -39,6 +39,7 @@ Ball::Ball(QGraphicsItem* parent, b2World* world)
 	m_placeOnGround = false;
 	m_forceStillGoing = false;
 	frictionMultiplier = 1.0;
+	maxBumperBounceSpeed = 8;
 
 	QFont font(QApplication::font());
 	font.setPixelSize(12);
@@ -211,4 +212,18 @@ void Ball::setVisible(bool yes)
 Kolf::Overlay* Ball::createOverlay()
 {
 	return new Kolf::Overlay(this, this);
+}
+
+QVariantMap Ball::runtimeState() const
+{
+	return {{QStringLiteral("maxBumperBounceSpeed"), maxBumperBounceSpeed}, {QStringLiteral("frictionMultiplier"), frictionMultiplier},
+		{QStringLiteral("collisionId"), m_collisionId}, {QStringLiteral("beginningOfHole"), m_beginningOfHole}};
+}
+
+void Ball::setRuntimeState(const QVariantMap &runtime)
+{
+	maxBumperBounceSpeed = runtime.value(QStringLiteral("maxBumperBounceSpeed"), maxBumperBounceSpeed).toDouble();
+	frictionMultiplier = runtime.value(QStringLiteral("frictionMultiplier"), frictionMultiplier).toDouble();
+	m_collisionId = runtime.value(QStringLiteral("collisionId"), m_collisionId).toInt() % 2;
+	m_beginningOfHole = runtime.value(QStringLiteral("beginningOfHole"), m_beginningOfHole).toBool();
 }

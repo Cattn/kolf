@@ -11,23 +11,24 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
 assert(['two-rematch', 'four-player', 'four-player-hazard', 'lobby-rules', 'custom-course',
-  'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-skip', 'host-go',
+  'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-undo-dynamics', 'host-skip', 'host-go',
   'host-proposal-approve', 'host-proposal-reject', 'host-proposal-four-player', 'host-combined', 'shipped-download', 'lobby-resume', 'match-resume', 'host-resume', 'guest-leaves'].includes(scenario),
   'Unknown native scenario');
 const variableRoster = scenario.startsWith('four-player') || scenario === 'host-proposal-four-player' || scenario === 'lobby-rules';
 const hazardScenario = scenario === 'four-player-hazard';
 const slopeScenario = scenario.startsWith('slope-');
+const hostUndo = scenario === 'host-undo' || scenario === 'host-undo-dynamics';
 const slopeOutOfBounds = scenario === 'slope-out-of-bounds';
 const clientCount = variableRoster ? 3 : 2;
 const matchCount = scenario === 'two-rematch' || scenario === 'custom-course' || scenario === 'host-combined' ? 2 : 1;
 const turnCount = slopeScenario ? 2 : hazardScenario ? 40 : scenario === 'host-proposal-four-player' ? 12 : variableRoster ? 8
   : scenario === 'host-combined' ? 30
-  : scenario === 'host-reset' || scenario === 'host-undo' || scenario === 'host-go'
+  : scenario === 'host-reset' || hostUndo || scenario === 'host-go'
     || scenario.startsWith('host-proposal-') ? 8 : 4;
 const directory = resolve(root, 'server/local-session', `online-${scenario}-${Date.now()}`);
 const joinCodeFile = resolve(directory, 'join-code.txt');
 const course = slopeScenario ? resolve(directory, 'slope-practice-hole-1.kolf')
-  : resolve(root, `tests/multiplayer/fixtures/${hazardScenario ? 'water' : 'static'}.kolf`);
+  : resolve(root, `tests/multiplayer/fixtures/${hazardScenario ? 'water' : scenario === 'host-undo-dynamics' ? 'dynamics' : 'static'}.kolf`);
 mkdirSync(directory, { recursive: true });
 if (slopeScenario) {
   const shipped = readFileSync(resolve(root, 'courses/Practice'), 'utf8');
@@ -126,7 +127,7 @@ try {
       additionalPlayers: variableRoster && client === 0
         ? [{ displayName: 'Owner second ball', color: '#9b59b6ff' }] : [],
       scriptedHostResetTurn: scenario === 'host-reset' && client === 0 ? 3 : undefined,
-      scriptedHostUndoTurn: scenario === 'host-undo' && client === 0 ? 3 : undefined,
+      scriptedHostUndoTurn: hostUndo && client === 0 ? 3 : undefined,
       scriptedHostSkipTurn: scenario === 'host-skip' && client === 0 ? 2 : undefined,
       scriptedHostCombined: scenario === 'host-combined' && client === 0,
       scriptedHostGo: scenario === 'host-go' && client === 0
@@ -139,7 +140,7 @@ try {
         directionRadians: slopeOutOfBounds ? Math.PI : 0,
         launchMagnitude: slopeOutOfBounds ? 6.5
           : scenario === 'host-combined' && turn < 12 ? 0.4
-          : ((scenario === 'host-reset' || scenario === 'host-undo') && turn < 2
+          : ((scenario === 'host-reset' || hostUndo) && turn < 2
             || (scenario === 'host-skip' || scenario === 'host-go') && turn === 0) ? 0.4 : 1.8,
         advanced: turn % 2 === 1,
       })),
@@ -224,7 +225,7 @@ try {
     assert.equal(authority.turnId, 4, 'reset invalidated the prior turn');
     assert.deepEqual(resetStates[1][0].state, authority, 'guest reconciled exactly to reset state');
   }
-  if (scenario === 'host-undo') {
+  if (hostUndo) {
     const applied = Array.from({ length: clientCount }, (_, client) =>
       events(sessionDirectories(client)[0]).filter(event => event.event === 'applied'
         && event.state?.hole === 1 && event.state?.phase === 'AwaitingShot'));
@@ -232,6 +233,12 @@ try {
     assert(checkpoints.length >= 2, 'authority captured both opening shots');
     const guestShot = checkpoints.find(event => event.state?.activeSlot === 1)?.state;
     assert(guestShot, 'authority captured the guest pre-shot state');
+    if (scenario === 'host-undo-dynamics') {
+      assert(guestShot.objects.some((object: { runtime?: object }) => object.runtime && 'position' in object.runtime),
+        'checkpoint carries floater runtime state');
+      assert(guestShot.objects.some((object: { runtime?: object }) => object.runtime && 'velocity' in object.runtime
+        && !('position' in object.runtime)), 'checkpoint carries windmill runtime state');
+    }
     for (const states of applied) {
       const before = states.find(event => event.state.turnId === 2)?.state;
       const after = states.find(event => event.state.turnId === 4)?.state;

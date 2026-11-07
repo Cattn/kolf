@@ -77,6 +77,7 @@ public:
 	ObjectType &creator(Creator creator) { m_creator = creator; return *this; }
 	ObjectType &property(const PropertySpec &spec) { m_properties.append(spec); return *this; }
 	ObjectType &properties(const QList<PropertySpec> &specs) { m_properties.append(specs); return *this; }
+	ObjectType &runtime(const QStringList &fields) { m_runtime = fields; return *this; }
 
 	QString id() const { return m_id; }
 	QString name() const { return m_name.toString(); }
@@ -87,6 +88,9 @@ public:
 	bool hasCreator() const { return m_creator; }
 	QGraphicsItem *create(QGraphicsItem *parent, b2World *world) const { return m_creator ? m_creator(parent, world) : nullptr; }
 	QList<PropertySpec> propertySpecs() const { return m_properties; }
+	QStringList runtimeFields() const { return m_runtime; }
+	QJsonObject toJson() const;
+	QString signature() const;
 	const PropertySpec *propertySpec(const QString &key) const;
 	QVariantMap defaults() const;
 	QVariantMap readProperties(const KConfigGroup &group) const;
@@ -100,6 +104,7 @@ private:
 	bool m_addOnNewHole = false;
 	Creator m_creator = nullptr;
 	QList<PropertySpec> m_properties;
+	QStringList m_runtime;
 };
 
 class ObjectRegistry

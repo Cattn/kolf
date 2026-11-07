@@ -52,6 +52,8 @@ public:
 	void save(KConfigGroup *group);
 	virtual QVariantMap properties() const { return {}; }
 	virtual void applyProperties(const QVariantMap &values) { Q_UNUSED(values) }
+	virtual QVariantMap runtimeState() const { return {}; }
+	virtual void setRuntimeState(const QVariantMap &state) { Q_UNUSED(state) }
 	///called for information when shot started
 	virtual void shotStarted() {}
 	///called when the edit mode has been changed.

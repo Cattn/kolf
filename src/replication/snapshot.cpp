@@ -37,6 +37,16 @@ bool validateVisual(const QJsonObject &v) {
         if (!n.isDouble() || !std::isfinite(n.toDouble()) || std::abs(n.toDouble()) > 1000000) return false;
     }
     if (v[QStringLiteral("opacity")].toDouble() < 0 || v[QStringLiteral("opacity")].toDouble() > 1) return false;
+    if (v.contains(QStringLiteral("runtime"))) {
+        if (!v[QStringLiteral("runtime")].isObject()) return false;
+        const auto runtime = v[QStringLiteral("runtime")].toObject();
+        if (runtime.size() > 16) return false;
+        for (auto it = runtime.constBegin(); it != runtime.constEnd(); ++it) {
+            if (it.key().isEmpty() || it.key().size() > 64) return false;
+            if (it.value().isBool()) continue;
+            if (!it.value().isDouble() || !std::isfinite(it.value().toDouble()) || std::abs(it.value().toDouble()) > 1000000) return false;
+        }
+    }
     const auto kind = v[QStringLiteral("kind")].toString();
     if (kind == QLatin1String("line")) {
         const auto line = v[QStringLiteral("line")].toArray();

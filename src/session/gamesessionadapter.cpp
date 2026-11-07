@@ -4,6 +4,7 @@
 #include "tagaro/board.h"
 #include "landscape.h"
 #include "obstacles.h"
+#include "objectregistry.h"
 #include <QCryptographicHash>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -14,6 +15,22 @@
 
 using namespace Kolf::Session;
 using namespace Kolf::Replication;
+
+namespace {
+QJsonObject captureObject(const QString &id, QGraphicsItem *item) {
+    auto value = captureVisual(id, item);
+    if (const auto *canvasItem = dynamic_cast<CanvasItem *>(item)) {
+        const auto runtime = canvasItem->runtimeState();
+        if (!runtime.isEmpty()) value[QStringLiteral("runtime")] = QJsonObject::fromVariantMap(runtime);
+    }
+    return value;
+}
+void applyRuntime(const QJsonObject &value, QGraphicsItem *item) {
+    auto *canvasItem = dynamic_cast<CanvasItem *>(item);
+    if (canvasItem && value[QStringLiteral("runtime")].isObject())
+        canvasItem->setRuntimeState(value[QStringLiteral("runtime")].toObject().toVariantMap());
+}
+}
 
 GameSessionAdapter::GameSessionAdapter(KolfGame *game) : QObject(game), g(game) {
     connect(g, &KolfGame::onlineSettlementRequested, this, &GameSessionAdapter::settle);
@@ -55,7 +72,6 @@ void GameSessionAdapter::enableInput(bool enabled) {
 }
 bool GameSessionAdapter::loadHole(int number) {
     m_undoState = {};
-    m_undoBalls.clear(); m_undoFloaters.clear(); m_undoWindmills.clear();
     enableSimulation(false);
     g->curHole = number;
     g->curPlayer = g->players->begin();
@@ -102,7 +118,6 @@ bool GameSessionAdapter::skipCurrentHole() {
     const int current = hole();
     if (current >= g->highestHole) {
         m_undoState = {};
-        m_undoBalls.clear(); m_undoFloaters.clear(); m_undoWindmills.clear();
         m_finished = true;
         enableSimulation(false);
         enableInput(false);
@@ -146,19 +161,6 @@ bool GameSessionAdapter::navigateToHole(int targetHole) {
 }
 void GameSessionAdapter::rememberUndoCheckpoint(const QJsonObject &state) {
     m_undoState = state;
-    m_undoBalls.clear(); m_undoFloaters.clear(); m_undoWindmills.clear();
-    for (const auto &player : std::as_const(*g->players)) {
-        const auto *ball = player.ball();
-        m_undoBalls.append({player.stateInfo(hole()), ball->maxBumperBounceSpeed,
-            ball->frictionMultiplier, ball->m_collisionId});
-    }
-    const auto map = registry();
-    for (auto it = map.cbegin(); it != map.cend(); ++it) {
-        if (const auto *floater = dynamic_cast<Kolf::Floater *>(it.value()))
-            m_undoFloaters.insert(it.key(), {floater->m_position, floater->m_velocity});
-        if (const auto *windmill = dynamic_cast<Kolf::Windmill *>(it.value()))
-            m_undoWindmills.insert(it.key(), windmill->m_velocity);
-    }
 }
 bool GameSessionAdapter::canUndoShot() const {
     return g->m_role == Role::Authority && !m_undoState.isEmpty()
@@ -166,8 +168,7 @@ bool GameSessionAdapter::canUndoShot() const {
         && m_undoState[QStringLiteral("manifestHash")].toString() == manifestHash();
 }
 bool GameSessionAdapter::undoShot() {
-    if (!canUndoShot() || g->inPlay || g->m_onlineShot || m_choiceSlot >= 0
-        || m_undoBalls.size() != g->players->size()) return false;
+    if (!canUndoShot() || g->inPlay || g->m_onlineShot || m_choiceSlot >= 0) return false;
     const auto objects = m_undoState[QStringLiteral("objects")].toArray();
     const auto balls = m_undoState[QStringLiteral("balls")].toArray();
     const auto scores = m_undoState[QStringLiteral("scores")].toArray();
@@ -189,24 +190,16 @@ bool GameSessionAdapter::undoShot() {
             const auto line = object[QStringLiteral("line")].toArray();
             wall->setLine(QLineF(line[0].toDouble(), line[1].toDouble(), line[2].toDouble(), line[3].toDouble()));
         }
-        if (auto *floater = dynamic_cast<Kolf::Floater *>(item)) {
-            const auto runtime = m_undoFloaters.value(object[QStringLiteral("id")].toString());
-            floater->m_position = runtime.first; floater->m_velocity = runtime.second;
-        }
-        if (auto *windmill = dynamic_cast<Kolf::Windmill *>(item))
-            windmill->m_velocity = m_undoWindmills.value(object[QStringLiteral("id")].toString());
+        applyRuntime(object, item);
     }
     for (int i = 0; i < g->players->size(); ++i) {
         auto &player = (*g->players)[i];
         auto *ball = player.ball();
         ball->setDoDetect(false); ball->setVelocity(Vector());
         applyVisual(balls[i].toObject(), ball);
-        ball->setState(m_undoBalls[i].info.state);
-        ball->setBeginningOfHole(m_undoBalls[i].info.beginningOfHole);
+        ball->setState(BallState(balls[i].toObject()[QStringLiteral("state")].toInt()));
         ball->setForceStillGoing(false); ball->setPlaceOnGround(false); ball->setAddStroke(0);
-        ball->maxBumperBounceSpeed = m_undoBalls[i].maxBumperBounceSpeed;
-        ball->frictionMultiplier = m_undoBalls[i].frictionMultiplier;
-        ball->m_collisionId = m_undoBalls[i].collisionId;
+        applyRuntime(balls[i].toObject(), ball);
         ball->setDoDetect(true);
         QList<int> row; for (const auto score : scores[i].toArray()) row.append(score.toInt());
         player.setScores(row);
@@ -219,7 +212,7 @@ bool GameSessionAdapter::undoShot() {
     m_choiceId.clear(); m_choiceSlot = -1; m_failure.clear();
     g->paused = false; g->setUpdatesEnabled(true);
     enableInput(false);
-    m_undoState = {}; m_undoBalls.clear(); m_undoFloaters.clear(); m_undoWindmills.clear();
+    m_undoState = {};
     return true;
 }
 QMap<QString, QGraphicsItem *> GameSessionAdapter::registry() const {
@@ -241,17 +234,21 @@ QString GameSessionAdapter::manifestHash() const {
     QByteArray manifest;
     const auto map = registry();
     for (auto it = map.cbegin(); it != map.cend(); ++it) {
-        manifest += it.key().toUtf8() + '\0' + visualKind(it.value()).toUtf8() + '\n';
+        manifest += it.key().toUtf8() + '\0' + visualKind(it.value()).toUtf8();
+        const auto *item = dynamic_cast<CanvasItem *>(it.value());
+        if (const auto *type = item ? Kolf::ObjectRegistry::instance().find(item->name()) : nullptr)
+            manifest += '\0' + type->id().toUtf8() + '\0' + type->signature().toLatin1();
+        manifest += '\n';
     }
     return QString::fromLatin1(QCryptographicHash::hash(manifest, QCryptographicHash::Sha256).toHex());
 }
 QJsonObject GameSessionAdapter::capture(int revision, int generation, int turn, const QString &phase) const {
     QJsonArray objects, balls, scores;
     const auto map = registry();
-    for (auto it = map.cbegin(); it != map.cend(); ++it) objects.append(captureVisual(it.key(), it.value()));
+    for (auto it = map.cbegin(); it != map.cend(); ++it) objects.append(captureObject(it.key(), it.value()));
     for (int i = 0; i < g->players->size(); ++i) {
         const auto &p = (*g->players)[i];
-        auto v = captureVisual(QStringLiteral("ball/%1").arg(i), p.ball());
+        auto v = captureObject(QStringLiteral("ball/%1").arg(i), p.ball());
         v[QStringLiteral("state")] = int(p.ball()->curState()); balls.append(v);
         QJsonArray row; for (int score : p.scores()) row.append(score); scores.append(row);
     }
@@ -308,11 +305,15 @@ bool GameSessionAdapter::apply(const QJsonObject &s, QString &error) {
         if (!item || obj[QStringLiteral("kind")].toString() != visualKind(item)) { g->setUpdatesEnabled(true); return reject(); }
     }
     const auto beforeSteps = g->physicsSteps(), beforeCollisions = g->collisionCalls();
-    for (const auto v : objects) { const auto obj = v.toObject(); applyVisual(obj, map.value(obj[QStringLiteral("id")].toString())); }
+    for (const auto v : objects) {
+        const auto obj = v.toObject(); auto *item = map.value(obj[QStringLiteral("id")].toString());
+        applyVisual(obj, item); applyRuntime(obj, item);
+    }
     for (int i = 0; i < rosterSize; ++i) {
         auto &p = (*g->players)[i];
         applyVisual(balls[i].toObject(), p.ball());
-        p.ball()->state = BallState(balls[i].toObject()[QStringLiteral("state")].toInt());
+        p.ball()->restoreState(BallState(balls[i].toObject()[QStringLiteral("state")].toInt()));
+        applyRuntime(balls[i].toObject(), p.ball());
         QList<int> row; for (const auto score : scores[i].toArray()) row.append(score.toInt()); p.setScores(row);
     }
     g->curPlayer = g->players->begin() + s[QStringLiteral("activeSlot")].toInt();

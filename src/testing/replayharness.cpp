@@ -292,7 +292,8 @@ int checkPropertyDefaults(KolfGame *game)
 {
     int failures = 0;
     for (const auto &type : Kolf::ObjectRegistry::instance().types()) {
-        const auto values = game->newObjectProperties(type.id());
+        QStringList runtimeFields;
+        const auto values = game->newObjectProperties(type.id(), &runtimeFields);
         QStringList problems;
         for (const auto &spec : type.propertySpecs()) {
             if (!values.contains(spec.key())) problems << QStringLiteral("%1 is not reported").arg(spec.key());
@@ -301,6 +302,11 @@ int checkPropertyDefaults(KolfGame *game)
         }
         for (auto it = values.cbegin(); it != values.cend(); ++it)
             if (!type.propertySpec(it.key())) problems << QStringLiteral("%1 is missing from the schema").arg(it.key());
+        auto declared = type.runtimeFields();
+        declared.sort();
+        runtimeFields.sort();
+        if (declared != runtimeFields)
+            problems << QStringLiteral("runtime fields are %1, catalog declares %2").arg(runtimeFields.join(QLatin1Char(',')), declared.join(QLatin1Char(',')));
         for (const auto &problem : std::as_const(problems)) std::cerr << "defaults: " << qPrintable(type.id()) << ": " << qPrintable(problem) << std::endl;
         failures += problems.size();
     }

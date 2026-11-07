@@ -532,6 +532,17 @@ Kolf::Floater::Floater(QGraphicsItem* parent, b2World* world)
 	setZBehavior(CanvasItem::IsStrut, 0);
 }
 
+QVariantMap Kolf::Floater::runtimeState() const
+{
+	return {{QStringLiteral("position"), m_position}, {QStringLiteral("velocity"), m_velocity}};
+}
+
+void Kolf::Floater::setRuntimeState(const QVariantMap &state)
+{
+	m_position = state.value(QStringLiteral("position"), m_position).toDouble();
+	m_velocity = state.value(QStringLiteral("velocity"), m_velocity).toDouble();
+}
+
 void Kolf::Floater::editModeChanged(bool editing)
 {
 	Kolf::RectangleItem::editModeChanged(editing);
@@ -760,6 +771,16 @@ Kolf::Windmill::Windmill(QGraphicsItem* parent, b2World* world)
 	updateWallPosition();
 }
 
+QVariantMap Kolf::Windmill::runtimeState() const
+{
+	return {{QStringLiteral("velocity"), m_velocity}};
+}
+
+void Kolf::Windmill::setRuntimeState(const QVariantMap &state)
+{
+	m_velocity = state.value(QStringLiteral("velocity"), m_velocity).toDouble();
+}
+
 Kolf::Windmill::~Windmill()
 {
 	delete m_leftWall;
@@ -914,13 +935,15 @@ KOLF_REGISTER_OBJECT(Kolf::Floater, Kolf::ObjectType(QStringLiteral("floater"), 
 	.properties(rectangleProperties(80, 40, false, false, false, false))
 	.property(Kolf::PropertySpec::pointF(QStringLiteral("startPoint"), kli18n("Path start"), QPointF(200, 200)))
 	.property(Kolf::PropertySpec::pointF(QStringLiteral("endPoint"), kli18n("Path end"), QPointF(100, 100)))
-	.property(Kolf::PropertySpec::integer(QStringLiteral("speed"), kli18n("Speed"), 0, 0, 20)))
+	.property(Kolf::PropertySpec::integer(QStringLiteral("speed"), kli18n("Speed"), 0, 0, 20))
+	.runtime({QStringLiteral("position"), QStringLiteral("velocity")}))
 KOLF_REGISTER_OBJECT(Kolf::Sign, Kolf::ObjectType(QStringLiteral("sign"), kli18n("Sign")).category(Kolf::ObjectCategory::Obstacle)
 	.properties(rectangleProperties(110, 40, true, true, true, true))
 	.property(Kolf::PropertySpec::text(QStringLiteral("Comment"), kli18n("Text"), QStringLiteral("New Text"), 1000)))
 KOLF_REGISTER_OBJECT(Kolf::Windmill, Kolf::ObjectType(QStringLiteral("windmill"), kli18n("Windmill")).category(Kolf::ObjectCategory::Mechanism)
 	.properties(rectangleProperties(80, 40, false, true, true, false))
 	.property(Kolf::PropertySpec::integer(QStringLiteral("speed"), kli18n("Speed"), 5, 1, 10))
-	.property(Kolf::PropertySpec::boolean(QStringLiteral("bottom"), kli18n("Guard at bottom"), true)))
+	.property(Kolf::PropertySpec::boolean(QStringLiteral("bottom"), kli18n("Guard at bottom"), true))
+	.runtime({QStringLiteral("velocity")}))
 
 #include "moc_obstacles.cpp"
