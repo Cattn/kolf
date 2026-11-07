@@ -258,6 +258,13 @@ void OnlineAutomation::attach(SessionController *controller, const QJsonObject &
     m_shotTurns.clear();
     connect(controller, &SessionController::messageProcessed, this, &OnlineAutomation::sessionMessage);
     connect(controller, &SessionController::proposalUiChanged, this, &OnlineAutomation::recordUi);
+    connect(controller, &SessionController::statusChanged, this, [this] {
+        auto *session = m_session.data();
+        if (!session || !session->isPaused() || m_pauseCaptured || m_uiLogDirectory.isEmpty()) return;
+        m_pauseCaptured = true;
+        const auto image = QDir(m_uiLogDirectory).filePath(QStringLiteral("paused.png"));
+        QTimer::singleShot(300, m_widget, [widget = m_widget, image] { widget->window()->grab().save(image); });
+    });
 }
 
 void OnlineAutomation::recordUi(const QJsonObject &proposalUi)
