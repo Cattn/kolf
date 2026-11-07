@@ -26,7 +26,9 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPainter>
+#include <QToolButton>
 #include <QTreeWidget>
+#include <QUndoStack>
 #include <QVBoxLayout>
 #include <KGameRenderer>
 #include <KLocalizedString>
@@ -73,6 +75,8 @@ Editor::Editor(QWidget *parent)
 
 	auto *vlayout = new QVBoxLayout;
 	hlayout->addLayout(vlayout);
+	m_historyRow = new QHBoxLayout;
+	vlayout->addLayout(m_historyRow);
 	vlayout->addWidget(new QLabel(i18nc("@label:listbox", "Add object:"), this));
 	m_search = new QLineEdit(this);
 	m_search->setObjectName(QStringLiteral("editorSearch"));
@@ -114,6 +118,27 @@ Editor::Editor(QWidget *parent)
 	m_palette->expandAll();
 	connect(m_palette, &QTreeWidget::itemClicked, this, &Editor::paletteActivated);
 	connect(m_search, &QLineEdit::textChanged, this, &Editor::filterPalette);
+}
+
+void Editor::setHistory(QUndoStack *history)
+{
+	auto *undo = history->createUndoAction(this, i18nc("@action:button", "Undo"));
+	undo->setIcon(QIcon::fromTheme(QStringLiteral("edit-undo")));
+	auto *redo = history->createRedoAction(this, i18nc("@action:button", "Redo"));
+	redo->setIcon(QIcon::fromTheme(QStringLiteral("edit-redo")));
+	auto *duplicate = new QAction(QIcon::fromTheme(QStringLiteral("edit-copy")), i18nc("@action:button", "Duplicate"), this);
+	duplicate->setToolTip(i18nc("@info:tooltip", "Duplicate the selected object (Ctrl+D)"));
+	connect(duplicate, &QAction::triggered, this, &Editor::duplicateRequested);
+	const QList<QPair<QAction *, QString>> actions{{undo, QStringLiteral("editorUndo")}, {redo, QStringLiteral("editorRedo")}, {duplicate, QStringLiteral("editorDuplicate")}};
+	for (const auto &[action, name] : actions) {
+		auto *button = new QToolButton(this);
+		button->setObjectName(name);
+		button->setDefaultAction(action);
+		button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+		button->setAutoRaise(true);
+		m_historyRow->addWidget(button);
+	}
+	m_historyRow->addStretch(1);
 }
 
 void Editor::paletteActivated(QTreeWidgetItem *item)

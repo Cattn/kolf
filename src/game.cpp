@@ -37,6 +37,9 @@
 #include <QSpinBox>
 #include <QStandardPaths>
 #include <QTimer>
+#include <QUndoStack>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QUrl>
 #include <QRandomGenerator>
 #include <KGameRenderer>
@@ -622,6 +625,7 @@ KolfGame::KolfGame(PlayerList *players, const QString &filename, QWidget *parent
 	putterTimer = new QTimer(this);
 	connect(putterTimer, &QTimer::timeout, this, &KolfGame::putterTimeout);
 	putterTimerMsec = 20;
+	m_editHistory = new QUndoStack(this);
 }
 
 void KolfGame::playSound(Sound soundType)
@@ -709,8 +713,154 @@ KolfGame::~KolfGame()
 	delete cfg;
 }
 
+namespace
+{
+class EditCommand : public QUndoCommand
+{
+public:
+	EditCommand(KolfGame *game, const QByteArray &before, const QByteArray &after)
+		: m_game(game), m_before(before), m_after(after) {}
+	void undo() override { m_game->restoreHoleSnapshot(m_before); }
+	void redo() override
+	{
+		if (m_first) {
+			m_first = false;
+			return;
+		}
+		m_game->restoreHoleSnapshot(m_after);
+	}
+private:
+	KolfGame *m_game;
+	QByteArray m_before, m_after;
+	bool m_first = true;
+};
+}
+
+QByteArray KolfGame::holeSnapshot()
+{
+	KConfig scratch(QString(), KConfig::SimpleConfig);
+	writeHole(&scratch);
+	QJsonObject groups;
+	const QStringList names = scratch.groupList();
+	for (const QString &name : names) {
+		QJsonObject entries;
+		const auto map = scratch.group(name).entryMap();
+		for (auto it = map.cbegin(); it != map.cend(); ++it)
+			entries.insert(it.key(), it.value());
+		groups.insert(name, entries);
+	}
+	return QJsonDocument(groups).toJson(QJsonDocument::Compact);
+}
+
+void KolfGame::restoreHoleSnapshot(const QByteArray &snapshot)
+{
+	if (isOnline() || !cfg)
+		return;
+	m_restoringSnapshot = true;
+	setSelectedItem(nullptr);
+	const QStringList groups = cfg->groupList();
+	for (const QString &name : groups)
+		if (QStringView(name).left(name.indexOf(QLatin1Char('-'))).toInt() == curHole)
+			cfg->deleteGroup(name);
+	const QJsonObject restored = QJsonDocument::fromJson(snapshot).object();
+	for (auto group = restored.constBegin(); group != restored.constEnd(); ++group) {
+		KConfigGroup target(cfg->group(group.key()));
+		const QJsonObject entries = group.value().toObject();
+		for (auto entry = entries.constBegin(); entry != entries.constEnd(); ++entry)
+			target.writeEntry(entry.key(), entry.value().toString());
+	}
+	openFile();
+	m_editSnapshot = snapshot;
+	setModified(true);
+	m_restoringSnapshot = false;
+}
+
+void KolfGame::scheduleEditCapture()
+{
+	if (!editing || m_restoringSnapshot || isOnline())
+		return;
+	if (!m_editCaptureTimer) {
+		m_editCaptureTimer = new QTimer(this);
+		m_editCaptureTimer->setSingleShot(true);
+		connect(m_editCaptureTimer, &QTimer::timeout, this, &KolfGame::captureEdit);
+	}
+	m_editCaptureTimer->start(350);
+}
+
+void KolfGame::captureEdit()
+{
+	if (m_editCaptureTimer)
+		m_editCaptureTimer->stop();
+	if (!editing || m_restoringSnapshot || !m_editHistory)
+		return;
+	const QByteArray snapshot = holeSnapshot();
+	if (m_editSnapshot.isEmpty() || snapshot == m_editSnapshot) {
+		m_editSnapshot = snapshot;
+		return;
+	}
+	m_editHistory->push(new EditCommand(this, m_editSnapshot, snapshot));
+	m_editSnapshot = snapshot;
+}
+
+void KolfGame::duplicateSelected()
+{
+	auto *source = dynamic_cast<CanvasItem *>(selectedItem);
+	if (!source || dynamic_cast<Ball *>(selectedItem) || !Kolf::ObjectRegistry::instance().find(source->name()))
+		return;
+	const QVariantMap values = source->properties();
+	const QPointF position = source->getPosition();
+	addNewObject(source->name());
+	auto *copy = dynamic_cast<CanvasItem *>(selectedItem);
+	if (!copy || copy == source)
+		return;
+	copy->applyProperties(values);
+	copy->setPosition(position + QPointF(12, 12));
+	setSelectedItem(copy);
+	setModified(true);
+}
+
+void KolfGame::nudgeSelected(const QPointF &offset)
+{
+	auto *item = dynamic_cast<CanvasItem *>(selectedItem);
+	if (!item)
+		return;
+	item->moveBy(offset.x(), offset.y());
+	setSelectedItem(item);
+	setModified(true);
+}
+
+bool KolfGame::handleEditorKey(QKeyEvent *event)
+{
+	if (event->matches(QKeySequence::Undo)) {
+		captureEdit();
+		if (m_editHistory)
+			m_editHistory->undo();
+		return true;
+	}
+	if (event->matches(QKeySequence::Redo) || (event->key() == Qt::Key_Y && event->modifiers() == Qt::ControlModifier)) {
+		captureEdit();
+		if (m_editHistory)
+			m_editHistory->redo();
+		return true;
+	}
+	if (event->key() == Qt::Key_D && event->modifiers() == Qt::ControlModifier) {
+		duplicateSelected();
+		return true;
+	}
+	const qreal step = (event->modifiers() & Qt::ShiftModifier) ? 10 : 1;
+	switch (event->key()) {
+	case Qt::Key_Left: nudgeSelected(QPointF(-step, 0)); return true;
+	case Qt::Key_Right: nudgeSelected(QPointF(step, 0)); return true;
+	case Qt::Key_Up: nudgeSelected(QPointF(0, -step)); return true;
+	case Qt::Key_Down: nudgeSelected(QPointF(0, step)); return true;
+	default: return false;
+	}
+}
+
 void KolfGame::setModified(bool mod)
 {
+	if (mod)
+		scheduleEditCapture();
 	modified = mod;
 	Q_EMIT modifiedChanged(mod);
 }
@@ -894,6 +1044,7 @@ void KolfGame::handleMouseReleaseEvent(QMouseEvent *e)
 	if (editing)
 	{
 		Q_EMIT newStatusText(QString());
+		scheduleEditCapture();
 	}
 
 	if (m_ignoreEvents)
@@ -912,6 +1063,8 @@ void KolfGame::handleMouseReleaseEvent(QMouseEvent *e)
 
 void KolfGame::keyPressEvent(QKeyEvent *e)
 {
+	if (editing && !isOnline() && !m_ignoreEvents && handleEditorKey(e))
+		return;
 	if (inPlay || editing || m_ignoreEvents)
 		return;
 
@@ -1875,7 +2028,7 @@ void KolfGame::openFile()
 	holeInfo.setUntranslatedName(cfgGroup.readEntryUntranslated("Name", holeInfo.untranslatedName()));
 	Q_EMIT titleChanged(holeInfo.name());
 
-	cfgGroup = KConfigGroup(KSharedConfig::openConfig(filename), QStringLiteral("%1-hole@-50,-50|0").arg(curHole));
+	cfgGroup = KConfigGroup(cfg->group(QStringLiteral("%1-hole@-50,-50|0").arg(curHole)));
 	curPar = cfgGroup.readEntry("par", 3);
 	holeInfo.setPar(curPar);
 	holeInfo.borderWallsChanged(cfgGroup.readEntry("borderWalls", holeInfo.borderWalls()));
@@ -2008,6 +2161,10 @@ void KolfGame::openFile()
 	}
 
 	setModified(false);
+	if (editing && !m_restoringSnapshot && m_editHistory) {
+		m_editHistory->clear();
+		m_editSnapshot = holeSnapshot();
+	}
 }
 
 void KolfGame::addNewObject(const QString& identifier)
@@ -2381,6 +2538,8 @@ void KolfGame::toggleEditMode()
 
 	if (editing)
 	{
+		m_editHistory->clear();
+		m_editSnapshot.clear();
 		Q_EMIT editingStarted();
 		setSelectedItem(nullptr);
 	}
@@ -2397,6 +2556,8 @@ void KolfGame::toggleEditMode()
 		if (citem)
 			citem->editModeChanged(editing);
 	}
+	if (editing)
+		m_editSnapshot = holeSnapshot();
 
 	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it)
 	{

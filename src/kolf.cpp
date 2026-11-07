@@ -1286,6 +1286,8 @@ void KolfWindow::editingStarted()
 	connect(editor, &Editor::changed, game, &KolfGame::setModified);
 	connect(editor, &Editor::addNewItem, this, &KolfWindow::setHoleFocus);
 	connect(game, &KolfGame::newSelectedItem, editor, &Editor::setItem);
+	connect(editor, &Editor::duplicateRequested, game, &KolfGame::duplicateSelected);
+	editor->setHistory(game->editHistory());
 
 	scoreboard->hide();
 	gameHud->clearHint();

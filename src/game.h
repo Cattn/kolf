@@ -239,6 +239,8 @@ struct CourseInfo
 	unsigned int par;
 };
 
+class QUndoStack;
+
 class KolfGame : public QGraphicsView
 {
 	Q_OBJECT
@@ -266,6 +268,11 @@ public:
 	QVariantMap newObjectProperties(const QString &identifier, QStringList *runtimeFields = nullptr);
 	QList<Ball *> balls() const;
 	void emitChannel(const QString &channel, bool level, bool pulse);
+	QUndoStack *editHistory() const { return m_editHistory; }
+	QByteArray holeSnapshot();
+	void restoreHoleSnapshot(const QByteArray &snapshot);
+	void duplicateSelected();
+	void nudgeSelected(const QPointF &offset);
 	~KolfGame() override;
 	void setFilename(const QString &filename);
 	QString curFilename() const { return filename; }
@@ -402,6 +409,13 @@ private:
 	struct ChannelEvent { QString channel; bool level; bool pulse; };
 	QList<ChannelEvent> m_channelQueue;
 	void deliverChannels();
+	bool handleEditorKey(QKeyEvent *event);
+	void scheduleEditCapture();
+	void captureEdit();
+	QUndoStack *m_editHistory = nullptr;
+	QTimer *m_editCaptureTimer = nullptr;
+	QByteArray m_editSnapshot;
+	bool m_restoringSnapshot = false;
 	Tagaro::Scene *course;
 	Tagaro::Board *courseBoard;
 	Putter *putter;

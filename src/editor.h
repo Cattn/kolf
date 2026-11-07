@@ -29,6 +29,7 @@ class QLineEdit;
 class QTreeWidget;
 class QTreeWidgetItem;
 class Config;
+class QUndoStack;
 
 class Editor : public QWidget
 {
@@ -38,8 +39,10 @@ public:
 Q_SIGNALS:
 	void changed(bool mod);
 	void addNewItem(const QString&);
+	void duplicateRequested();
 public Q_SLOTS:
 	void setItem(CanvasItem *);
+	void setHistory(QUndoStack *history);
 private Q_SLOTS:
 	void paletteActivated(QTreeWidgetItem *item);
 	void filterPalette(const QString &text);
@@ -47,6 +50,7 @@ private:
 	QHBoxLayout *hlayout;
 	QLineEdit *m_search;
 	QTreeWidget *m_palette;
+	QHBoxLayout *m_historyRow;
 	Config *config;
 };
 
