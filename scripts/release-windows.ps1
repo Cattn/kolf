@@ -23,7 +23,9 @@ if (git -C $repo status --porcelain --untracked-files=no) { throw 'The checkout 
 Get-ChildItem env: | Where-Object { [string]::IsNullOrEmpty($_.Value) } | ForEach-Object { Remove-Item "env:$($_.Name)" -ErrorAction SilentlyContinue }
 $env:PATH = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer;" + (($env:PATH -split ';' | Where-Object { $_ -and $_ -notmatch 'scoop\\shims' }) -join ';')
 if ($PythonPath) { $env:CRAFT_PYTHON = $PythonPath }
-& (Join-Path $CraftRoot 'craft\craftenv.ps1') | Out-Null
+$ErrorActionPreference = 'Continue'
+& (Join-Path $CraftRoot 'craft\craftenv.ps1') 2>$null | Out-Null
+$ErrorActionPreference = 'Stop'
 if (-not (Get-Command craft -ErrorAction SilentlyContinue)) { throw 'Craft initialization failed' }
 
 $started = Get-Date
