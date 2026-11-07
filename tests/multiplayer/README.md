@@ -125,7 +125,8 @@ data-object plays `fixtures/ice.kolf`, whose ice patch is defined in
 `objects/ice.kobj.json`, and requires every client to receive it as a `data`
 object.
 host-undo-channels runs the host undo checks on `fixtures/channels.kolf`: a
-pressure plate beside the tee toggles a gate over channel `a`, the undone shot
+pressure plate under the tee toggles a gate over channel `a` when a ball leaves
+it, the undone shot
 must have toggled it, and the undo must restore it on both clients.
 The host-skip scenario has the owner score once, skips with the guest still
 unscored, then checks retained scores, next-hole turn order, exact guest
