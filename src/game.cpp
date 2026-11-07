@@ -455,6 +455,8 @@ KolfGame::KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const 
 : QGraphicsView(parent),
  m_role(role),
  m_simulationEnabled(role == Kolf::Session::Role::Offline),
+ m_randomSeed(QRandomGenerator::global()->generate()),
+ m_rng(m_randomSeed),
  m_factory(factory),
  m_soundBlackHole(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/blackhole.wav"))),
  m_soundBlackHoleEject(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/blackholeeject.wav"))),
@@ -607,7 +609,7 @@ KolfGame::KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const 
 
 	fastTimer = new QTimer(this);
 	connect(fastTimer, &QTimer::timeout, this, &KolfGame::fastTimeout);
-	fastTimerMsec = 11;
+	fastTimerMsec = StepMilliseconds;
 
 	autoSaveTimer = new QTimer(this);
 	connect(autoSaveTimer, &QTimer::timeout, this, &KolfGame::autoSaveTimeout);
@@ -713,6 +715,21 @@ void KolfGame::setModified(bool mod)
 	Q_EMIT modifiedChanged(mod);
 }
 
+void KolfGame::setRandomSeed(quint32 seed)
+{
+	m_randomSeed = seed;
+	m_rng.seed(seed);
+}
+
+void KolfGame::setManualStepping(bool manual)
+{
+	m_manualStepping = manual;
+	if (manual) {
+		timer->stop();
+		fastTimer->stop();
+	}
+}
+
 void KolfGame::pause()
 {
 	if (isOnline()) return;
@@ -737,8 +754,10 @@ void KolfGame::unPause()
 
 	paused = false;
 
-	timer->start(timerMsec);
-	fastTimer->start(fastTimerMsec);
+	if (!m_manualStepping) {
+		timer->start(timerMsec);
+		fastTimer->start(fastTimerMsec);
+	}
 
 	if (putting || stroking)
 		putterTimer->start(putterTimerMsec);
@@ -1195,6 +1214,7 @@ void KolfGame::fastTimeout()
 	const double timeStep = 1.0 * Kolf::Box2DScaleFactor;
 	m_world->Step(timeStep, 10, 10); //parameters 2/3 = iteration counts (TODO: optimize)
 	++m_physicsSteps;
+	Q_EMIT simulationStepped();
 	//conclude simulation
 	for (b2Body* body = m_world->GetBodyList(); body; body = body->GetNext())
 	{
@@ -1285,17 +1305,16 @@ void KolfGame::putterTimeout()
 			{
 				strokeCircle->setValue(al); 
 				int deg;
-		                auto *generator = QRandomGenerator::global();
 				// if > 45 or < -45 then bad stroke
 				if (al > 45)
 				{
-					deg = putter->curDeg() - 45 + rand() % 90;
-                			strength -= generator->bounded((int)strength);
+					deg = putter->curDeg() - 45 + int(m_rng.bounded(90));
+					strength -= m_rng.bounded(qMax(1, int(strength)));
 				}
 				else if (!finishStroking)
 				{
-					deg = putter->curDeg() - 45 + rand() % 90;
-			                strength -= generator->bounded((int)strength);
+					deg = putter->curDeg() - 45 + int(m_rng.bounded(90));
+					strength -= m_rng.bounded(qMax(1, int(strength)));
 				}
 				else
 					deg = putter->curDeg() + (int)(strokeCircle->value() / 3);
@@ -1770,7 +1789,8 @@ void KolfGame::startNextHole()
 		openFile();
 
 	inPlay = false;
-	timer->start(timerMsec);
+	if (!m_manualStepping)
+		timer->start(timerMsec);
 
 	if(size().width()!=400 || size().height()!=400) { //not default size, so resizing needed
 		int setSize = qMin(size().width(), size().height());
@@ -2223,7 +2243,7 @@ void KolfGame::lastHole()
 
 void KolfGame::randHole()
 {
-	const int newHole = QRandomGenerator::global()->bounded(1, highestHole);
+	const int newHole = highestHole > 1 ? m_rng.bounded(1, highestHole) : 1;
 	switchHole(newHole);
 }
 
@@ -2484,6 +2504,7 @@ void KolfGame::saveScores(KConfig *config)
 	configGroup.writeEntry("Players", players->count());
 	configGroup.writeEntry("Course", filename);
 	configGroup.writeEntry("Current Hole", curHole);
+	configGroup.writeEntry("Random Seed", m_randomSeed);
 
 	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it)
 	{

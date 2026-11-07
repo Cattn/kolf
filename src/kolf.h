@@ -160,6 +160,7 @@ private:
 	void setHoleOtherEnabled(bool);
 	inline void setEditingEnabled(bool);
 	bool competition;
+	qint64 m_savedRandomSeed = -1;
 
 	Kolf::ItemFactory m_itemFactory;
 

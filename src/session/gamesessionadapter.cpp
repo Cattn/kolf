@@ -42,7 +42,7 @@ bool GameSessionAdapter::prepareCourse() {
 }
 void GameSessionAdapter::enableSimulation(bool enabled) {
     g->m_simulationEnabled = enabled && g->m_role == Role::Authority;
-    if (g->maySimulate()) { g->timer->start(g->timerMsec); g->fastTimer->start(g->fastTimerMsec); }
+    if (g->maySimulate() && !g->m_manualStepping) { g->timer->start(g->timerMsec); g->fastTimer->start(g->fastTimerMsec); }
     else { g->timer->stop(); g->fastTimer->stop(); }
 }
 void GameSessionAdapter::enableInput(bool enabled) {

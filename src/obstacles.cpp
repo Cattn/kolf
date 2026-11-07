@@ -55,7 +55,7 @@ bool Kolf::Bumper::collision(Ball* ball)
 	Vector betweenVector(ball->pos() - pos());
 	betweenVector.setMagnitudeDirection(speed,
 		// add some randomness so we don't go indefinitely
-		betweenVector.direction() + deg2rad(QRandomGenerator::global()->bounded(3) - 1)
+		betweenVector.direction() + deg2rad((game ? game->rng().bounded(3) : QRandomGenerator::global()->bounded(3)) - 1)
 	);
 
 	ball->setVelocity(betweenVector);

@@ -26,6 +26,7 @@
 #include "tagaro/scene.h"
 
 #include <QGraphicsView>
+#include <QRandomGenerator>
 #include <KConfigGroup>
 #include <KGameSound>
 #include <memory>
@@ -255,6 +256,13 @@ public:
 	void recordCollision() { ++m_collisionCalls; }
 	quint64 gameplayRandomCalls() const { return m_gameplayRandomCalls; }
 	void recordGameplayRandom() { ++m_gameplayRandomCalls; }
+	static constexpr int StepMilliseconds = 11;
+	QRandomGenerator &rng() { return m_rng; }
+	quint32 randomSeed() const { return m_randomSeed; }
+	void setRandomSeed(quint32 seed);
+	void setManualStepping(bool manual);
+	bool manualStepping() const { return m_manualStepping; }
+	void stepSimulation() { fastTimeout(); }
 	~KolfGame() override;
 	void setFilename(const QString &filename);
 	QString curFilename() const { return filename; }
@@ -346,6 +354,7 @@ Q_SIGNALS:
 	void currentHole(int);
 	void modifiedChanged(bool);
 	void newStatusText(const QString &);
+	void simulationStepped();
 
 private Q_SLOTS:
 	void shotDone();
@@ -384,6 +393,9 @@ private:
 	quint64 m_physicsSteps = 0;
 	quint64 m_collisionCalls = 0;
 	quint64 m_gameplayRandomCalls = 0;
+	quint32 m_randomSeed = 0;
+	QRandomGenerator m_rng;
+	bool m_manualStepping = false;
 	Tagaro::Scene *course;
 	Tagaro::Board *courseBoard;
 	Putter *putter;

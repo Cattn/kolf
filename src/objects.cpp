@@ -176,7 +176,7 @@ bool Kolf::BlackHole::collision(Ball* ball)
 	ball->setForceStillGoing(true);
 
 	const double distance = Vector(pos() - m_exitItem->pos()).magnitude();
-	BlackHoleTimer* timer = new BlackHoleTimer(ball, newSpeed, distance * 2.5 - newSpeed * 35 + 500);
+	BlackHoleTimer* timer = new BlackHoleTimer(game, ball, newSpeed, distance * 2.5 - newSpeed * 35 + 500);
 	timer->setParent(this); // Destroy pending ejections with this hole, before ball destruction.
 
 	connect(timer, &BlackHoleTimer::eject, this, &Kolf::BlackHole::eject);
@@ -186,11 +186,21 @@ bool Kolf::BlackHole::collision(Ball* ball)
 	return false;
 }
 
-Kolf::BlackHoleTimer::BlackHoleTimer(Ball* ball, double speed, int msec)
+Kolf::BlackHoleTimer::BlackHoleTimer(KolfGame* game, Ball* ball, double speed, int msec)
 	: m_speed(speed), m_ball(ball)
+	, m_steps(qMax(1, qRound(double(msec) / KolfGame::StepMilliseconds)))
+	, m_halfway(m_steps / 2)
 {
-	QTimer::singleShot(msec, this, &Kolf::BlackHoleTimer::emitEject);
-	QTimer::singleShot(msec / 2, this, &Kolf::BlackHoleTimer::halfway);
+	connect(game, &KolfGame::simulationStepped, this, &Kolf::BlackHoleTimer::step);
+}
+
+void Kolf::BlackHoleTimer::step()
+{
+	++m_elapsed;
+	if (m_elapsed == m_halfway)
+		Q_EMIT halfway();
+	if (m_elapsed == m_steps)
+		emitEject();
 }
 
 void Kolf::BlackHoleTimer::emitEject()

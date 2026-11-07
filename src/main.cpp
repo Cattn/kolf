@@ -42,6 +42,7 @@
 #include <KCrash>
 #ifdef KOLF_TEST_AUTOMATION
 #include "testing/uiscript.h"
+#include "testing/replayharness.h"
 #endif
 #include <KLocalizedString>
 #define HAVE_KICONTHEME __has_include(<KIconTheme>)
@@ -113,6 +114,7 @@ int main(int argc, char **argv)
     const auto protocolTests = qEnvironmentVariable("KOLF_ONLINE_PROTOCOL_TESTS");
     if (!protocolTests.isEmpty()) return Kolf::Session::runOnlineProtocolFixtures(protocolTests);
 #ifdef KOLF_TEST_AUTOMATION
+    if (!qEnvironmentVariableIsEmpty("KOLF_REPLAY_COURSES")) return Kolf::Testing::runReplayFromEnvironment();
     const auto onlineTestConfig = qEnvironmentVariable("KOLF_ONLINE_TEST_CONFIG");
     if (!onlineTestConfig.isEmpty()) {
         QFile config(onlineTestConfig);

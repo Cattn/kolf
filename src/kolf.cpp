@@ -616,6 +616,7 @@ void KolfWindow::startNewGame()
 			return;
 
 		competition = configGroup.readEntry("Competition", false);
+		m_savedRandomSeed = configGroup.hasKey("Random Seed") ? qint64(configGroup.readEntry("Random Seed", 0u)) : -1;
 		firstHole = configGroup.readEntry("Current Hole", 1);
 
 		players.clear();
@@ -686,6 +687,9 @@ void KolfWindow::launchGame(int firstHole)
 	delete game;
         game = new KolfGame(m_itemFactory, &players, filename, dummy);
 	game->setStrict(competition);
+	if (m_savedRandomSeed >= 0)
+		game->setRandomSeed(quint32(m_savedRandomSeed));
+	m_savedRandomSeed = -1;
 
 	connect(game, &KolfGame::newHole, scoreboard, &ScoreBoard::newHole);
 	connect(game, &KolfGame::scoreChanged, scoreboard, &ScoreBoard::setScore);

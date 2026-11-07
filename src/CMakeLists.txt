@@ -39,7 +39,7 @@ set_property(SOURCE online/serverlist.cpp APPEND PROPERTY COMPILE_DEFINITIONS
 
 option(KOLF_TEST_AUTOMATION "Build the scripted online test driver used by tests/multiplayer" ON)
 if(KOLF_TEST_AUTOMATION)
-    target_sources(kolfprivate PRIVATE testing/onlineautomation.cpp testing/uiscript.cpp)
+    target_sources(kolfprivate PRIVATE testing/onlineautomation.cpp testing/uiscript.cpp testing/replayharness.cpp)
     target_compile_definitions(kolfprivate PUBLIC KOLF_TEST_AUTOMATION)
 endif()
 

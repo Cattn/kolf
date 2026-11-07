@@ -1,0 +1,339 @@
+{
+    "course": "Practice",
+    "holes": [
+        {
+            "hole": 1,
+            "shots": [
+                {
+                    "ball": [
+                        68,
+                        257
+                    ],
+                    "direction": -0.311,
+                    "magnitude": 4.163,
+                    "state": 1,
+                    "steps": 108,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        290.805,
+                        37.995
+                    ],
+                    "direction": 0.125,
+                    "magnitude": 2.428,
+                    "state": 1,
+                    "steps": 177,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        290.68,
+                        48.23
+                    ],
+                    "direction": 1.583,
+                    "magnitude": 1.388,
+                    "state": 1,
+                    "steps": 15,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 2,
+            "shots": [
+                {
+                    "ball": [
+                        166.421,
+                        29.661
+                    ],
+                    "direction": -1.742,
+                    "magnitude": 4.163,
+                    "state": 1,
+                    "steps": 137,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        177.732,
+                        286.22
+                    ],
+                    "direction": 0.827,
+                    "magnitude": 2.428,
+                    "state": 1,
+                    "steps": 213,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        203.488,
+                        219.776
+                    ],
+                    "direction": -1.201,
+                    "magnitude": 1.388,
+                    "state": 1,
+                    "steps": 99,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 3,
+            "shots": [
+                {
+                    "ball": [
+                        39,
+                        167
+                    ],
+                    "direction": -0.178,
+                    "magnitude": 4.163,
+                    "state": 1,
+                    "steps": 336,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        227.69,
+                        334.65
+                    ],
+                    "direction": 0.259,
+                    "magnitude": 2.428,
+                    "state": 1,
+                    "steps": 222,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        259.887,
+                        271.076
+                    ],
+                    "direction": -1.102,
+                    "magnitude": 1.388,
+                    "state": 1,
+                    "steps": 99,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 4,
+            "shots": [
+                {
+                    "ball": [
+                        254.888,
+                        288.381
+                    ],
+                    "direction": -3.101,
+                    "hazardDrops": 1,
+                    "magnitude": 4.163,
+                    "state": 1,
+                    "steps": 23,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        253.24,
+                        287.528
+                    ],
+                    "direction": -2.664,
+                    "hazardDrops": 1,
+                    "magnitude": 2.428,
+                    "state": 1,
+                    "steps": 2,
+                    "strokes": 4
+                },
+                {
+                    "ball": [
+                        254.851,
+                        287.587
+                    ],
+                    "direction": -3.105,
+                    "hazardDrops": 1,
+                    "magnitude": 1.388,
+                    "state": 1,
+                    "steps": 1,
+                    "strokes": 6
+                }
+            ]
+        },
+        {
+            "hole": 5,
+            "shots": [
+                {
+                    "ball": [
+                        328,
+                        312
+                    ],
+                    "direction": -2.341,
+                    "magnitude": 4.163,
+                    "state": 1,
+                    "steps": 116,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        255.634,
+                        103.59
+                    ],
+                    "direction": -1.905,
+                    "magnitude": 2.428,
+                    "state": 1,
+                    "steps": 176,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        271.35,
+                        129.77
+                    ],
+                    "direction": -2.952,
+                    "magnitude": 1.388,
+                    "state": 1,
+                    "steps": 99,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 6,
+            "shots": [
+                {
+                    "ball": [
+                        25.364,
+                        211.572
+                    ],
+                    "direction": -2.288,
+                    "magnitude": 4.163,
+                    "state": 1,
+                    "steps": 213,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        244.891,
+                        26
+                    ],
+                    "direction": -0.805,
+                    "magnitude": 2.428,
+                    "state": 1,
+                    "steps": 311,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        174.501,
+                        37.114
+                    ],
+                    "direction": 2.985,
+                    "magnitude": 1.388,
+                    "state": 1,
+                    "steps": 99,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 7,
+            "shots": [
+                {
+                    "ball": [
+                        370,
+                        174
+                    ],
+                    "direction": 2.875,
+                    "magnitude": 4.163,
+                    "state": 1,
+                    "steps": 27,
+                    "strokes": 1
+                },
+                {
+                    "direction": -2.972,
+                    "holed": true,
+                    "magnitude": 2.428,
+                    "steps": 363,
+                    "strokes": 2
+                }
+            ]
+        },
+        {
+            "hole": 8,
+            "shots": [
+                {
+                    "ball": [
+                        124.58,
+                        135.158
+                    ],
+                    "direction": 2.503,
+                    "magnitude": 4.163,
+                    "state": 1,
+                    "steps": 97,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        107.909,
+                        140.988
+                    ],
+                    "direction": 2.235,
+                    "magnitude": 2.428,
+                    "state": 1,
+                    "steps": 99,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        107.082,
+                        146.843
+                    ],
+                    "direction": 1.681,
+                    "magnitude": 1.388,
+                    "state": 1,
+                    "steps": 8,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 9,
+            "shots": [
+                {
+                    "ball": [
+                        139.864,
+                        264.645
+                    ],
+                    "direction": -0.738,
+                    "hazardDrops": 1,
+                    "magnitude": 4.163,
+                    "state": 1,
+                    "steps": 26,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        139.318,
+                        264.814
+                    ],
+                    "direction": -0.301,
+                    "hazardDrops": 1,
+                    "magnitude": 2.428,
+                    "state": 1,
+                    "steps": 1,
+                    "strokes": 4
+                },
+                {
+                    "ball": [
+                        140.141,
+                        264.069
+                    ],
+                    "direction": -0.736,
+                    "hazardDrops": 1,
+                    "magnitude": 1.388,
+                    "state": 1,
+                    "steps": 3,
+                    "strokes": 6
+                }
+            ]
+        }
+    ],
+    "seed": 1
+}

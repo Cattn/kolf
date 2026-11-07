@@ -78,15 +78,19 @@ namespace Kolf
 	{
 		Q_OBJECT
 		public:
-			BlackHoleTimer(Ball* ball, double speed, int msec);
+			BlackHoleTimer(KolfGame* game, Ball* ball, double speed, int msec);
 		Q_SIGNALS:
 			void eject(Ball* ball, double speed);
 			void halfway();
 		private Q_SLOTS:
+			void step();
 			void emitEject();
 		private:
 			double m_speed;
 			Ball* m_ball;
+			int m_steps;
+			int m_halfway;
+			int m_elapsed = 0;
 	};
 
 	class BlackHoleConfig : public Config
