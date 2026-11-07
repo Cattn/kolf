@@ -20,6 +20,7 @@
 #include "landscape.h"
 #include "ball.h"
 #include "game.h"
+#include "objectregistry.h"
 
 #include <QDoubleSpinBox>
 #include <QBoxLayout>
@@ -640,5 +641,9 @@ void Kolf::SlopeOverlay::moveHandle(const QPointF& handleScenePos)
 }
 
 //END Kolf::SlopeOverlay
+
+KOLF_REGISTER_OBJECT(Kolf::Puddle, Kolf::ObjectType(QStringLiteral("puddle"), kli18n("Puddle")).category(Kolf::ObjectCategory::Hazard))
+KOLF_REGISTER_OBJECT(Kolf::Sand, Kolf::ObjectType(QStringLiteral("sand"), kli18n("Sand")).category(Kolf::ObjectCategory::Terrain))
+KOLF_REGISTER_OBJECT(Kolf::Slope, Kolf::ObjectType(QStringLiteral("slope"), kli18n("Slope")).category(Kolf::ObjectCategory::Terrain))
 
 #include "moc_landscape.cpp"

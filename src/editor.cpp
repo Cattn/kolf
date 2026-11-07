@@ -18,15 +18,14 @@
 */
 
 #include "editor.h"
-#include "itemfactory.h"
+#include "objectregistry.h"
 
 #include <QLabel>
 #include <QListWidget>
 #include <QHBoxLayout>
 #include <KLocalizedString>
-Editor::Editor(const Kolf::ItemFactory& factory, QWidget *parent)
+Editor::Editor(QWidget *parent)
 	: QWidget(parent)
-	, m_factory(factory)
 {
 	config = nullptr;
 
@@ -40,10 +39,13 @@ Editor::Editor(const Kolf::ItemFactory& factory, QWidget *parent)
 	hlayout->setStretchFactor(vlayout, 2);
 
 	//populate type list
-	const auto knownTypes = factory.knownTypes();
-	for (const Kolf::ItemMetadata& metadata : knownTypes) {
-		QListWidgetItem* item = new QListWidgetItem(metadata.name);
-		item->setData(Qt::UserRole, metadata.identifier);
+	auto knownTypes = Kolf::ObjectRegistry::instance().types();
+	std::sort(knownTypes.begin(), knownTypes.end(), [](const Kolf::ObjectType &a, const Kolf::ObjectType &b) {
+		return QString::localeAwareCompare(a.name(), b.name()) < 0;
+	});
+	for (const Kolf::ObjectType& type : std::as_const(knownTypes)) {
+		QListWidgetItem* item = new QListWidgetItem(type.name());
+		item->setData(Qt::UserRole, type.id());
 		m_typeList->addItem(item);
 	}
 	connect(m_typeList, &QListWidget::itemClicked, this, &Editor::listboxExecuted);

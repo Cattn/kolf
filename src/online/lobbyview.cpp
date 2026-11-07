@@ -35,8 +35,8 @@
 
 using namespace Kolf::Online;
 
-LobbyView::LobbyView(const Kolf::ItemFactory &factory, OnlineCoordinator &coordinator, QWidget *parent)
-    : QWidget(parent), m_factory(factory), m_coordinator(coordinator)
+LobbyView::LobbyView(OnlineCoordinator &coordinator, QWidget *parent)
+    : QWidget(parent), m_coordinator(coordinator)
 {
     setObjectName(QStringLiteral("onlineLobby"));
     auto *layout = new QVBoxLayout(this);
@@ -333,7 +333,7 @@ void LobbyView::updateThumbnail(const QJsonObject &course)
     if (!QFileInfo::exists(path)) { m_thumbnail->setText(i18n("Preview available after the course is downloaded.")); return; }
     QTimer::singleShot(0, this, [this, path, key] {
         if (m_thumbnailKey != key) return;
-        const auto pixmap = Kolf::Ui::NewGameView::thumbnail(m_factory, path);
+        const auto pixmap = Kolf::Ui::NewGameView::thumbnail(path);
         if (m_thumbnailKey == key) m_thumbnail->setPixmap(pixmap.scaled(180, 180, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     });
 }

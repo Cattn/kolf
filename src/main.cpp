@@ -18,6 +18,7 @@
 
 #include "kolf.h"
 #include "kolf_version.h"
+#include "objectregistry.h"
 #include "session/onlineprotocol.h"
 #include <QJsonDocument>
 
@@ -106,10 +107,21 @@ int main(int argc, char **argv)
     QCommandLineParser parser;
         parser.addOption(QCommandLineOption(QStringList() << QStringLiteral("+file"), i18n("File")));
         parser.addOption(QCommandLineOption(QStringList() << QStringLiteral("course-info"), i18n("Print course information and exit")));
+        parser.addOption(QCommandLineOption(QStringList() << QStringLiteral("dump-object-catalog"), i18n("Write the object catalog to a file and exit"), i18n("file")));
+        parser.addOption(QCommandLineOption(QStringList() << QStringLiteral("check-object-catalog"), i18n("Check that an object catalog file is up to date and exit"), i18n("file")));
 
     aboutData.setupCommandLine(&parser);
     parser.process(app);
     aboutData.processCommandLine(&parser);
+
+    if (parser.isSet(QStringLiteral("dump-object-catalog")))
+        return Kolf::ObjectRegistry::instance().writeCatalog(parser.value(QStringLiteral("dump-object-catalog"))) ? 0 : 1;
+    if (parser.isSet(QStringLiteral("check-object-catalog"))) {
+        QString difference;
+        if (Kolf::ObjectRegistry::instance().catalogMatchesFile(parser.value(QStringLiteral("check-object-catalog")), difference)) return 0;
+        std::cerr << qPrintable(difference) << std::endl;
+        return 1;
+    }
 
     const auto protocolTests = qEnvironmentVariable("KOLF_ONLINE_PROTOCOL_TESTS");
     if (!protocolTests.isEmpty()) return Kolf::Session::runOnlineProtocolFixtures(protocolTests);

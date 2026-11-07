@@ -12,6 +12,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 COPY server/ ./
 COPY courses/ /app/courses/
+COPY protocol/ /app/protocol/
 
 USER node
 EXPOSE 3011

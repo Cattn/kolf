@@ -91,7 +91,7 @@ static bool editProfile(QWidget *parent, const QString &title, QString &name, QS
     return true;
 }
 
-OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
+OnlineWidget::OnlineWidget(QWidget *parent)
     : QWidget(parent)
     , m_coordinator(this)
 {
@@ -226,7 +226,7 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
     });
     connect(m_joinCode, &QLineEdit::returnPressed, this, [this] { if (m_joinButton->isEnabled()) m_joinButton->click(); });
 
-    m_lobby = new LobbyView(factory, m_coordinator, this);
+    m_lobby = new LobbyView(m_coordinator, this);
     m_pages->addWidget(m_lobby);
     connect(m_lobby, &LobbyView::leaveRequested, this, [this] {
         m_state = {};

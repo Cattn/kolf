@@ -1,0 +1,132 @@
+{
+    "catalogHash": "0ce99ae59ee3215a4fac0f0127d565691f95e6c76237a37343454ae684da6308",
+    "catalogVersion": 1,
+    "structuralGroups": [
+        "ball",
+        "course",
+        "hole"
+    ],
+    "types": [
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "blackhole",
+            "name": "Black Hole",
+            "properties": {
+            },
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "terrain",
+            "id": "bridge",
+            "name": "Bridge",
+            "properties": {
+            },
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "obstacle",
+            "id": "bumper",
+            "name": "Bumper",
+            "properties": {
+            },
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": true,
+            "affectsGameplay": true,
+            "category": "course",
+            "id": "cup",
+            "name": "Cup",
+            "properties": {
+            },
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "floater",
+            "name": "Floater",
+            "properties": {
+            },
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "hazard",
+            "id": "puddle",
+            "name": "Puddle",
+            "properties": {
+            },
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "terrain",
+            "id": "sand",
+            "name": "Sand",
+            "properties": {
+            },
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "obstacle",
+            "id": "sign",
+            "name": "Sign",
+            "properties": {
+            },
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "terrain",
+            "id": "slope",
+            "name": "Slope",
+            "properties": {
+            },
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "obstacle",
+            "id": "wall",
+            "name": "Wall",
+            "properties": {
+            },
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "windmill",
+            "name": "Windmill",
+            "properties": {
+            },
+            "runtime": [
+            ]
+        }
+    ]
+}

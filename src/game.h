@@ -45,7 +45,6 @@ namespace Tagaro
 }
 namespace Kolf
 {
-	class ItemFactory;
 	KGameRenderer* renderer();
 	Tagaro::Board* findBoard(QGraphicsItem* item); //TODO: temporary HACK
 	b2World* world(); //TODO: temporary HACK (should be inside KolfGame, but various places outside the game need to create CanvasItems)
@@ -245,7 +244,7 @@ class KolfGame : public QGraphicsView
 	Q_OBJECT
 
 public:
-	KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const QString &filename, QWidget *parent=nullptr,
+	KolfGame(PlayerList *players, const QString &filename, QWidget *parent=nullptr,
              Kolf::Session::Role role = Kolf::Session::Role::Offline);
 	bool isOnline() const { return m_role != Kolf::Session::Role::Offline; }
 	bool isGuest() const { return m_role == Kolf::Session::Role::Guest; }
@@ -410,7 +409,6 @@ private:
 	QTimer *putterTimer;
 	bool regAdv;
 
-	const Kolf::ItemFactory& m_factory;
 	QList<QGraphicsItem*> m_topLevelQItems; //includes balls, but not putter
 	QList<QGraphicsItem*> m_moveableQItems;
 

@@ -2,7 +2,6 @@
 #include "replayharness.h"
 
 #include "game.h"
-#include "itemfactory.h"
 #include "landscape.h"
 #include "objects.h"
 #include "obstacles.h"
@@ -84,21 +83,6 @@ ShotIntent fixedIntent(const FixedShot &shot, const QPointF &ball, const QPointF
     return intent;
 }
 
-void registerTypes(Kolf::ItemFactory &factory)
-{
-    factory.registerType<Kolf::Slope>(QStringLiteral("slope"), QStringLiteral("Slope"));
-    factory.registerType<Kolf::Puddle>(QStringLiteral("puddle"), QStringLiteral("Puddle"));
-    factory.registerType<Kolf::Wall>(QStringLiteral("wall"), QStringLiteral("Wall"));
-    factory.registerType<Kolf::Cup>(QStringLiteral("cup"), QStringLiteral("Cup"));
-    factory.registerType<Kolf::Sand>(QStringLiteral("sand"), QStringLiteral("Sand"));
-    factory.registerType<Kolf::Windmill>(QStringLiteral("windmill"), QStringLiteral("Windmill"));
-    factory.registerType<Kolf::BlackHole>(QStringLiteral("blackhole"), QStringLiteral("Black hole"));
-    factory.registerType<Kolf::Floater>(QStringLiteral("floater"), QStringLiteral("Floater"));
-    factory.registerType<Kolf::Bridge>(QStringLiteral("bridge"), QStringLiteral("Bridge"));
-    factory.registerType<Kolf::Sign>(QStringLiteral("sign"), QStringLiteral("Sign"));
-    factory.registerType<Kolf::Bumper>(QStringLiteral("bumper"), QStringLiteral("Bumper"));
-}
-
 QStringList courseFiles(const QString &path)
 {
     const QFileInfo info(path);
@@ -141,7 +125,7 @@ QString firstDifference(const QJsonValue &expected, const QJsonValue &actual, co
     return QStringLiteral("%1: expected %2, got %3").arg(path, text(expected), text(actual));
 }
 
-QJsonObject replayHole(const Kolf::ItemFactory &factory, const QString &courseFile, int hole, quint32 seed, int &holeCount, QString &error)
+QJsonObject replayHole(const QString &courseFile, int hole, quint32 seed, int &holeCount, QString &error)
 {
     PlayerList players;
     Player player;
@@ -151,7 +135,7 @@ QJsonObject replayHole(const Kolf::ItemFactory &factory, const QString &courseFi
     players.append(player);
 
     QWidget host;
-    auto *game = new KolfGame(factory, &players, courseFile, &host, Role::Authority);
+    auto *game = new KolfGame(&players, courseFile, &host, Role::Authority);
     game->setManualStepping(true);
     game->setSound(false);
     auto *adapter = new GameSessionAdapter(game);
@@ -227,12 +211,10 @@ QJsonObject replayHole(const Kolf::ItemFactory &factory, const QString &courseFi
 
 QJsonObject replayCourse(const QString &courseFile, quint32 seed, QString &error)
 {
-    Kolf::ItemFactory factory;
-    registerTypes(factory);
     QJsonArray holes;
     int holeCount = 1;
     for (int hole = 1; hole <= holeCount && error.isEmpty(); ++hole) {
-        const auto result = replayHole(factory, courseFile, hole, seed, holeCount, error);
+        const auto result = replayHole(courseFile, hole, seed, holeCount, error);
         if (error.isEmpty()) holes.append(result);
     }
     return {{QStringLiteral("course"), QFileInfo(courseFile).fileName()}, {QStringLiteral("seed"), double(seed)},

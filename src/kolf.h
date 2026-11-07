@@ -23,7 +23,6 @@
 #include <KXmlGuiWindow>
 
 #include "game.h"
-#include "itemfactory.h"
 #include <QHash>
 #include <QJsonObject>
 #include <QUrl>
@@ -162,7 +161,6 @@ private:
 	bool competition;
 	qint64 m_savedRandomSeed = -1;
 
-	Kolf::ItemFactory m_itemFactory;
 
 	QString loadedGame;
 

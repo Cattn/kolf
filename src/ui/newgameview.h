@@ -12,7 +12,6 @@ class QLabel;
 class QPushButton;
 class QToolButton;
 class QVBoxLayout;
-namespace Kolf { class ItemFactory; }
 
 namespace Kolf::Ui {
 struct LocalPlayer {
@@ -23,9 +22,9 @@ struct LocalPlayer {
 class NewGameView : public QWidget {
     Q_OBJECT
 public:
-    NewGameView(const Kolf::ItemFactory &factory, QWidget *parent = nullptr);
+    explicit NewGameView(QWidget *parent = nullptr);
     void prepare(const QString &lockedCourse = {});
-    static QPixmap thumbnail(const Kolf::ItemFactory &factory, const QString &course);
+    static QPixmap thumbnail(const QString &course);
 
 Q_SIGNALS:
     void startRequested(const QList<Kolf::Ui::LocalPlayer> &players, const QString &course, bool strict);
@@ -46,7 +45,6 @@ private:
     void start();
     QColor nextFreeColor() const;
 
-    const Kolf::ItemFactory &m_factory;
     QVBoxLayout *m_playerRows;
     QPushButton *m_addPlayer;
     QComboBox *m_course;

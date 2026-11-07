@@ -8,14 +8,13 @@ class QComboBox;
 class QLabel;
 class QPushButton;
 class QVBoxLayout;
-namespace Kolf { class ItemFactory; }
 
 namespace Kolf::Online {
 class OnlineCoordinator;
 class LobbyView : public QWidget {
     Q_OBJECT
 public:
-    LobbyView(const Kolf::ItemFactory &factory, OnlineCoordinator &coordinator, QWidget *parent = nullptr);
+    LobbyView(OnlineCoordinator &coordinator, QWidget *parent = nullptr);
     void setState(const QJsonObject &state);
     void setStatus(const QString &status);
 
@@ -25,7 +24,6 @@ Q_SIGNALS:
 private:
     void editPlayer(const QJsonObject &player = {});
     void updateThumbnail(const QJsonObject &course);
-    const Kolf::ItemFactory &m_factory;
     OnlineCoordinator &m_coordinator;
     QJsonObject m_state;
     QLabel *m_heading;

@@ -20,6 +20,7 @@
 #include "objects.h"
 #include "ball.h"
 #include "game.h"
+#include "objectregistry.h"
 #include "tagaro/board.h"
 
 #include <QFormLayout>
@@ -403,5 +404,8 @@ bool Kolf::Cup::collision(Ball* ball)
 }
 
 //END Kolf::Cup
+
+KOLF_REGISTER_OBJECT(Kolf::BlackHole, Kolf::ObjectType(QStringLiteral("blackhole"), kli18n("Black Hole")).category(Kolf::ObjectCategory::Mechanism))
+KOLF_REGISTER_OBJECT(Kolf::Cup, Kolf::ObjectType(QStringLiteral("cup"), kli18n("Cup")).category(Kolf::ObjectCategory::Course).addOnNewHole())
 
 #include "moc_objects.cpp"

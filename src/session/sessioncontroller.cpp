@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "sessioncontroller.h"
+#include "objectregistry.h"
 #include "landscape.h"
 #include "objects.h"
 #include "obstacles.h"
@@ -74,25 +75,12 @@ SessionController::SessionController(const QJsonObject &config, Net::NetworkClie
     m_hash = config.value(QStringLiteral("courseSource")) == QLatin1String("uploaded")
         ? Online::rawCourseHash(courseBytes) : onlineCourseHash(courseBytes);
     // Every current built-in is supported. Reject unknown groups before scene construction.
-    m_factory.registerType<Kolf::Slope>(QStringLiteral("slope"), QStringLiteral("Slope"));
-    m_factory.registerType<Kolf::Puddle>(QStringLiteral("puddle"), QStringLiteral("Puddle"));
-    m_factory.registerType<Kolf::Wall>(QStringLiteral("wall"), QStringLiteral("Wall"));
-    m_factory.registerType<Kolf::Cup>(QStringLiteral("cup"), QStringLiteral("Cup"));
-    m_factory.registerType<Kolf::Sand>(QStringLiteral("sand"), QStringLiteral("Sand"));
-    m_factory.registerType<Kolf::Windmill>(QStringLiteral("windmill"), QStringLiteral("Windmill"));
-    m_factory.registerType<Kolf::BlackHole>(QStringLiteral("blackhole"), QStringLiteral("Black hole"));
-    m_factory.registerType<Kolf::Floater>(QStringLiteral("floater"), QStringLiteral("Floater"));
-    m_factory.registerType<Kolf::Bridge>(QStringLiteral("bridge"), QStringLiteral("Bridge"));
-    m_factory.registerType<Kolf::Sign>(QStringLiteral("sign"), QStringLiteral("Sign"));
-    m_factory.registerType<Kolf::Bumper>(QStringLiteral("bumper"), QStringLiteral("Bumper"));
     KConfig cfg(config[QStringLiteral("course")].toString(), KConfig::SimpleConfig);
-    QSet<QString> types{QStringLiteral("ball"), QStringLiteral("hole"), QStringLiteral("course")};
-    for (const auto &type : m_factory.knownTypes()) types.insert(type.identifier);
     const QRegularExpression group(QStringLiteral("^(\\d+)-([^@]+)@-?\\d+,-?\\d+(?:\\|\\d+)?$"));
     if (cfg.groupList().size() > 4096) { interrupt(QStringLiteral("Course object limit")); return; }
     for (const auto &name : cfg.groupList()) {
         const auto match = group.match(name);
-        if (!match.hasMatch() || !types.contains(match.captured(2)) || match.captured(1).toInt() > 1000) {
+        if (!match.hasMatch() || !Kolf::ObjectRegistry::instance().isKnownGroup(match.captured(2)) || match.captured(1).toInt() > 1000) {
             interrupt(QStringLiteral("Unsupported course group: %1").arg(name)); return;
         }
     }
@@ -159,7 +147,7 @@ void SessionController::load() {
         const QColor configured = Kolf::Online::colorFromRgba(entry.value(QStringLiteral("resolvedColor")).toString());
         p.ball()->setColor(configured.isValid() ? configured : fallback); m_players.append(p);
     }
-    m_game = new KolfGame(m_factory, &m_players, m_config[QStringLiteral("course")].toString(), m_gameHost, m_role);
+    m_game = new KolfGame(&m_players, m_config[QStringLiteral("course")].toString(), m_gameHost, m_role);
     m_game->setUseMouse(m_useMouse);
     m_game->setUseAdvancedPutting(m_useAdvancedPutting);
     m_game->setSound(m_sound);

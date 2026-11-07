@@ -2,7 +2,6 @@
 #include "newgameview.h"
 
 #include "game.h"
-#include "itemfactory.h"
 
 #include <KColorButton>
 #include <KConfigGroup>
@@ -52,9 +51,8 @@ KConfigGroup modeGroup()
 }
 }
 
-NewGameView::NewGameView(const Kolf::ItemFactory &factory, QWidget *parent)
+NewGameView::NewGameView(QWidget *parent)
     : QWidget(parent)
-    , m_factory(factory)
 {
     setObjectName(QStringLiteral("newGameView"));
     auto *outer = new QVBoxLayout(this);
@@ -301,10 +299,10 @@ void NewGameView::updateCourse()
     QStringList lines{i18ncp("@info", "1 hole", "%1 holes", info.holes) + QStringLiteral(" · ") + i18nc("@info", "par %1", info.par)};
     if (!info.author.isEmpty()) lines << i18nc("@info author attribution", "by %1", info.author);
     m_courseDetails->setText(lines.join(QLatin1Char('\n')));
-    m_thumbnail->setPixmap(thumbnail(m_factory, file));
+    m_thumbnail->setPixmap(thumbnail(file));
 }
 
-QPixmap NewGameView::thumbnail(const Kolf::ItemFactory &factory, const QString &course)
+QPixmap NewGameView::thumbnail(const QString &course)
 {
     QFile file(course);
     if (!file.open(QIODevice::ReadOnly) || file.size() > 4 * 1024 * 1024) return {};
@@ -319,7 +317,7 @@ QPixmap NewGameView::thumbnail(const Kolf::ItemFactory &factory, const QString &
     QPixmap pixmap(ThumbnailSize);
     pixmap.fill(Qt::transparent);
     {
-        KolfGame preview(factory, &players, course, nullptr);
+        KolfGame preview(&players, course, nullptr);
         preview.setAttribute(Qt::WA_DontShowOnScreen);
         preview.setSound(false);
         preview.ignoreEvents(true);

@@ -9,6 +9,8 @@
 #include <QStandardPaths>
 #include <QStringDecoder>
 
+#include "objectregistry.h"
+
 namespace Kolf::Online {
 constexpr qsizetype MaximumCourseBytes = 4 * 1024 * 1024;
 constexpr qsizetype CourseChunkBytes = 48 * 1024;
@@ -35,12 +37,8 @@ inline bool validateCourseBytes(const QByteArray &bytes, QString &error)
     QString text = decoder.decode(bytes);
     if (decoder.hasError()) { error = QStringLiteral("Course is not valid UTF-8 text."); return false; }
     static const QRegularExpression binary(QStringLiteral("[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]"));
-    static const QRegularExpression groupPattern(QStringLiteral("^(\\d+)-([a-z]+)@(-?\\d+),(-?\\d+)(?:\\|(\\d+))?$"));
+    static const QRegularExpression groupPattern(QStringLiteral("^(\\d+)-([a-z][a-z0-9_]*)@(-?\\d+),(-?\\d+)(?:\\|(\\d+))?$"));
     static const QRegularExpression keyPattern(QStringLiteral("^[A-Za-z0-9_@.\\[\\]-]+$"));
-    static const QSet<QString> allowed{QStringLiteral("ball"), QStringLiteral("blackhole"), QStringLiteral("bridge"),
-        QStringLiteral("bumper"), QStringLiteral("course"), QStringLiteral("cup"), QStringLiteral("floater"),
-        QStringLiteral("hole"), QStringLiteral("puddle"), QStringLiteral("sand"), QStringLiteral("sign"),
-        QStringLiteral("slope"), QStringLiteral("wall"), QStringLiteral("windmill")};
     if (binary.match(text).hasMatch()) { error = QStringLiteral("Course contains binary content."); return false; }
     text.replace(QStringLiteral("\r\n"), QStringLiteral("\n")).replace(QLatin1Char('\r'), QLatin1Char('\n'));
     QSet<QString> groups;
@@ -58,7 +56,7 @@ inline bool validateCourseBytes(const QByteArray &bytes, QString &error)
             const int hole = match.captured(1).toInt(&validHole);
             const qint64 x = match.captured(3).toLongLong(&validX);
             const qint64 y = match.captured(4).toLongLong(&validY);
-            if (!match.hasMatch() || !allowed.contains(match.captured(2)) || !validHole || hole > 1000
+            if (!match.hasMatch() || !Kolf::ObjectRegistry::instance().isKnownGroup(match.captured(2)) || !validHole || hole > 1000
                 || !validX || !validY || x < -100000 || x > 100000 || y < -100000 || y > 100000
                 || groups.contains(group) || groups.size() >= 4096) {
                 error = QStringLiteral("Unsupported or duplicate course object."); return false;

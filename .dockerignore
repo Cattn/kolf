@@ -1,6 +1,7 @@
 *
 !server
 !courses
+!protocol
 server/node_modules
 server/local-session
 server/test

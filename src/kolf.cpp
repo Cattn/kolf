@@ -90,17 +90,6 @@ KolfWindow::KolfWindow()
 
 	setupActions();
 
-	m_itemFactory.registerType<Kolf::Slope>(QStringLiteral("slope"), i18n("Slope"));
-	m_itemFactory.registerType<Kolf::Puddle>(QStringLiteral("puddle"), i18n("Puddle"));
-	m_itemFactory.registerType<Kolf::Wall>(QStringLiteral("wall"), i18n("Wall"));
-	m_itemFactory.registerType<Kolf::Cup>(QStringLiteral("cup"), i18n("Cup"), true); //true == addOnNewHole
-	m_itemFactory.registerType<Kolf::Sand>(QStringLiteral("sand"), i18n("Sand"));
-	m_itemFactory.registerType<Kolf::Windmill>(QStringLiteral("windmill"), i18n("Windmill"));
-	m_itemFactory.registerType<Kolf::BlackHole>(QStringLiteral("blackhole"), i18n("Black Hole"));
-	m_itemFactory.registerType<Kolf::Floater>(QStringLiteral("floater"), i18n("Floater"));
-	m_itemFactory.registerType<Kolf::Bridge>(QStringLiteral("bridge"), i18n("Bridge"));
-	m_itemFactory.registerType<Kolf::Sign>(QStringLiteral("sign"), i18n("Sign"));
-	m_itemFactory.registerType<Kolf::Bumper>(QStringLiteral("bumper"), i18n("Bumper"));
 	//NOTE: The plugin mechanism has been removed because it is not used anyway.
 
 	filename = QString();
@@ -276,7 +265,7 @@ void KolfWindow::setupActions()
 void KolfWindow::ensureOnlineWidget()
 {
 	if (!onlineWidget) {
-		onlineWidget = new Kolf::Online::OnlineWidget(m_itemFactory, applicationStack);
+		onlineWidget = new Kolf::Online::OnlineWidget(applicationStack);
 		applicationStack->addWidget(onlineWidget);
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::leaveRequested, this, &KolfWindow::leaveOnline);
 		connect(onlineWidget, &Kolf::Online::OnlineWidget::manageServersRequested, this, &KolfWindow::showServerSettings, Qt::QueuedConnection);
@@ -631,7 +620,7 @@ void KolfWindow::startNewGame()
 void KolfWindow::showSetup(const QString &lockedCourse)
 {
 	if (!setupView) {
-		setupView = new Kolf::Ui::NewGameView(m_itemFactory, applicationStack);
+		setupView = new Kolf::Ui::NewGameView(applicationStack);
 		applicationStack->addWidget(setupView);
 		connect(setupView, &Kolf::Ui::NewGameView::backRequested, this, [this] {
 			filename = QString();
@@ -685,7 +674,7 @@ void KolfWindow::launchGame(int firstHole)
 	delete spacer;
         spacer = nullptr;
 	delete game;
-        game = new KolfGame(m_itemFactory, &players, filename, dummy);
+        game = new KolfGame(&players, filename, dummy);
 	game->setStrict(competition);
 	if (m_savedRandomSeed >= 0)
 		game->setRandomSeed(quint32(m_savedRandomSeed));
@@ -942,7 +931,7 @@ void KolfWindow::createSpacer()
 	spacerPlayers.last().setId(1);
 
 	delete spacer;
-	spacer = new KolfGame(m_itemFactory, &spacerPlayers, QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("intro")), dummy);
+	spacer = new KolfGame(&spacerPlayers, QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("intro")), dummy);
 	spacer->setSound(false);
 	layout->addWidget(spacer, 1, 0);//, Qt::AlignCenter);
 	spacer->ignoreEvents(true);
@@ -1291,7 +1280,7 @@ void KolfWindow::newStatusText(const QString &text)
 void KolfWindow::editingStarted()
 {
 	delete editor;
-	editor = new Editor(m_itemFactory, dummy);
+	editor = new Editor(dummy);
 	editor->setObjectName( QStringLiteral( "Editor" ) );
 	connect(editor, &Editor::addNewItem, game, &KolfGame::addNewObject);
 	connect(editor, &Editor::changed, game, &KolfGame::setModified);

@@ -21,14 +21,13 @@ class QStackedWidget;
 class QTimer;
 namespace Kolf::Online { class PlayerProfileEditor; }
 namespace Kolf::Ui { class ResultsView; }
-namespace Kolf { class ItemFactory; }
 
 namespace Kolf::Online {
 class LobbyView;
 class OnlineWidget : public QWidget {
     Q_OBJECT
 public:
-    OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent = nullptr);
+    explicit OnlineWidget(QWidget *parent = nullptr);
     ~OnlineWidget() override;
     void leaveOnline();
     void enterOnline();

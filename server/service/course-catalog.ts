@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 import type { CourseCatalogEntry } from './lobby.ts';
+import { objectCatalog } from './object-catalog.ts';
 
 export interface CatalogFile {
   courseId: string;
@@ -12,8 +13,6 @@ export interface CatalogFile {
 
 export const MAX_COURSE_BYTES = 4 * 1024 * 1024;
 export const COURSE_CHUNK_BYTES = 48 * 1024;
-const allowedTypes = new Set(['ball', 'blackhole', 'bridge', 'bumper', 'course', 'cup', 'floater',
-  'hole', 'puddle', 'sand', 'sign', 'slope', 'wall', 'windmill']);
 
 export interface CourseMetadata { displayName: string; author: string; holes: number; par: number; holePars: number[] }
 
@@ -28,8 +27,8 @@ export function parseCourseBytes(content: Buffer): CourseMetadata {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith(';')) continue;
     if (trimmed.startsWith('[')) {
-      const match = /^(\d+)-([a-z]+)@(-?\d+),(-?\d+)(?:\|(\d+))?$/u.exec(trimmed.slice(1, -1));
-      if (!trimmed.endsWith(']') || !match || !allowedTypes.has(match[2])
+      const match = /^(\d+)-([a-z][a-z0-9_]*)@(-?\d+),(-?\d+)(?:\|(\d+))?$/u.exec(trimmed.slice(1, -1));
+      if (!trimmed.endsWith(']') || !match || !objectCatalog.groups.has(match[2])
         || Number(match[1]) > 1000 || Math.abs(Number(match[3])) > 100000
         || Math.abs(Number(match[4])) > 100000 || groups.has(trimmed)) throw Error('unsupported course group');
       current = new Map(); groups.set(trimmed, current);

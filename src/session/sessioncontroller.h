@@ -3,7 +3,6 @@
 #include "gamesessionadapter.h"
 #include "net/networkclient.h"
 #include "replication/presentationcontroller.h"
-#include "itemfactory.h"
 #include <QElapsedTimer>
 #include <QFile>
 #include <QJsonArray>
@@ -86,7 +85,6 @@ private:
     void clearRemoteAim();
     QJsonObject m_config;
     Role m_role;
-    Kolf::ItemFactory m_factory;
     PlayerList m_players;
     KolfGame *m_game = nullptr;
     GameSessionAdapter *m_adapter = nullptr;

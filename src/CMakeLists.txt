@@ -3,7 +3,7 @@ ecm_setup_version(${RELEASE_SERVICE_VERSION}
     VERSION_HEADER kolf_version.h
 )
 
-add_library(kolfprivate STATIC)
+add_library(kolfprivate OBJECT)
 
 # Fingerprint normalized gameplay source, not checkout paths or line endings.
 file(GLOB_RECURSE RULES_SOURCES CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -164,8 +164,8 @@ target_sources(kolfprivate PRIVATE
     editor.h
     game.cpp
     game.h
-    itemfactory.cpp
-    itemfactory.h
+    objectregistry.cpp
+    objectregistry.h
     kcomboboxdialog.cpp
     kcomboboxdialog.h
     kolf.cpp

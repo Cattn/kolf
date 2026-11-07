@@ -12,3 +12,8 @@ ecm_add_test(invitelinktest.cpp
     TEST_NAME invitelinktest
     LINK_LIBRARIES kolfprivate Qt6::Test)
 target_include_directories(invitelinktest PRIVATE ${CMAKE_SOURCE_DIR}/src)
+ecm_add_test(objectregistrytest.cpp
+    TEST_NAME objectregistrytest
+    LINK_LIBRARIES kolfprivate Qt6::Test)
+target_include_directories(objectregistrytest PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_compile_definitions(objectregistrytest PRIVATE KOLF_OBJECT_CATALOG="${CMAKE_SOURCE_DIR}/protocol/object-catalog.json")

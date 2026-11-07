@@ -19,7 +19,7 @@
 
 #include "ui/hazardprompt.h"
 #include "game.h"
-#include "itemfactory.h"
+#include "objectregistry.h"
 #include "kcomboboxdialog.h"
 #include "landscape.h"
 #include "obstacles.h"
@@ -451,13 +451,12 @@ void StrokeCircle::paint (QPainter *p, const QStyleOptionGraphicsItem *, QWidget
 }
 /////////////////////////////////////////
 
-KolfGame::KolfGame(const Kolf::ItemFactory& factory, PlayerList *players, const QString &filename, QWidget *parent, Kolf::Session::Role role)
+KolfGame::KolfGame(PlayerList *players, const QString &filename, QWidget *parent, Kolf::Session::Role role)
 : QGraphicsView(parent),
  m_role(role),
  m_simulationEnabled(role == Kolf::Session::Role::Offline),
  m_randomSeed(QRandomGenerator::global()->generate()),
  m_rng(m_randomSeed),
- m_factory(factory),
  m_soundBlackHole(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/blackhole.wav"))),
  m_soundBlackHoleEject(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/blackholeeject.wav"))),
  m_soundBlackHolePutIn(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/blackholeputin.wav"))),
@@ -1927,7 +1926,7 @@ void KolfGame::openFile()
 			continue;
 		}
 		const int id = QStringView(*it).right(len - (pipeIndex + 1)).toInt();
-		QGraphicsItem* newItem = m_factory.createInstance(name, courseBoard, m_world.get());
+		QGraphicsItem* newItem = Kolf::ObjectRegistry::instance().create(name, courseBoard, m_world.get());
 		if (newItem)
 		{
 			newItem->setData(1, *it); // Exact source group is the stable network identity.
@@ -2010,7 +2009,9 @@ void KolfGame::openFile()
 void KolfGame::addNewObject(const QString& identifier)
 {
 	if (isOnline()) return;
-	QGraphicsItem *newItem = m_factory.createInstance(identifier, courseBoard, m_world.get());
+	QGraphicsItem *newItem = Kolf::ObjectRegistry::instance().create(identifier, courseBoard, m_world.get());
+	if (!newItem)
+		return;
 
 	m_topLevelQItems << newItem;
 	m_moveableQItems << newItem;
@@ -2129,10 +2130,10 @@ void KolfGame::addNewHole()
 	inPlay = false;
 
 	// add default objects
-	const auto knownTypes = m_factory.knownTypes();
-	for (const Kolf::ItemMetadata& metadata : knownTypes)
-		if (metadata.addOnNewHole)
-			addNewObject(metadata.identifier);
+	const auto knownTypes = Kolf::ObjectRegistry::instance().types();
+	for (const Kolf::ObjectType& type : knownTypes)
+		if (type.isAddedOnNewHole())
+			addNewObject(type.id());
 
 	save();
 }
@@ -2181,10 +2182,10 @@ void KolfGame::clearHole()
 	setSelectedItem(nullptr);
 
 	// add default objects
-	const auto knownTypes = m_factory.knownTypes();
-	for (const Kolf::ItemMetadata& metadata : knownTypes)
-		if (metadata.addOnNewHole)
-			addNewObject(metadata.identifier);
+	const auto knownTypes = Kolf::ObjectRegistry::instance().types();
+	for (const Kolf::ObjectType& type : knownTypes)
+		if (type.isAddedOnNewHole())
+			addNewObject(type.id());
 
 	setModified(true);
 }

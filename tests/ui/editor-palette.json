@@ -1,0 +1,12 @@
+{
+  "description": "Course editor: the object palette lists every registered object type, and a new hole gets the registry's default objects (a cup).",
+  "steps": [
+    { "wait": 1500 },
+    { "resize": [960, 760], "wait": 800 },
+    { "click": "homeEditor", "wait": 2500 },
+    { "expectHidden": "homeView", "screenshot": "01-editor-palette.png" },
+    { "trigger": "New Hole", "in": "course", "wait": 1500 },
+    { "screenshot": "02-new-hole-default-objects.png" },
+    { "quit": true }
+  ]
+}

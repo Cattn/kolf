@@ -20,6 +20,7 @@
 #include "obstacles.h"
 #include "ball.h"
 #include "game.h"
+#include "objectregistry.h"
 #include "shape.h"
 
 #include <QCheckBox>
@@ -892,5 +893,12 @@ void Kolf::Windmill::save(KConfigGroup* group)
 }
 
 //END Kolf::Windmill
+
+KOLF_REGISTER_OBJECT(Kolf::Bumper, Kolf::ObjectType(QStringLiteral("bumper"), kli18n("Bumper")).category(Kolf::ObjectCategory::Obstacle))
+KOLF_REGISTER_OBJECT(Kolf::Wall, Kolf::ObjectType(QStringLiteral("wall"), kli18n("Wall")).category(Kolf::ObjectCategory::Obstacle))
+KOLF_REGISTER_OBJECT(Kolf::Bridge, Kolf::ObjectType(QStringLiteral("bridge"), kli18n("Bridge")).category(Kolf::ObjectCategory::Terrain))
+KOLF_REGISTER_OBJECT(Kolf::Floater, Kolf::ObjectType(QStringLiteral("floater"), kli18n("Floater")).category(Kolf::ObjectCategory::Mechanism))
+KOLF_REGISTER_OBJECT(Kolf::Sign, Kolf::ObjectType(QStringLiteral("sign"), kli18n("Sign")).category(Kolf::ObjectCategory::Obstacle))
+KOLF_REGISTER_OBJECT(Kolf::Windmill, Kolf::ObjectType(QStringLiteral("windmill"), kli18n("Windmill")).category(Kolf::ObjectCategory::Mechanism))
 
 #include "moc_obstacles.cpp"

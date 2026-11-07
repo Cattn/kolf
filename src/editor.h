@@ -31,14 +31,13 @@ class Config;
 
 namespace Kolf
 {
-	class ItemFactory;
 }
 
 class Editor : public QWidget
 {
 	Q_OBJECT
 public:
-	explicit Editor(const Kolf::ItemFactory& factory, QWidget * = nullptr);
+	explicit Editor(QWidget * = nullptr);
 Q_SIGNALS:
 	void changed(bool mod);
 	void addNewItem(const QString&);
@@ -47,7 +46,6 @@ public Q_SLOTS:
 private Q_SLOTS:
 	void listboxExecuted(QListWidgetItem*);
 private:
-	const Kolf::ItemFactory& m_factory;
 	QHBoxLayout *hlayout;
 	QListWidget* m_typeList;
 	Config *config;
