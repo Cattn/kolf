@@ -354,6 +354,7 @@ OnlineWidget::OnlineWidget(const Kolf::ItemFactory &factory, QWidget *parent)
     connect(&m_coordinator, &OnlineCoordinator::reconnectingChanged, this, [this](bool reconnecting) {
         if (!m_matchActive) return;
         Q_EMIT matchPauseChanged(reconnecting, reconnecting ? i18n("Lost the connection. Reconnecting to the match…") : QString());
+        if (!reconnecting) Q_EMIT matchTransportResumed();
     });
     connect(&m_coordinator, &OnlineCoordinator::lobbyChanged, this, [this](const QJsonObject &state) {
         if (m_matchActive) {

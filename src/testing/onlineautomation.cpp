@@ -383,7 +383,7 @@ void OnlineAutomation::sessionInputReady()
         m_shotTurns.remove(turn);
     }
     const int dropTurn = m_config.value(QStringLiteral("scriptedMatchDropTurn")).toInt();
-    if (!authority && dropTurn > 0 && turn >= dropTurn && !m_matchDropDone) {
+    if (dropTurn > 0 && turn >= dropTurn && !m_matchDropDone) {
         m_matchDropDone = true;
         QFile marker(QDir(m_config.value(QStringLiteral("logDirectory")).toString()).filePath(QStringLiteral("match-drop.txt")));
         if (marker.open(QIODevice::WriteOnly | QIODevice::Truncate)) marker.write(QByteArray::number(turn));

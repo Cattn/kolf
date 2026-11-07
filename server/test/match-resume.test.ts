@@ -16,6 +16,7 @@ function playingMatch() {
   const host = controller.connect(), guest = controller.connect();
   const created = send(controller, host, envelope('CreateLobby', { displayName: 'Sam', colorMode: 'auto', courseId: 'classic' }, { requestId: 'c' }));
   const lobbyState = created[0].message.payload.state as any, lobbyId = lobbyState.lobbyId as string;
+  const hostToken = created[0].message.payload.resumeToken as string;
   const joined = send(controller, guest, envelope('JoinLobby', { joinCode: lobbyState.joinCode, displayName: 'Ana', colorMode: 'auto' }, { requestId: 'j' }));
   const guestToken = (joined.find(delivery => delivery.connectionId === guest)!.message.payload as any).resumeToken as string;
   const revision = controller.service.activeLobby(lobbyId).lobbyRevision;
@@ -43,7 +44,7 @@ function playingMatch() {
     commandId: `shot-${requestId}`, holeGeneration: 1, turnId: 1, playerId: match.roster[0].playerId,
     puttingMode: 'normal', directionRadians: 0.5, launchMagnitude: 3,
   }, { requestId, lobbyId, matchId }));
-  return { controller, host, guest, lobbyId, matchId, guestToken, shot, advance: (ms: number) => { now += ms; } };
+  return { controller, host, guest, lobbyId, matchId, guestToken, hostToken, shot, advance: (ms: number) => { now += ms; } };
 }
 
 test('a guest who drops mid-match pauses it instead of ending it', () => {
@@ -82,8 +83,26 @@ test('a guest who stays away for 60 s ends the match as before', () => {
   assert.equal((results[0].message.payload.result as any).status, 'Interrupted');
 });
 
-test('the authority dropping still interrupts the match', () => {
+test('a dropped authority pauses the match and resumes with its scene intact', () => {
   const m = playingMatch();
   const dropped = m.controller.disconnect(m.host);
-  assert(dropped.some(delivery => delivery.message.type === 'MatchResult'));
+  assert.deepEqual(dropped.map(delivery => [delivery.connectionId, delivery.message.type]), [[m.guest, 'LobbyState']]);
+  m.advance(30_000);
+  assert(!m.controller.tick().some(delivery => delivery.message.type === 'MatchResult'));
+  const back = m.controller.connect();
+  const resumed = send(m.controller, back, envelope('ResumeSession', { resumeToken: m.hostToken }, { requestId: 'r' }));
+  assert.equal(resumed[0].message.type, 'SessionResumed');
+  const resync = send(m.controller, back, envelope('RequestResync', {}, { requestId: 'rs', lobbyId: m.lobbyId, matchId: m.matchId }));
+  assert(resync.some(delivery => delivery.connectionId === back && delivery.message.type === 'RequestResync'));
+  const accepted = m.shot('after');
+  assert.notEqual(accepted[0]?.message.payload.reason, 'waiting for a player to reconnect');
+});
+
+test('an authority that stays away ends the match and the lobby', () => {
+  const m = playingMatch();
+  m.controller.disconnect(m.host);
+  m.advance(60_001);
+  const types = m.controller.tick().map(delivery => delivery.message.type);
+  assert(types.includes('MatchResult'));
+  assert(types.includes('LobbyClosed'));
 });

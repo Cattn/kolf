@@ -149,18 +149,17 @@ export class LobbyRegistry {
     const membership = this.membershipByConnection.get(connectionId);
     const lobby = membership ? this.lobbiesById.get(membership.lobbyId) : undefined;
     const before = lobby?.state();
-    const guestInMatch = !!lobby && lobby.phase === 'Playing' && !!membership
-      && before?.match?.authorityMemberId !== membership.memberId;
-    if (!membership || !lobby || (lobby.phase !== 'Open' && lobby.phase !== 'Results' && !guestInMatch))
+    const inMatch = !!lobby && lobby.phase === 'Playing' && !!membership;
+    if (!membership || !lobby || (lobby.phase !== 'Open' && lobby.phase !== 'Results' && !inMatch))
       return this.depart(connectionId, 'A participant disconnected');
     this.membershipByConnection.delete(connectionId);
     this.requests.clearScope(`connection:${connectionId}`);
-    const deadline = this.now() + (guestInMatch ? this.limits.matchReconnectMs : this.limits.lobbyReconnectMs);
+    const deadline = this.now() + (inMatch ? this.limits.matchReconnectMs : this.limits.lobbyReconnectMs);
     this.reconnecting.set(this.memberKey(lobby.lobbyId, membership.memberId),
       { lobbyId: lobby.lobbyId, memberId: membership.memberId, deadline });
     const state = lobby.markReconnecting(membership.memberId, deadline);
     const recipients = state.members.filter(member => member.memberId !== membership.memberId).map(member => member.connectionId);
-    return { lobbyId: lobby.lobbyId, matchId: guestInMatch ? before?.match?.matchId : undefined, memberId: membership.memberId,
+    return { lobbyId: lobby.lobbyId, matchId: inMatch ? before?.match?.matchId : undefined, memberId: membership.memberId,
       recipients, state, closed: false, activeMatchInterrupted: false, reason: 'A participant is reconnecting' };
   }
 

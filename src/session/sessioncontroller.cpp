@@ -197,7 +197,9 @@ void SessionController::commit(const QString &phase) {
     m_adapter->enableInput(false);
     // Input is barred until both peers acknowledge; pending teleport callbacks
     // and moving obstacles continue on the authority during resynchronization.
-    send(m_revision == 1 ? QStringLiteral("InitialState") : QStringLiteral("CommitTransition"), {{QStringLiteral("state"), state()}});
+    m_lastCommitMessage = wireMessage(m_revision == 1 ? QStringLiteral("InitialState") : QStringLiteral("CommitTransition"),
+        {{QStringLiteral("state"), state()}});
+    m_network->send(m_lastCommitMessage);
     log(QStringLiteral("commit"), {{QStringLiteral("state"), state()}});
     refresh();
 }
@@ -564,6 +566,13 @@ void SessionController::setPaused(bool paused, const QString &reason)
     m_pauseReason = reason;
     if (paused) m_pendingClock.restart();
     if (changed) refresh();
+}
+
+void SessionController::resumeAfterReconnect()
+{
+    if (m_interrupted) return;
+    if (m_role == Role::Authority && !m_lastCommitMessage.isEmpty()) m_network->send(m_lastCommitMessage);
+    requestResync();
 }
 
 void SessionController::requestResync()

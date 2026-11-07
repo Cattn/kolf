@@ -94,10 +94,8 @@ void OnlineCoordinator::clearSession()
 bool OnlineCoordinator::canResume() const
 {
     const auto phase = m_state.value(QStringLiteral("phase")).toString();
-    const bool guestInMatch = phase == QLatin1String("Playing")
-        && m_state.value(QStringLiteral("match")).toObject().value(QStringLiteral("authorityMemberId")).toString() != m_memberId;
     return !m_resumeToken.isEmpty() && !m_lobbyId.isEmpty()
-        && (phase == QLatin1String("Open") || phase == QLatin1String("Results") || guestInMatch);
+        && (phase == QLatin1String("Open") || phase == QLatin1String("Results") || phase == QLatin1String("Playing"));
 }
 
 void OnlineCoordinator::beginResume()

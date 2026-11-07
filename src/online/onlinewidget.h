@@ -51,6 +51,7 @@ Q_SIGNALS:
     void manageServersRequested();
     void serviceNotice(const QString &text);
     void matchPauseChanged(bool paused, const QString &reason);
+    void matchTransportResumed();
 
 private:
     enum class ConnectionState { Disconnected, Connecting, Disconnecting, Connected, InLobby, InMatch, Failed };
