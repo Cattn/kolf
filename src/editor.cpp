@@ -89,6 +89,12 @@ Editor::Editor(QWidget *parent)
 	m_palette->setRootIsDecorated(false);
 	m_palette->setIconSize(QSize(24, 24));
 	vlayout->addWidget(m_palette);
+	m_problems = new QLabel(this);
+	m_problems->setObjectName(QStringLiteral("editorProblems"));
+	m_problems->setWordWrap(true);
+	m_problems->setTextFormat(Qt::RichText);
+	m_problems->hide();
+	vlayout->addWidget(m_problems);
 	hlayout->setStretchFactor(vlayout, 2);
 
 	const QList<Kolf::ObjectCategory> order{Kolf::ObjectCategory::Course, Kolf::ObjectCategory::Terrain,
@@ -129,7 +135,10 @@ void Editor::setHistory(QUndoStack *history)
 	auto *duplicate = new QAction(QIcon::fromTheme(QStringLiteral("edit-copy")), i18nc("@action:button", "Duplicate"), this);
 	duplicate->setToolTip(i18nc("@info:tooltip", "Duplicate the selected object (Ctrl+D)"));
 	connect(duplicate, &QAction::triggered, this, &Editor::duplicateRequested);
-	const QList<QPair<QAction *, QString>> actions{{undo, QStringLiteral("editorUndo")}, {redo, QStringLiteral("editorRedo")}, {duplicate, QStringLiteral("editorDuplicate")}};
+	auto *test = new QAction(QIcon::fromTheme(QStringLiteral("media-playback-start")), i18nc("@action:button", "Test Hole"), this);
+	test->setToolTip(i18nc("@info:tooltip", "Play this hole now; leaving play mode restores it exactly as it was"));
+	connect(test, &QAction::triggered, this, &Editor::testRequested);
+	const QList<QPair<QAction *, QString>> actions{{undo, QStringLiteral("editorUndo")}, {redo, QStringLiteral("editorRedo")}, {duplicate, QStringLiteral("editorDuplicate")}, {test, QStringLiteral("editorTest")}};
 	for (const auto &[action, name] : actions) {
 		auto *button = new QToolButton(this);
 		button->setObjectName(name);
@@ -139,6 +148,15 @@ void Editor::setHistory(QUndoStack *history)
 		m_historyRow->addWidget(button);
 	}
 	m_historyRow->addStretch(1);
+}
+
+void Editor::setProblems(const QStringList &problems)
+{
+	QStringList lines;
+	for (const QString &problem : problems)
+		lines << QStringLiteral("&#9888; %1").arg(problem.toHtmlEscaped());
+	m_problems->setText(lines.join(QStringLiteral("<br>")));
+	m_problems->setVisible(!problems.isEmpty());
 }
 
 void Editor::paletteActivated(QTreeWidgetItem *item)

@@ -549,6 +549,15 @@ Kolf::DataObject::DataObject(std::shared_ptr<const DataObjectDefinition> definit
 	updateGeometry();
 }
 
+QStringList Kolf::DataObject::channels(const QString &componentType) const
+{
+	QStringList result;
+	for (const auto &component : m_definition->components)
+		if (component.type == componentType)
+			result << parameter(component, QStringLiteral("channel"), QString()).toString();
+	return result;
+}
+
 bool Kolf::DataObject::hasComponent(const QString &type) const
 {
 	for (const auto &component : m_definition->components)

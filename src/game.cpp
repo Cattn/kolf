@@ -776,8 +776,58 @@ void KolfGame::restoreHoleSnapshot(const QByteArray &snapshot)
 	}
 	openFile();
 	m_editSnapshot = snapshot;
+	Q_EMIT holeProblemsChanged(holeProblems());
 	setModified(true);
 	m_restoringSnapshot = false;
+}
+
+QStringList KolfGame::holeProblems() const
+{
+	QStringList problems;
+	QList<QPointF> cups;
+	QStringList triggers, receivers;
+	int gameplay = 0, decoration = 0;
+	for (QGraphicsItem *item : std::as_const(m_topLevelQItems)) {
+		auto *citem = dynamic_cast<CanvasItem *>(item);
+		if (!citem || dynamic_cast<Ball *>(item))
+			continue;
+		if (citem->name() == QLatin1String("cup"))
+			cups << item->pos();
+		if (const auto *type = Kolf::ObjectRegistry::instance().find(citem->name()))
+			(type->affectsGameplay() ? gameplay : decoration)++;
+		if (auto *object = dynamic_cast<Kolf::DataObject *>(item)) {
+			triggers << object->channels(QStringLiteral("trigger"));
+			receivers << object->channels(QStringLiteral("receiver"));
+		}
+	}
+	if (cups.isEmpty())
+		problems << i18n("This hole has no cup.");
+	for (int i = 0; i < cups.size(); ++i)
+		for (int j = i + 1; j < cups.size(); ++j)
+			if (QLineF(cups[i], cups[j]).length() < 12)
+				problems << i18n("Two cups overlap.");
+	QStringList channels = triggers + receivers;
+	channels.removeDuplicates();
+	channels.sort();
+	for (const QString &channel : std::as_const(channels)) {
+		if (!receivers.contains(channel))
+			problems << i18n("Channel \"%1\" has a trigger but nothing receives it.", channel);
+		else if (!triggers.contains(channel))
+			problems << i18n("Channel \"%1\" has a receiver but nothing triggers it.", channel);
+	}
+	if (gameplay > 256)
+		problems << i18n("This hole has %1 gameplay objects; the limit is 256.", gameplay);
+	if (decoration > 512)
+		problems << i18n("This hole has %1 decorations; the limit is 512.", decoration);
+	return problems;
+}
+
+void KolfGame::beginTest()
+{
+	if (!editing || isOnline())
+		return;
+	captureEdit();
+	m_testSnapshot = holeSnapshot();
 }
 
 void KolfGame::scheduleEditCapture()
@@ -805,6 +855,7 @@ void KolfGame::captureEdit()
 	}
 	m_editHistory->push(new EditCommand(this, m_editSnapshot, snapshot));
 	m_editSnapshot = snapshot;
+	Q_EMIT holeProblemsChanged(holeProblems());
 }
 
 void KolfGame::duplicateSelected()
@@ -2565,8 +2616,24 @@ void KolfGame::toggleEditMode()
 		if (citem)
 			citem->editModeChanged(editing);
 	}
-	if (editing)
+	if (editing) {
+		if (!m_testSnapshot.isEmpty()) {
+			const QByteArray tested = std::exchange(m_testSnapshot, {});
+			restoreHoleSnapshot(tested);
+		} else if (filename.isEmpty()) {
+			bool empty = true;
+			for (QGraphicsItem *item : std::as_const(m_topLevelQItems))
+				if (dynamic_cast<CanvasItem *>(item) && !dynamic_cast<Ball *>(item))
+					empty = false;
+			if (empty)
+				for (const auto &type : Kolf::ObjectRegistry::instance().types())
+					if (type.isAddedOnNewHole())
+						addNewObject(type.id());
+			setSelectedItem(nullptr);
+		}
 		m_editSnapshot = holeSnapshot();
+		Q_EMIT holeProblemsChanged(holeProblems());
+	}
 
 	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it)
 	{

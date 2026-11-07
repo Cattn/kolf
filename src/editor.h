@@ -40,9 +40,11 @@ Q_SIGNALS:
 	void changed(bool mod);
 	void addNewItem(const QString&);
 	void duplicateRequested();
+	void testRequested();
 public Q_SLOTS:
 	void setItem(CanvasItem *);
 	void setHistory(QUndoStack *history);
+	void setProblems(const QStringList &problems);
 private Q_SLOTS:
 	void paletteActivated(QTreeWidgetItem *item);
 	void filterPalette(const QString &text);
@@ -51,6 +53,7 @@ private:
 	QLineEdit *m_search;
 	QTreeWidget *m_palette;
 	QHBoxLayout *m_historyRow;
+	class QLabel *m_problems;
 	Config *config;
 };
 

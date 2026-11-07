@@ -274,6 +274,9 @@ public:
 	void restoreHoleSnapshot(const QByteArray &snapshot);
 	void duplicateSelected();
 	void nudgeSelected(const QPointF &offset);
+	QStringList holeProblems() const;
+	void beginTest();
+	bool isTesting() const { return !m_testSnapshot.isEmpty(); }
 	~KolfGame() override;
 	void setFilename(const QString &filename);
 	QString curFilename() const { return filename; }
@@ -365,6 +368,7 @@ Q_SIGNALS:
 	void currentHole(int);
 	void modifiedChanged(bool);
 	void newStatusText(const QString &);
+	void holeProblemsChanged(const QStringList &problems);
 	void simulationStepped();
 
 private Q_SLOTS:
@@ -417,6 +421,7 @@ private:
 	QTimer *m_editCaptureTimer = nullptr;
 	QByteArray m_editSnapshot;
 	bool m_restoringSnapshot = false;
+	QByteArray m_testSnapshot;
 	Tagaro::Scene *course;
 	Tagaro::Board *courseBoard;
 	Putter *putter;

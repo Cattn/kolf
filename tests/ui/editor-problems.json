@@ -1,0 +1,19 @@
+{
+  "description": "Course editor: a new course starts with a cup, the problems list flags a gate with no plate, and Test Hole plays the hole then restores it.",
+  "steps": [
+    { "wait": 1500 },
+    { "resize": [1100, 860], "wait": 800 },
+    { "click": "homeEditor", "wait": 2500 },
+    { "expectHidden": "editorProblems", "screenshot": "01-new-course-cup.png" },
+    { "activateItem": "Gate", "in": "editorPalette", "wait": 1200 },
+    { "expectVisible": "editorProblems", "screenshot": "02-gate-without-plate.png" },
+    { "drag": [182, 182, 120, 300], "wait": 400 },
+    { "activateItem": "Pressure Plate", "in": "editorPalette", "wait": 1200 },
+    { "expectHidden": "editorProblems", "screenshot": "03-plate-added.png" },
+    { "click": "editorTest", "wait": 1500 },
+    { "expectHidden": "Editor", "screenshot": "04-testing.png" },
+    { "action": "editing", "wait": 1500 },
+    { "expectVisible": "Editor", "screenshot": "05-back-in-editor.png" },
+    { "quit": true }
+  ]
+}

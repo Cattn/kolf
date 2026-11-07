@@ -74,6 +74,7 @@ public:
 	bool hasComponent(const QString &type) const;
 	bool isResizable() const { return m_definition->resizable; }
 	bool isRotatable() const { return m_definition->rotatable; }
+	QStringList channels(const QString &componentType) const;
 
 protected:
 	Kolf::Overlay *createOverlay() override;
