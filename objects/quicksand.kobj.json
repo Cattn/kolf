@@ -1,0 +1,41 @@
+{
+  "kolfObject": 1,
+  "id": "quicksand",
+  "name": "Quicksand",
+  "category": "hazard",
+  "help": "Slows the ball. If it stops inside, it sinks: +1 stroke, and it is dropped at the edge.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      70,
+      50
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "quicksand.svg",
+    "layer": "ground"
+  },
+  "properties": {
+    "drag": {
+      "type": "number",
+      "label": "Friction",
+      "min": 2,
+      "max": 10,
+      "step": 0.5,
+      "default": 5
+    }
+  },
+  "components": [
+    {
+      "type": "surface",
+      "friction": "$drag",
+      "priority": 2
+    },
+    {
+      "type": "hazard",
+      "outcome": "sink"
+    }
+  ]
+}

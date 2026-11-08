@@ -23,6 +23,8 @@
 #include "canvasitem.h"
 
 class QPropertyAnimation;
+
+enum class HazardReset { None = 0, LastShot = 1, Tee = 2 };
 namespace Kolf::Session { class GameSessionAdapter; }
 
 
@@ -51,6 +53,8 @@ public:
 	bool placeOnGround(Vector &v) { v = m_pogOldVelocity; return m_placeOnGround; }
 	void setAddStroke(int newStrokes) { m_addStroke = newStrokes; }
 	void setPlaceOnGround(bool placeOnGround) { m_placeOnGround = placeOnGround; m_pogOldVelocity = velocity(); }
+	HazardReset hazardReset() const { return m_hazardReset; }
+	void setHazardReset(HazardReset reset) { m_hazardReset = reset; }
 
 	bool beginningOfHole() const { return m_beginningOfHole; }
 	void setBeginningOfHole(bool yes) { m_beginningOfHole = yes; }
@@ -98,6 +102,7 @@ private:
 
 	bool m_doDetect;
 	bool m_shownHoled = false;
+	HazardReset m_hazardReset = HazardReset::None;
 	QPropertyAnimation *m_dropAnimation = nullptr;
 	void showHoled(bool holed);
 

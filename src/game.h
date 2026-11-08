@@ -295,6 +295,7 @@ public:
 	bool isEditing() const { return editing; }
 	int currentHole() { return curHole; }
 	void impact(Kolf::Impact kind, const QPointF &position, double strength);
+	void applyHazardResets();
 	int holePar() const { return holeInfo.par(); }
 	int holeCount() const { return highestHole; }
 	bool hasCurrentPlayer() const { return players && curPlayer != players->end(); }

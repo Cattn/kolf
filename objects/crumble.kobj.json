@@ -1,0 +1,25 @@
+{
+  "kolfObject": 1,
+  "id": "crumble",
+  "name": "Crumbling Tiles",
+  "category": "hazard",
+  "help": "Old tiles that break once a ball has rolled across them. After that they are a pit for the rest of the hole: +1 stroke and back to the tee.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      40,
+      40
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "crumble.svg",
+    "layer": "ground"
+  },
+  "components": [
+    {
+      "type": "crumble"
+    }
+  ]
+}

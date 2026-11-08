@@ -28,7 +28,7 @@ async function openedWithHello(url: string) {
 test('shipped course catalog hashes allowlisted files with platform-neutral line endings', () => {
   const catalog = loadCourseCatalog(courseRoot);
   assert.deepEqual(catalog.map(course => course.courseId),
-    ['classic', 'easy', 'hard', 'medium', 'reallyeasy', 'practice', 'impossible', 'usapro', 'tokyo', 'weatherreport']);
+    ['classic', 'easy', 'hard', 'medium', 'reallyeasy', 'practice', 'impossible', 'usapro', 'tokyo', 'weatherreport', 'dangerzone']);
   const tokyo = catalog.find(course => course.courseId === 'tokyo');
   assert.equal(tokyo?.holes, 9);
   assert.equal(tokyo?.totalPar, 48);

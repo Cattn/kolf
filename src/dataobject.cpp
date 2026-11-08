@@ -25,6 +25,7 @@ namespace
 {
 constexpr qsizetype MaximumDefinitionBytes = 64 * 1024;
 constexpr double MaximumVortexTwist = 0.008;
+constexpr double SinkSpeed = 0.25;
 constexpr qsizetype MaximumSpriteBytes = 256 * 1024;
 constexpr qsizetype MaximumEmbeddedImageBytes = 1024 * 1024;
 
@@ -32,7 +33,8 @@ const QStringList &componentTypes()
 {
 	static const QStringList types{QStringLiteral("surface"), QStringLiteral("force"), QStringLiteral("boost"),
 		QStringLiteral("hazard"), QStringLiteral("sound"), QStringLiteral("decor"), QStringLiteral("solid"),
-		QStringLiteral("trigger"), QStringLiteral("receiver"), QStringLiteral("motion")};
+		QStringLiteral("trigger"), QStringLiteral("receiver"), QStringLiteral("motion"), QStringLiteral("crumble"),
+		QStringLiteral("pulse"), QStringLiteral("blast")};
 	return types;
 }
 
@@ -72,7 +74,14 @@ QList<ParameterRule> parameterRules(const QString &type)
 			{QStringLiteral("impulse"), ParameterRule::Number, 0, 10, {}, true},
 			{QStringLiteral("cooldown"), ParameterRule::Integer, 0, 600, {}, false}};
 	if (type == QLatin1String("hazard"))
-		return {{QStringLiteral("outcome"), ParameterRule::Choice, 0, 0, {QStringLiteral("water")}, true}};
+		return {{QStringLiteral("outcome"), ParameterRule::Choice, 0, 0, {QStringLiteral("water"), QStringLiteral("reset-last"),
+			QStringLiteral("reset-tee"), QStringLiteral("sink")}, true}};
+	if (type == QLatin1String("pulse"))
+		return {{QStringLiteral("period"), ParameterRule::Number, 0.2, 30, {}, true},
+			{QStringLiteral("duty"), ParameterRule::Number, 0.05, 0.95, {}, false}};
+	if (type == QLatin1String("blast"))
+		return {{QStringLiteral("radius"), ParameterRule::Number, 10, 300, {}, true},
+			{QStringLiteral("impulse"), ParameterRule::Number, 0.5, 10, {}, true}};
 	if (type == QLatin1String("sound"))
 		return {{QStringLiteral("on"), ParameterRule::Choice, 0, 0, {QStringLiteral("boost"), QStringLiteral("hazard")}, true},
 			{QStringLiteral("key"), ParameterRule::Choice, 0, 0, {QStringLiteral("blackhole"), QStringLiteral("bumper"),
@@ -416,10 +425,16 @@ std::shared_ptr<const Kolf::DataObjectDefinition> Kolf::DataObjectLibrary::parse
 		runtime << QStringLiteral("open");
 	if (uses("motion"))
 		runtime << QStringLiteral("t") << QStringLiteral("direction") << QStringLiteral("running");
-	if (std::any_of(definition->components.cbegin(), definition->components.cend(), [](const DataComponent &c) {
+	if (uses("pulse") || std::any_of(definition->components.cbegin(), definition->components.cend(), [](const DataComponent &c) {
 			return c.type == QLatin1String("force") && c.parameters.contains(QStringLiteral("period"));
 		}))
 		runtime << QStringLiteral("phase");
+	if (uses("crumble"))
+		runtime << QStringLiteral("crumbled");
+	if (uses("blast"))
+		runtime << QStringLiteral("spent");
+	if (uses("pulse") && !uses("solid"))
+		return fail(QStringLiteral("components"), QStringLiteral("a pulse needs a solid component to switch"));
 	type.runtime(runtime);
 
 	std::shared_ptr<const DataObjectDefinition> shared = definition;
@@ -561,6 +576,7 @@ Kolf::DataObject::DataObject(std::shared_ptr<const DataObjectDefinition> definit
 			m_running = parameter(component, QStringLiteral("autostart"), true).toBool();
 	if (gusting())
 		setOpacity(0.35 + 0.65 * gustFactor());
+	updatePulse();
 	updateGeometry();
 }
 
@@ -584,7 +600,8 @@ bool Kolf::DataObject::hasComponent(const QString &type) const
 void Kolf::DataObject::setGame(KolfGame *game)
 {
 	CanvasItem::setGame(game);
-	if (game && (hasComponent(QStringLiteral("trigger")) || hasComponent(QStringLiteral("motion")) || gusting()))
+	if (game && (hasComponent(QStringLiteral("trigger")) || hasComponent(QStringLiteral("motion")) || gusting()
+		|| hasComponent(QStringLiteral("pulse")) || hasComponent(QStringLiteral("crumble")) || hasComponent(QStringLiteral("blast"))))
 		connect(game, &KolfGame::simulationStepped, this, &DataObject::step, Qt::UniqueConnection);
 }
 
@@ -620,10 +637,13 @@ void Kolf::DataObject::step()
 		m_basePosition = pos();
 		m_baseSet = true;
 	}
-	if (gusting()) {
+	if (gusting() || hasComponent(QStringLiteral("pulse")))
 		++m_phase;
+	if (gusting())
 		setOpacity(0.35 + 0.65 * gustFactor());
-	}
+	updatePulse();
+	if (hasComponent(QStringLiteral("crumble")) || hasComponent(QStringLiteral("blast")))
+		stepOccupants();
 	for (const auto &component : m_definition->components) {
 		if (component.type != QLatin1String("motion") || !m_running)
 			continue;
@@ -739,6 +759,94 @@ QPainterPath Kolf::DataObject::shape() const
 void Kolf::DataObject::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 {
 	m_definition->sprite->render(painter, boundingRect());
+	if (!m_crumbled)
+		return;
+	painter->setRenderHint(QPainter::Antialiasing);
+	const QRectF pit = boundingRect().adjusted(1, 1, -1, -1);
+	painter->setPen(QPen(QColor(92, 64, 40), 2));
+	painter->setBrush(QColor(28, 20, 12));
+	painter->drawRoundedRect(pit, 3, 3);
+	painter->setPen(Qt::NoPen);
+	painter->setBrush(QColor(0, 0, 0, 110));
+	painter->drawRoundedRect(pit.adjusted(3, 3, -3, -3), 2, 2);
+}
+
+void Kolf::DataObject::updatePulse()
+{
+	for (const auto &component : m_definition->components) {
+		if (component.type != QLatin1String("pulse"))
+			continue;
+		const int period = qMax(1, qRound(parameter(component, QStringLiteral("period"), 2).toDouble() * 1000.0 / KolfGame::StepMilliseconds));
+		const double duty = parameter(component, QStringLiteral("duty"), 0.5).toDouble();
+		const bool on = double(m_phase % period) < duty * period;
+		if (m_open == on)
+			setOpen(!on);
+		return;
+	}
+}
+
+void Kolf::DataObject::stepOccupants()
+{
+	QList<Ball *> inside;
+	for (Ball *ball : game->balls())
+		if (ball->isVisible() && ball->curState() != Holed && containsPoint(ball->pos()))
+			inside << ball;
+	if (m_resyncOccupants) {
+		m_resyncOccupants = false;
+		m_occupants = inside;
+		return;
+	}
+	if (hasComponent(QStringLiteral("crumble")) && !m_crumbled) {
+		for (Ball *ball : std::as_const(m_occupants)) {
+			if (!inside.contains(ball)) {
+				m_crumbled = true;
+				game->impact(Kolf::Impact::Dust, pos(), 3);
+				update();
+				break;
+			}
+		}
+	}
+	if (hasComponent(QStringLiteral("blast")) && !m_spent) {
+		bool entered = false;
+		for (Ball *ball : std::as_const(inside))
+			entered = entered || !m_occupants.contains(ball);
+		if (entered) {
+			for (const auto &component : m_definition->components) {
+				if (component.type != QLatin1String("blast"))
+					continue;
+				const double radius = parameter(component, QStringLiteral("radius"), 80).toDouble();
+				const double impulse = parameter(component, QStringLiteral("impulse"), 4).toDouble();
+				for (Ball *ball : game->balls()) {
+					if (!ball->isVisible() || ball->curState() == Holed)
+						continue;
+					const QPointF away = ball->pos() - pos();
+					const double distance = std::hypot(away.x(), away.y());
+					if (distance > radius)
+						continue;
+					const QPointF direction = distance < 0.5 ? QPointF(1, 0) : away / distance;
+					ball->setVelocity(direction * impulse * (1.0 - 0.6 * distance / radius));
+					if (ball->curState() == Stopped)
+						ball->setState(Rolling);
+				}
+			}
+			m_spent = true;
+			setOpacity(0.35);
+			game->playSound(Sound::Bumper);
+			game->impact(Kolf::Impact::Tap, pos(), 4);
+		}
+	}
+	m_occupants = inside;
+}
+
+QPointF Kolf::DataObject::edgeOutside(const QPointF &from) const
+{
+	QPointF direction = from - pos();
+	const double length = std::hypot(direction.x(), direction.y());
+	direction = length < 0.5 ? QPointF(1, 0) : direction / length;
+	QPointF point = from;
+	for (int i = 0; i < 1000 && containsPoint(point); ++i)
+		point += direction * 2;
+	return point + direction * 8;
 }
 
 void Kolf::DataObject::moveBy(double dx, double dy)
@@ -784,6 +892,10 @@ QVariantMap Kolf::DataObject::runtimeState() const
 		state.insert(QStringLiteral("running"), m_running);
 	if (fields.contains(QStringLiteral("phase")))
 		state.insert(QStringLiteral("phase"), double(m_phase));
+	if (fields.contains(QStringLiteral("crumbled")))
+		state.insert(QStringLiteral("crumbled"), m_crumbled);
+	if (fields.contains(QStringLiteral("spent")))
+		state.insert(QStringLiteral("spent"), m_spent);
 	if (fields.contains(QStringLiteral("t"))) {
 		state.insert(QStringLiteral("t"), m_t);
 		state.insert(QStringLiteral("direction"), m_direction);
@@ -799,11 +911,18 @@ void Kolf::DataObject::setRuntimeState(const QVariantMap &state)
 	m_t = qBound(0.0, state.value(QStringLiteral("t"), m_t).toDouble(), 1.0);
 	m_direction = state.value(QStringLiteral("direction"), m_direction).toInt() < 0 ? -1 : 1;
 	m_phase = qint64(state.value(QStringLiteral("phase"), double(m_phase)).toDouble());
+	m_crumbled = state.value(QStringLiteral("crumbled"), m_crumbled).toBool();
+	m_spent = state.value(QStringLiteral("spent"), m_spent).toBool();
+	if (hasComponent(QStringLiteral("blast")))
+		setOpacity(m_spent ? 0.35 : 1.0);
+	updatePulse();
+	update();
 	if (gusting())
 		setOpacity(0.35 + 0.65 * gustFactor());
 	if (state.contains(QStringLiteral("open")))
 		setOpen(state.value(QStringLiteral("open")).toBool());
 	m_resyncInside = true;
+	m_resyncOccupants = true;
 }
 
 void Kolf::DataObject::updateGeometry()
@@ -906,16 +1025,41 @@ void Kolf::DataObject::onBall(BallStepContext &context)
 			const double radians = parameter(component, QStringLiteral("direction"), rotation).toDouble() * M_PI / 180.0;
 			context.impulse(Vector(QPointF(std::cos(radians), std::sin(radians)) * parameter(component, QStringLiteral("impulse"), 0).toDouble()));
 			playSound(QStringLiteral("boost"));
-		} else if (component.type == QLatin1String("hazard")) {
+		} else if (component.type == QLatin1String("hazard") || (component.type == QLatin1String("crumble") && m_crumbled)) {
+			const QString outcome = component.type == QLatin1String("crumble") ? QStringLiteral("reset-tee")
+				: parameter(component, QStringLiteral("outcome"), QStringLiteral("water")).toString();
+			if (outcome == QLatin1String("sink")) {
+				if (Vector(ball->velocity()).magnitude() > SinkSpeed || !context.claimContact())
+					continue;
+				ball->setAddStroke(ball->addStroke() + 1);
+				ball->setVelocity(Vector());
+				ball->setPos(edgeOutside(ball->pos()));
+				ball->setState(Stopped);
+				if (game) {
+					game->impact(Kolf::Impact::Dust, ball->pos(), 2);
+					if (game->curBall() == ball)
+						game->stoppedBall();
+				}
+				playSound(QStringLiteral("hazard"));
+				context.blockForces();
+				return;
+			}
 			if (!context.claimContact())
 				continue;
 			if (game) {
-				game->playSound(Sound::Puddle);
-				game->impact(Kolf::Impact::Splash, ball->pos(), 1);
+				if (outcome == QLatin1String("water")) {
+					game->playSound(Sound::Puddle);
+					game->impact(Kolf::Impact::Splash, ball->pos(), 1);
+				} else {
+					game->impact(Kolf::Impact::Dust, ball->pos(), 3);
+				}
 			}
 			playSound(QStringLiteral("hazard"));
 			ball->setAddStroke(ball->addStroke() + 1);
-			ball->setPlaceOnGround(true);
+			if (outcome == QLatin1String("water"))
+				ball->setPlaceOnGround(true);
+			else
+				ball->setHazardReset(outcome == QLatin1String("reset-tee") ? HazardReset::Tee : HazardReset::LastShot);
 			ball->setVisible(false);
 			ball->setState(Stopped);
 			ball->setVelocity(Vector());

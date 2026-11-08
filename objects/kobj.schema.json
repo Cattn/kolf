@@ -381,7 +381,12 @@
               "const": "hazard"
             },
             "outcome": {
-              "const": "water"
+              "enum": [
+                "water",
+                "reset-last",
+                "reset-tee",
+                "sink"
+              ]
             }
           }
         },
@@ -568,6 +573,86 @@
               "oneOf": [
                 {
                   "type": "boolean"
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": [],
+          "properties": {
+            "type": {
+              "const": "crumble"
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": [
+            "period"
+          ],
+          "properties": {
+            "type": {
+              "const": "pulse"
+            },
+            "period": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.2,
+                  "maximum": 30
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "duty": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.05,
+                  "maximum": 0.95
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": [
+            "radius",
+            "impulse"
+          ],
+          "properties": {
+            "type": {
+              "const": "blast"
+            },
+            "radius": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 10,
+                  "maximum": 300
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "impulse": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.5,
+                  "maximum": 10
                 },
                 {
                   "$ref": "#/$defs/binding"

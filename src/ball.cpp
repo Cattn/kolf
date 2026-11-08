@@ -223,7 +223,8 @@ Kolf::Overlay* Ball::createOverlay()
 QVariantMap Ball::runtimeState() const
 {
 	return {{QStringLiteral("maxBumperBounceSpeed"), maxBumperBounceSpeed}, {QStringLiteral("frictionMultiplier"), frictionMultiplier},
-		{QStringLiteral("collisionId"), m_collisionId}, {QStringLiteral("beginningOfHole"), m_beginningOfHole}};
+		{QStringLiteral("collisionId"), m_collisionId}, {QStringLiteral("beginningOfHole"), m_beginningOfHole},
+		{QStringLiteral("hazardReset"), int(m_hazardReset)}};
 }
 
 void Ball::setRuntimeState(const QVariantMap &runtime)
@@ -232,4 +233,5 @@ void Ball::setRuntimeState(const QVariantMap &runtime)
 	frictionMultiplier = runtime.value(QStringLiteral("frictionMultiplier"), frictionMultiplier).toDouble();
 	m_collisionId = runtime.value(QStringLiteral("collisionId"), m_collisionId).toInt() % 2;
 	m_beginningOfHole = runtime.value(QStringLiteral("beginningOfHole"), m_beginningOfHole).toBool();
+	m_hazardReset = HazardReset(qBound(0, runtime.value(QStringLiteral("hazardReset"), int(m_hazardReset)).toInt(), 2));
 }

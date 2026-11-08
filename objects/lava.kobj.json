@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "lava",
+  "name": "Lava",
+  "category": "hazard",
+  "help": "Lava! +1 stroke, and the ball goes back to where you hit from.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      60,
+      40
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "lava.svg",
+    "layer": "ground"
+  },
+  "components": [
+    {
+      "type": "hazard",
+      "outcome": "reset-last"
+    }
+  ]
+}

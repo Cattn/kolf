@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "pit",
+  "name": "Pit",
+  "category": "hazard",
+  "help": "A deep pit: +1 stroke, and the ball goes back to the tee.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      50,
+      50
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "pit.svg",
+    "layer": "ground"
+  },
+  "components": [
+    {
+      "type": "hazard",
+      "outcome": "reset-tee"
+    }
+  ]
+}

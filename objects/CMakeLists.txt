@@ -21,5 +21,19 @@ install(FILES
     repulsor.svg
     whirlpool.kobj.json
     whirlpool.svg
+    lava.kobj.json
+    lava.svg
+    pit.kobj.json
+    pit.svg
+    shallowwater.kobj.json
+    shallowwater.svg
+    quicksand.kobj.json
+    quicksand.svg
+    crumble.kobj.json
+    crumble.svg
+    fence.kobj.json
+    fence.svg
+    mine.kobj.json
+    mine.svg
     kobj.schema.json
     DESTINATION ${KDE_INSTALL_DATADIR}/kolf/objects)

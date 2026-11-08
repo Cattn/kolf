@@ -362,6 +362,7 @@ void GameSessionAdapter::settle() {
         for (int i = 0; i < p.ball()->addStroke(); ++i) p.addStrokeToHole(hole());
         p.ball()->setAddStroke(0);
     }
+    g->applyHazardResets();
     continueResolution();
 }
 void GameSessionAdapter::continueResolution() {

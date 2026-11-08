@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 40" preserveAspectRatio="none">
+  <defs>
+    <radialGradient id="lava" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0" stop-color="#ffd166"/>
+      <stop offset="0.45" stop-color="#f77f00"/>
+      <stop offset="1" stop-color="#b8331d"/>
+    </radialGradient>
+  </defs>
+  <rect x="0.5" y="0.5" width="59" height="39" rx="9" fill="url(#lava)" stroke="#5e1a0d" stroke-width="1.5"/>
+  <path d="M10 12 Q18 6 26 13 T44 12 M14 28 Q24 22 34 29 T52 27" stroke="#ffe8a3" stroke-width="1.6" fill="none" opacity="0.8"/>
+  <circle cx="40" cy="20" r="2.4" fill="#fff3c4" opacity="0.8"/>
+  <circle cx="20" cy="20" r="1.6" fill="#fff3c4" opacity="0.7"/>
+</svg>

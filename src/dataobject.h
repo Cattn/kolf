@@ -89,6 +89,9 @@ private:
 	void step();
 	void setOpen(bool open);
 	void perform(const QString &action);
+	void updatePulse();
+	void stepOccupants();
+	QPointF edgeOutside(const QPointF &from) const;
 
 	std::shared_ptr<const DataObjectDefinition> m_definition;
 	QVariantMap m_values;
@@ -106,5 +109,9 @@ private:
 	bool m_baseSet = false;
 	QList<Ball *> m_insideBalls;
 	QList<Ball *> m_stoppedBalls;
+	QList<Ball *> m_occupants;
+	bool m_resyncOccupants = true;
+	bool m_crumbled = false;
+	bool m_spent = false;
 };
 }

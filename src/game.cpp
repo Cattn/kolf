@@ -666,6 +666,27 @@ KolfGame::KolfGame(PlayerList *players, const QString &filename, QWidget *parent
 	m_editHistory = new QUndoStack(this);
 }
 
+void KolfGame::applyHazardResets()
+{
+	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it) {
+		Ball *ball = (*it).ball();
+		const HazardReset reset = ball->hazardReset();
+		if (reset == HazardReset::None)
+			continue;
+		ball->setHazardReset(HazardReset::None);
+		QPointF target(whiteBall->x(), whiteBall->y());
+		if (reset == HazardReset::LastShot) {
+			for (BallStateList::Iterator info = ballStateList.begin(); info != ballStateList.end(); ++info)
+				if ((*info).id == (*it).id() && !(*info).beginningOfHole)
+					target = QPointF((*info).spot);
+		}
+		ball->setVelocity(Vector());
+		ball->setPos(target);
+		ball->setVisible(true);
+		ball->setState(Stopped);
+	}
+}
+
 void KolfGame::impact(Kolf::Impact kind, const QPointF &position, double strength)
 {
 	if (m_impacts)
@@ -1819,6 +1840,8 @@ void KolfGame::shotDone()
 		}
 		(*it).ball()->setAddStroke(0);
 	}
+
+	applyHazardResets();
 
 	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it)
 	{
