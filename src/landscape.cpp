@@ -18,6 +18,7 @@
 */
 
 #include "landscape.h"
+#include "impacteffects.h"
 #include "ball.h"
 #include "game.h"
 #include "objectregistry.h"
@@ -200,6 +201,7 @@ bool Kolf::Puddle::collision(Ball* ball)
 		return true;
 	//ball is visible and has reached the puddle
 	game->playSound(Sound::Puddle);
+	game->impact(Kolf::Impact::Splash, ball->pos(), 1);
 	ball->setAddStroke(ball->addStroke() + 1);
 	ball->setPlaceOnGround(true);
 	ball->setVisible(false);
@@ -222,8 +224,12 @@ Kolf::Sand::Sand(QGraphicsItem* parent, b2World* world)
 
 void Kolf::Sand::onBall(Kolf::BallStepContext &context)
 {
-	if (contains(context.ball()->pos() - pos()))
-		context.surface(QStringLiteral("sand"), 7, 1);
+	if (!contains(context.ball()->pos() - pos()))
+		return;
+	context.surface(QStringLiteral("sand"), 7, 1);
+	const double speed = Vector(context.ball()->velocity()).magnitude();
+	if (game && speed > 0.3)
+		game->impact(Kolf::Impact::Dust, context.ball()->pos(), speed);
 }
 
 //END Kolf::Sand

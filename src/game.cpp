@@ -27,6 +27,7 @@
 #include "obstacles.h"
 #include "shape.h"
 #include "balltrails.h"
+#include "impacteffects.h"
 
 #include "tagaro/board.h"
 
@@ -67,17 +68,46 @@ inline QString makeStateGroup(int id, const QString &name)
 	return QStringLiteral("%1|%2").arg(name).arg(id);
 }
 
+struct KolfContactImpact
+{
+	QPointF position;
+	double speed;
+};
+
 class KolfContactListener : public b2ContactListener
 {
 	public:
 		void PreSolve(b2Contact* contact, const b2Manifold* oldManifold) override
 		{
-			Q_UNUSED(oldManifold)
 			CanvasItem* citemA = static_cast<CanvasItem*>(contact->GetFixtureA()->GetBody()->GetUserData());
 			CanvasItem* citemB = static_cast<CanvasItem*>(contact->GetFixtureB()->GetBody()->GetUserData());
 			if (!CanvasItem::mayCollide(citemA, citemB))
+			{
 				contact->SetEnabled(false);
+				return;
+			}
+			if (oldManifold->pointCount > 0 || !contact->IsTouching())
+				return;
+			if (!dynamic_cast<Ball*>(citemA) && !dynamic_cast<Ball*>(citemB))
+				return;
+			b2WorldManifold manifold;
+			contact->GetWorldManifold(&manifold);
+			b2Body* bodyA = contact->GetFixtureA()->GetBody();
+			b2Body* bodyB = contact->GetFixtureB()->GetBody();
+			const b2Vec2 point = manifold.points[0];
+			const b2Vec2 relative = bodyB->GetLinearVelocityFromWorldPoint(point) - bodyA->GetLinearVelocityFromWorldPoint(point);
+			const double speed = -b2Dot(relative, manifold.normal);
+			if (speed > 0.5)
+				m_impacts.append({QPointF(point.x, point.y) / Kolf::Box2DScaleFactor, speed});
 		}
+		QList<KolfContactImpact> takeImpacts()
+		{
+			QList<KolfContactImpact> impacts;
+			impacts.swap(m_impacts);
+			return impacts;
+		}
+	private:
+		QList<KolfContactImpact> m_impacts;
 };
 
 class KolfWorld : public b2World
@@ -88,6 +118,7 @@ class KolfWorld : public b2World
 		{
 			SetContactListener(&m_listener);
 		}
+		QList<KolfContactImpact> takeImpacts() { return m_listener.takeImpacts(); }
 	private:
 		KolfContactListener m_listener;
 };
@@ -598,6 +629,7 @@ KolfGame::KolfGame(PlayerList *players, const QString &filename, QWidget *parent
 
 	putter = new Putter(courseBoard, m_world.get());
 	new Kolf::BallTrails(courseBoard);
+	m_impacts = new Kolf::ImpactEffects(courseBoard);
 
 	// border walls:
 
@@ -629,6 +661,12 @@ KolfGame::KolfGame(PlayerList *players, const QString &filename, QWidget *parent
 	connect(putterTimer, &QTimer::timeout, this, &KolfGame::putterTimeout);
 	putterTimerMsec = 20;
 	m_editHistory = new QUndoStack(this);
+}
+
+void KolfGame::impact(Kolf::Impact kind, const QPointF &position, double strength)
+{
+	if (m_impacts)
+		m_impacts->spawn(kind, position, strength);
 }
 
 void KolfGame::playSound(Sound soundType)
@@ -1486,6 +1524,8 @@ void KolfGame::fastTimeout()
 	//usual movements. Therefore, we apply the scaling to the timestep instead.
 	const double timeStep = 1.0 * Kolf::Box2DScaleFactor;
 	m_world->Step(timeStep, 10, 10); //parameters 2/3 = iteration counts (TODO: optimize)
+	for (const auto &contact : m_world->takeImpacts())
+		impact(Kolf::Impact::Tap, contact.position, contact.speed);
 	++m_physicsSteps;
 	//conclude simulation
 	for (b2Body* body = m_world->GetBodyList(); body; body = body->GetNext())

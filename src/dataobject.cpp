@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "dataobject.h"
+#include "impacteffects.h"
 
 #include "ball.h"
 #include "ballstep.h"
@@ -838,8 +839,10 @@ void Kolf::DataObject::onBall(BallStepContext &context)
 		} else if (component.type == QLatin1String("hazard")) {
 			if (!context.claimContact())
 				continue;
-			if (game)
+			if (game) {
 				game->playSound(Sound::Puddle);
+				game->impact(Kolf::Impact::Splash, ball->pos(), 1);
+			}
 			playSound(QStringLiteral("hazard"));
 			ball->setAddStroke(ball->addStroke() + 1);
 			ball->setPlaceOnGround(true);

@@ -161,6 +161,8 @@ target_sources(kolfprivate PRIVATE
     ballstep.h
     effects.cpp
     effects.h
+    impacteffects.cpp
+    impacteffects.h
     balltrails.cpp
     balltrails.h
     dataobject.cpp

@@ -52,6 +52,8 @@ namespace Kolf
 
 enum Direction { D_Left, D_Right, Forwards, Backwards };
 enum Amount { Amount_Less, Amount_Normal, Amount_More };
+namespace Kolf { enum class Impact; class ImpactEffects; }
+
 enum class Sound {
 	BlackHole,
 	BlackHoleEject,
@@ -289,6 +291,7 @@ public:
 	bool askSave(bool);
 	bool isEditing() const { return editing; }
 	int currentHole() { return curHole; }
+	void impact(Kolf::Impact kind, const QPointF &position, double strength);
 	int holePar() const { return holeInfo.par(); }
 	int holeCount() const { return highestHole; }
 	bool hasCurrentPlayer() const { return players && curPlayer != players->end(); }
@@ -428,6 +431,7 @@ private:
 	Tagaro::Scene *course;
 	Tagaro::Board *courseBoard;
 	Putter *putter;
+	Kolf::ImpactEffects *m_impacts = nullptr;
 	PlayerList *players;
 	PlayerList::Iterator curPlayer;
 	Ball *whiteBall;
