@@ -100,9 +100,16 @@ void UiScript::runNext()
     const auto step = m_steps.at(m_index).toObject();
     QString error;
     if (!runStep(step, error)) {
+        const int within = step.value(QStringLiteral("within")).toInt();
+        if (within > 0) {
+            if (!m_stepClock.isValid()) m_stepClock.start();
+            if (m_stepClock.elapsed() < within) { QTimer::singleShot(100, this, &UiScript::runNext); return; }
+        }
+        m_stepClock.invalidate();
         if (!step.value(QStringLiteral("continueOnError")).toBool()) { finish(3, error); return; }
         log({{QStringLiteral("event"), QStringLiteral("skipped")}, {QStringLiteral("step"), m_index}, {QStringLiteral("error"), error}});
     }
+    m_stepClock.invalidate();
     const auto *focus = QApplication::focusWidget();
     log({{QStringLiteral("event"), QStringLiteral("step")}, {QStringLiteral("step"), m_index}, {QStringLiteral("spec"), step},
         {QStringLiteral("focus"), focus ? QStringLiteral("%1/%2").arg(QString::fromLatin1(focus->metaObject()->className()), focus->objectName()) : QString()}});

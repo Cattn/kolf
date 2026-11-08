@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
 
+#include <QElapsedTimer>
 #include <QFile>
 #include <QJsonArray>
 #include <QObject>
@@ -28,5 +29,6 @@ private:
     QJsonArray m_steps;
     QFile m_log;
     int m_index = 0;
+    QElapsedTimer m_stepClock;
 };
 }

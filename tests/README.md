@@ -36,22 +36,22 @@ against a local server; [multiplayer/README.md](multiplayer/README.md)):
 | Scenario | Covers |
 | --- | --- |
 | host-combined | Two matches: reset, undo of a guest shot (balls, objects, scores, turn), go to last/first hole, skip, Results content on both clients, an ordinary rematch with no inherited markers |
-| host-undo-dynamics | Undo on a course with every built-in object; floater and windmill runtime restored |
-| host-undo-channels | A plate toggles a gate; undo restores the gate on both clients |
-| four-player-hazard | Three clients and four players, water drops and rehits, roster order |
-| lobby-rules | Host Controls and Allow Voting set in the lobby reach every client; three members with four players |
+| host-undo-dynamics | Undo on a course with every built-in object plus data-defined Ice; floater and windmill runtime restored; guests receive the Ice object |
+| host-undo-channels | A plate toggles a gate; undo restores the gate on both clients (plain full-strength shots so the balls always leave the plate) |
+| four-player-hazard | Three clients and four players, water drops and rehits, roster order; Host Controls and Allow Voting set in the lobby reach every client |
 | custom-course | Uploading a custom course and playing it twice |
 | shipped-download | Guests downloading a shipped course they do not have |
-| data-object | A course with a data-defined object (Ice) online |
 | slope-out-of-bounds, slope-in-bounds | Slope physics online with one stroke each |
-| host-proposal-approve, -reject, -four-player | Guest requests and votes |
-| lobby-resume, match-resume, host-resume | Reconnecting in the lobby and mid-match, guest and host |
+| host-proposal-reject, -four-player | Guest requests, votes, rejection and approval |
+| match-resume, host-resume | Guest reconnecting in the lobby and mid-match; host reconnecting mid-match |
 | guest-leaves | Continuing after a guest leaves |
 
 **UI scripts** (`ui/*.json`, [ui/README.md](ui/README.md)): home screen and
 menus, new game, settings, local results, the online hub and lobby, server
 settings and notices, the HUD hazard prompt, and the course editor (palette,
-history, handles, problems and Test Hole).
+history, handles, problems and Test Hole, all in one `editor` script).
+Steps can take `"within": ms` to retry until they pass instead of sleeping
+for the worst case.
 
 ### Scenarios kept but not run by default
 
@@ -67,3 +67,8 @@ each of their assertions:
 | host-undo | host-undo-dynamics and host-undo-channels (the same assertions on richer courses) |
 | host-skip | host-combined (partial scores kept, Results skip marker, exact guest state) |
 | host-go | host-combined (go last and first, scores kept or cleared, exact guest state) |
+
+Removed in 3j: `host-proposal-approve` (host-proposal-four-player makes the same
+approve assertions), `lobby-rules` (in four-player-hazard), `lobby-resume` (in
+match-resume), `data-object` (in host-undo-dynamics), and the four `editor-*`
+UI scripts (merged into `editor`).

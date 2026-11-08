@@ -16,7 +16,8 @@ success, or 3 with a `failed` entry naming the step. Each run uses a fresh
 `kolf-testrc` config, so your own settings are never touched.
 
 Each step is an object. The keys run in this order, and `wait` (ms, default
-150) sets the delay before the next step:
+150) sets the delay before the next step: A step with `within` (ms) is retried every 100 ms until it passes or the time
+runs out; use it on `expect*` steps instead of a long `wait` before them.
 
 | Key | Effect |
 | --- | --- |

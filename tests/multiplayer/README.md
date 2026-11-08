@@ -95,11 +95,9 @@ npm run test:native:hazard
 node ../tests/multiplayer/run-online-native.ts host-reset
 node ../tests/multiplayer/run-online-native.ts host-undo
 node ../tests/multiplayer/run-online-native.ts host-undo-dynamics
-node ../tests/multiplayer/run-online-native.ts data-object
 node ../tests/multiplayer/run-online-native.ts host-undo-channels
 node ../tests/multiplayer/run-online-native.ts host-skip
 node ../tests/multiplayer/run-online-native.ts host-go
-node ../tests/multiplayer/run-online-native.ts host-proposal-approve
 node ../tests/multiplayer/run-online-native.ts host-proposal-reject
 node ../tests/multiplayer/run-online-native.ts host-proposal-four-player
 node ../tests/multiplayer/run-online-native.ts host-combined
@@ -119,11 +117,10 @@ The host-undo scenario has the guest take a shot, then the owner undoes it.
 It checks pre-shot balls, objects, scores, and active turn on both clients,
 exact reconciliation, and completion after the guest retries.
 host-undo-dynamics runs the same checks on `fixtures/dynamics.kolf`, which has
-one of every built-in object, and requires the checkpoint to carry floater and
-windmill runtime state.
-data-object plays `fixtures/ice.kolf`, whose ice patch is defined in
-`objects/ice.kobj.json`, and requires every client to receive it as a `data`
-object.
+one of every built-in object plus a patch of data-defined Ice
+(`objects/ice.kobj.json`), requires the checkpoint to carry floater and
+windmill runtime state, and requires every client to receive the Ice as a
+`data` object.
 host-undo-channels runs the host undo checks on `fixtures/channels.kolf`: a
 pressure plate under the tee toggles a gate over channel `a` when a ball leaves
 it, the undone shot

@@ -16,10 +16,10 @@ $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 if (-not $BuildDirectory) { $BuildDirectory = Join-Path $repo '..\build' }
 
 $nativeScenarios = @(
-    'host-combined', 'host-undo-dynamics', 'host-undo-channels', 'four-player-hazard', 'lobby-rules',
-    'custom-course', 'shipped-download', 'data-object', 'slope-out-of-bounds', 'slope-in-bounds',
-    'host-proposal-approve', 'host-proposal-reject', 'host-proposal-four-player',
-    'lobby-resume', 'match-resume', 'host-resume', 'guest-leaves'
+    'host-combined', 'host-undo-dynamics', 'host-undo-channels', 'four-player-hazard',
+    'custom-course', 'shipped-download', 'slope-out-of-bounds', 'slope-in-bounds',
+    'host-proposal-reject', 'host-proposal-four-player',
+    'match-resume', 'host-resume', 'guest-leaves'
 )
 
 Get-ChildItem env: | Where-Object { [string]::IsNullOrEmpty($_.Value) } | ForEach-Object { Remove-Item "env:$($_.Name)" -ErrorAction SilentlyContinue }
