@@ -21,6 +21,8 @@
 #define KOLF_BALL_H
 
 #include "canvasitem.h"
+
+class QPropertyAnimation;
 namespace Kolf::Session { class GameSessionAdapter; }
 
 
@@ -52,7 +54,7 @@ public:
 
 	bool beginningOfHole() const { return m_beginningOfHole; }
 	void setBeginningOfHole(bool yes) { m_beginningOfHole = yes; }
-	void restoreState(BallState restored) { state = restored; }
+	void restoreState(BallState restored) { state = restored; showHoled(state == Holed); }
 	QVariantMap runtimeState() const override;
 	void setRuntimeState(const QVariantMap &runtime) override;
 
@@ -95,6 +97,9 @@ private:
 	bool m_forceStillGoing;
 
 	bool m_doDetect;
+	bool m_shownHoled = false;
+	QPropertyAnimation *m_dropAnimation = nullptr;
+	void showHoled(bool holed);
 
 	QGraphicsSimpleTextItem *label;
 };

@@ -18,6 +18,7 @@
 */
 
 #include "ball.h"
+#include <QPropertyAnimation>
 #include "ballstep.h"
 #include "game.h"
 #include "overlay.h"
@@ -54,10 +55,31 @@ Ball::Ball(QGraphicsItem* parent, b2World* world)
 	setState(Stopped);
 }
 
+void Ball::showHoled(bool holed)
+{
+	if (holed == m_shownHoled) return;
+	m_shownHoled = holed;
+	if (m_dropAnimation) m_dropAnimation->stop();
+	if (!holed) {
+		setScale(1);
+		return;
+	}
+	if (!m_dropAnimation) {
+		m_dropAnimation = new QPropertyAnimation(this, "scale", this);
+		m_dropAnimation->setDuration(280);
+		m_dropAnimation->setEasingCurve(QEasingCurve::InQuad);
+	}
+	setTransformOriginPoint(boundingRect().center());
+	m_dropAnimation->setStartValue(1.0);
+	m_dropAnimation->setEndValue(0.55);
+	m_dropAnimation->start();
+}
+
 void Ball::setState(BallState newState)
 {
 	if (game && game->isGuest()) return;
 	state = newState;
+	showHoled(state == Holed);
 	if (state == Holed || !EllipticalCanvasItem::isVisible())
 		setSimulationType(CanvasItem::NoSimulation);
 	else
