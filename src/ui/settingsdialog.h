@@ -5,6 +5,7 @@
 
 #include <KPageDialog>
 
+class QSlider;
 class QCheckBox;
 class QRadioButton;
 namespace Kolf::Online { class PlayerProfileEditor; class ServerSettingsPage; }
@@ -17,6 +18,7 @@ struct Preferences {
     bool showInfo = true;
     bool showGuideLine = true;
     bool sound = true;
+    int volume = 80;
     bool confirmHostActions = true;
     QString onlineName;
     QString onlineColorMode;
@@ -43,6 +45,7 @@ private:
     QCheckBox *m_showInfo;
     QCheckBox *m_showGuideLine;
     QCheckBox *m_sound;
+    QSlider *m_volume;
     QCheckBox *m_confirmHostActions;
     Online::PlayerProfileEditor *m_profile;
     Online::ServerSettingsPage *m_servers;

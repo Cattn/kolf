@@ -11,6 +11,8 @@ Level level();
 void setLevel(Level level);
 bool ballTrails();
 void setBallTrails(bool enabled);
+int volume();
+void setVolume(int percent);
 
 class Notifier : public QObject {
     Q_OBJECT

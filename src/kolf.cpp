@@ -1482,6 +1482,7 @@ void KolfWindow::openSettings(bool serversPage)
 	current.showInfo = showInfoAction->isChecked();
 	current.showGuideLine = showGuideLineAction->isChecked();
 	current.sound = soundAction->isChecked();
+	current.volume = Kolf::Effects::volume();
 	current.confirmHostActions = online.readEntry("confirmHostActions", true);
 	current.onlineName = online.readEntry("displayName", QStringLiteral("Player"));
 	current.onlineColorMode = online.readEntry("colorMode", QStringLiteral("auto"));
@@ -1499,6 +1500,7 @@ void KolfWindow::openSettings(bool serversPage)
 		showInfoAction->setChecked(chosen.showInfo);
 		showGuideLineAction->setChecked(chosen.showGuideLine);
 		soundAction->setChecked(chosen.sound);
+		Kolf::Effects::setVolume(chosen.volume);
 		if (chosen.confirmLeaveGame)
 			KMessageBox::enableMessage(QStringLiteral("confirmReturnToMainMenu"));
 		else

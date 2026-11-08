@@ -44,6 +44,19 @@ void setBallTrails(bool enabled)
     Q_EMIT notifier()->changed();
 }
 
+int volume()
+{
+    return qBound(0, settings().readEntry("volume", 80), 100);
+}
+
+void setVolume(int percent)
+{
+    auto group = settings();
+    group.writeEntry("volume", qBound(0, percent, 100));
+    group.sync();
+    Q_EMIT notifier()->changed();
+}
+
 Notifier *notifier()
 {
     static Notifier instance;

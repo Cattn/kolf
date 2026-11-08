@@ -12,3 +12,6 @@ puddle.wav, wall.wav, woohoo.wav
 
 bumper.wav
 	Yuri Chornoivan
+
+tap.wav, sand.wav
+	Synthesised by scripts/make-sounds.py (GPL-2.0-or-later)

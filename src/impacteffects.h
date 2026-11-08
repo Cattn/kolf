@@ -17,6 +17,7 @@ class ImpactEffects : public QGraphicsObject {
 public:
     explicit ImpactEffects(QGraphicsItem *parent);
     void spawn(Impact kind, const QPointF &position, double strength);
+    void celebrate(const QPointF &position, const QString &text, bool big);
     QRectF boundingRect() const override;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
 
@@ -30,6 +31,7 @@ private:
         double growth;
         QColor color;
         bool ring;
+        QString text;
     };
 
     void tick();

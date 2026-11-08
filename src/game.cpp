@@ -27,6 +27,7 @@
 #include "obstacles.h"
 #include "shape.h"
 #include "balltrails.h"
+#include "effects.h"
 #include "impacteffects.h"
 
 #include "tagaro/board.h"
@@ -504,6 +505,8 @@ KolfGame::KolfGame(PlayerList *players, const QString &filename, QWidget *parent
  m_soundPuddle(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/puddle.wav"))),
  m_soundWall(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/wall.wav"))),
  m_soundWooHoo(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/woohoo.wav"))),
+ m_soundTap(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/tap.wav"))),
+ m_soundSand(QStandardPaths::locate(QStandardPaths::AppDataLocation, QStringLiteral("sounds/sand.wav"))),
  m_world(createKolfWorld()),
  holeInfo(m_world.get())
 {
@@ -667,11 +670,24 @@ void KolfGame::impact(Kolf::Impact kind, const QPointF &position, double strengt
 {
 	if (m_impacts)
 		m_impacts->spawn(kind, position, strength);
+	if (!m_impactSoundClock.isValid())
+		m_impactSoundClock.start();
+	const qint64 now = m_impactSoundClock.elapsed();
+	if (kind == Kolf::Impact::Tap && now - m_lastTapSound >= 45) {
+		m_lastTapSound = now;
+		playSound(Sound::Tap, qBound(0.08, strength / 5.0, 1.0));
+	} else if (kind == Kolf::Impact::Dust && now - m_lastSandSound >= 350) {
+		m_lastSandSound = now;
+		playSound(Sound::Sand, qBound(0.2, strength / 4.0, 0.8));
+	}
 }
 
-void KolfGame::playSound(Sound soundType)
+void KolfGame::playSound(Sound soundType, double volume)
 {
 	if (m_sound) {
+		const double level = volume * Kolf::Effects::volume() / 100.0;
+		for (KGameSound *sound : {&m_soundBlackHole, &m_soundBlackHoleEject, &m_soundBlackHolePutIn, &m_soundBumper, &m_soundHit, &m_soundHoled, &m_soundHoleINone, &m_soundPuddle, &m_soundWall, &m_soundWooHoo, &m_soundTap, &m_soundSand})
+			sound->setVolume(level);
 		switch (soundType) {
 			case Sound::BlackHole:
 				m_soundBlackHole.start();
@@ -702,6 +718,12 @@ void KolfGame::playSound(Sound soundType)
 				break;
 			case Sound::WooHoo:
 				m_soundWooHoo.start();
+				break;
+			case Sound::Tap:
+				m_soundTap.start();
+				break;
+			case Sound::Sand:
+				m_soundSand.start();
 				break;
 			default:
 				qWarning() << "There was a request to play an unknown sound.";
@@ -1457,13 +1479,21 @@ void KolfGame::timeout()
 		if (!dontAddStroke)
 			curScore++;
 
+		const QPointF cup = (*curPlayer).ball()->pos();
 		if (curScore == 1)
 		{
 			playSound(Sound::HoleINone);
+			if (m_impacts)
+				m_impacts->celebrate(cup, i18nc("@info celebration banner", "Hole in one!"), true);
 		}
-		else if (curScore <= holeInfo.par())
+		else if (curScore < holeInfo.par())
 		{
 			playSound(Sound::WooHoo);
+			const int under = holeInfo.par() - curScore;
+			if (m_impacts)
+				m_impacts->celebrate(cup, under >= 3 ? i18nc("@info celebration banner, three under par", "Albatross!")
+					: under == 2 ? i18nc("@info celebration banner, two under par", "Eagle!")
+					: i18nc("@info celebration banner, one under par", "Birdie!"), under >= 2);
 		}
 
 		(*curPlayer).ball()->setZValue((*curPlayer).ball()->zValue() + .1 - (.1)/(curScore));

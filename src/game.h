@@ -25,6 +25,7 @@
 
 #include "tagaro/scene.h"
 
+#include <QElapsedTimer>
 #include <QGraphicsView>
 #include <QRandomGenerator>
 #include <KConfigGroup>
@@ -64,7 +65,9 @@ enum class Sound {
 	HoleINone,
 	Puddle,
 	Wall,
-	WooHoo
+	WooHoo,
+	Tap,
+	Sand
 };
 
 class BallStateInfo
@@ -318,7 +321,7 @@ public:
 
 	static void scoresFromSaved(KConfig*, PlayerList &players);
 	static void courseInfo(CourseInfo &info, const QString &filename);
-	void playSound(Sound soundType);
+	void playSound(Sound soundType, double volume = 1.0);
 
 public Q_SLOTS:
 	void pause();
@@ -501,6 +504,11 @@ private:
 	KGameSound m_soundPuddle;
 	KGameSound m_soundWall;
 	KGameSound m_soundWooHoo;
+	KGameSound m_soundTap;
+	KGameSound m_soundSand;
+	QElapsedTimer m_impactSoundClock;
+	qint64 m_lastTapSound = -1000;
+	qint64 m_lastSandSound = -1000;
 	bool m_sound;
 
 	bool m_ignoreEvents;

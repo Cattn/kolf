@@ -4,6 +4,8 @@
 #include "online/playerprofileeditor.h"
 #include "online/serversettings.h"
 
+#include <QHBoxLayout>
+#include <QSlider>
 #include <KLocalizedString>
 
 #include <QCheckBox>
@@ -89,6 +91,16 @@ SettingsDialog::SettingsDialog(const Preferences &preferences, QWidget *parent)
     auto *soundLayout = new QVBoxLayout(sound);
     m_sound = new QCheckBox(i18n("Play sounds"), sound);
     soundLayout->addWidget(m_sound);
+    auto *volumeRow = new QHBoxLayout;
+    auto *volumeLabel = new QLabel(i18nc("@label:slider", "Volume:"), sound);
+    m_volume = new QSlider(Qt::Horizontal, sound);
+    m_volume->setObjectName(QStringLiteral("settingsVolume"));
+    m_volume->setRange(0, 100);
+    volumeLabel->setBuddy(m_volume);
+    volumeRow->addWidget(volumeLabel);
+    volumeRow->addWidget(m_volume, 1);
+    soundLayout->addLayout(volumeRow);
+    connect(m_sound, &QCheckBox::toggled, m_volume, &QWidget::setEnabled);
     soundLayout->addStretch();
     addSettingsPage(this, sound, i18n("Sound"), i18n("Sound effects"), QStringLiteral("preferences-desktop-sound"));
 
@@ -114,6 +126,8 @@ SettingsDialog::SettingsDialog(const Preferences &preferences, QWidget *parent)
     m_showInfo->setChecked(preferences.showInfo);
     m_showGuideLine->setChecked(preferences.showGuideLine);
     m_sound->setChecked(preferences.sound);
+    m_volume->setValue(preferences.volume);
+    m_volume->setEnabled(preferences.sound);
     m_confirmHostActions->setChecked(preferences.confirmHostActions);
     m_profile->setProfile(preferences.onlineName, preferences.onlineColorMode, preferences.onlineCustomColor);
 
@@ -152,6 +166,7 @@ Preferences SettingsDialog::preferences() const
     result.showInfo = m_showInfo->isChecked();
     result.showGuideLine = m_showGuideLine->isChecked();
     result.sound = m_sound->isChecked();
+    result.volume = m_volume->value();
     result.confirmHostActions = m_confirmHostActions->isChecked();
     result.onlineName = m_profile->playerName();
     result.onlineColorMode = m_profile->colorMode();
