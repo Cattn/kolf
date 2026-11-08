@@ -24,6 +24,7 @@
 namespace
 {
 constexpr qsizetype MaximumDefinitionBytes = 64 * 1024;
+constexpr double MaximumVortexTwist = 0.008;
 constexpr qsizetype MaximumSpriteBytes = 256 * 1024;
 constexpr qsizetype MaximumEmbeddedImageBytes = 1024 * 1024;
 
@@ -56,10 +57,16 @@ QList<ParameterRule> parameterRules(const QString &type)
 {
 	if (type == QLatin1String("surface"))
 		return {{QStringLiteral("friction"), ParameterRule::Number, 0.05, 20, {}, true},
-			{QStringLiteral("priority"), ParameterRule::Integer, 0, 10, {}, false}};
+			{QStringLiteral("priority"), ParameterRule::Integer, 0, 10, {}, false},
+			{QStringLiteral("speedCap"), ParameterRule::Number, 0.1, 20, {}, false}};
 	if (type == QLatin1String("force"))
 		return {{QStringLiteral("direction"), ParameterRule::Angle, 0, 359, {}, false},
-			{QStringLiteral("strength"), ParameterRule::Number, 0, 20, {}, true}};
+			{QStringLiteral("strength"), ParameterRule::Number, 0, 20, {}, true},
+			{QStringLiteral("mode"), ParameterRule::Choice, 0, 0, {QStringLiteral("direction"), QStringLiteral("attract"),
+				QStringLiteral("repel"), QStringLiteral("vortex")}, false},
+			{QStringLiteral("twist"), ParameterRule::Number, 0, 1, {}, false},
+			{QStringLiteral("period"), ParameterRule::Number, 0, 30, {}, false},
+			{QStringLiteral("minimum"), ParameterRule::Number, 0, 1, {}, false}};
 	if (type == QLatin1String("boost"))
 		return {{QStringLiteral("direction"), ParameterRule::Angle, 0, 359, {}, false},
 			{QStringLiteral("impulse"), ParameterRule::Number, 0, 10, {}, true},
@@ -384,7 +391,8 @@ std::shared_ptr<const Kolf::DataObjectDefinition> Kolf::DataObjectLibrary::parse
 			if (rule.required && !component.contains(rule.name))
 				return fail(path + QLatin1Char('.') + rule.name, QStringLiteral("is required"));
 		if ((componentType == QLatin1String("force") || componentType == QLatin1String("boost"))
-			&& !component.contains(QStringLiteral("direction")) && !definition->rotatable)
+			&& !component.contains(QStringLiteral("direction")) && !definition->rotatable
+			&& component.value(QStringLiteral("mode")).toString(QStringLiteral("direction")) == QLatin1String("direction"))
 			return fail(path + QStringLiteral(".direction"), QStringLiteral("is required unless the shape is rotatable"));
 		if (componentType != QLatin1String("decor") && componentType != QLatin1String("sound"))
 			gameplayComponent = true;
@@ -408,6 +416,10 @@ std::shared_ptr<const Kolf::DataObjectDefinition> Kolf::DataObjectLibrary::parse
 		runtime << QStringLiteral("open");
 	if (uses("motion"))
 		runtime << QStringLiteral("t") << QStringLiteral("direction") << QStringLiteral("running");
+	if (std::any_of(definition->components.cbegin(), definition->components.cend(), [](const DataComponent &c) {
+			return c.type == QLatin1String("force") && c.parameters.contains(QStringLiteral("period"));
+		}))
+		runtime << QStringLiteral("phase");
 	type.runtime(runtime);
 
 	std::shared_ptr<const DataObjectDefinition> shared = definition;
@@ -547,6 +559,8 @@ Kolf::DataObject::DataObject(std::shared_ptr<const DataObjectDefinition> definit
 	for (const auto &component : m_definition->components)
 		if (component.type == QLatin1String("motion"))
 			m_running = parameter(component, QStringLiteral("autostart"), true).toBool();
+	if (gusting())
+		setOpacity(0.35 + 0.65 * gustFactor());
 	updateGeometry();
 }
 
@@ -570,8 +584,32 @@ bool Kolf::DataObject::hasComponent(const QString &type) const
 void Kolf::DataObject::setGame(KolfGame *game)
 {
 	CanvasItem::setGame(game);
-	if (game && (hasComponent(QStringLiteral("trigger")) || hasComponent(QStringLiteral("motion"))))
+	if (game && (hasComponent(QStringLiteral("trigger")) || hasComponent(QStringLiteral("motion")) || gusting()))
 		connect(game, &KolfGame::simulationStepped, this, &DataObject::step, Qt::UniqueConnection);
+}
+
+bool Kolf::DataObject::gusting() const
+{
+	for (const auto &component : m_definition->components)
+		if (component.type == QLatin1String("force") && component.parameters.contains(QStringLiteral("period"))
+			&& parameter(component, QStringLiteral("period"), 0).toDouble() > 0)
+			return true;
+	return false;
+}
+
+double Kolf::DataObject::gustFactor() const
+{
+	for (const auto &component : m_definition->components) {
+		if (component.type != QLatin1String("force") || !component.parameters.contains(QStringLiteral("period")))
+			continue;
+		const int period = qRound(parameter(component, QStringLiteral("period"), 0).toDouble() * 1000.0 / KolfGame::StepMilliseconds);
+		if (period <= 0)
+			return 1.0;
+		const double minimum = qBound(0.0, parameter(component, QStringLiteral("minimum"), 0.0).toDouble(), 1.0);
+		const double wave = 0.5 - 0.5 * std::cos(2 * M_PI * double(m_phase % period) / period);
+		return minimum + (1.0 - minimum) * wave;
+	}
+	return 1.0;
 }
 
 void Kolf::DataObject::step()
@@ -581,6 +619,10 @@ void Kolf::DataObject::step()
 	if (!m_baseSet) {
 		m_basePosition = pos();
 		m_baseSet = true;
+	}
+	if (gusting()) {
+		++m_phase;
+		setOpacity(0.35 + 0.65 * gustFactor());
 	}
 	for (const auto &component : m_definition->components) {
 		if (component.type != QLatin1String("motion") || !m_running)
@@ -740,6 +782,8 @@ QVariantMap Kolf::DataObject::runtimeState() const
 		state.insert(QStringLiteral("open"), m_open);
 	if (fields.contains(QStringLiteral("running")))
 		state.insert(QStringLiteral("running"), m_running);
+	if (fields.contains(QStringLiteral("phase")))
+		state.insert(QStringLiteral("phase"), double(m_phase));
 	if (fields.contains(QStringLiteral("t"))) {
 		state.insert(QStringLiteral("t"), m_t);
 		state.insert(QStringLiteral("direction"), m_direction);
@@ -754,6 +798,9 @@ void Kolf::DataObject::setRuntimeState(const QVariantMap &state)
 	m_running = state.value(QStringLiteral("running"), m_running).toBool();
 	m_t = qBound(0.0, state.value(QStringLiteral("t"), m_t).toDouble(), 1.0);
 	m_direction = state.value(QStringLiteral("direction"), m_direction).toInt() < 0 ? -1 : 1;
+	m_phase = qint64(state.value(QStringLiteral("phase"), double(m_phase)).toDouble());
+	if (gusting())
+		setOpacity(0.35 + 0.65 * gustFactor());
 	if (state.contains(QStringLiteral("open")))
 		setOpen(state.value(QStringLiteral("open")).toBool());
 	m_resyncInside = true;
@@ -824,10 +871,33 @@ void Kolf::DataObject::onBall(BallStepContext &context)
 		if (component.type == QLatin1String("surface")) {
 			context.surface(kind, parameter(component, QStringLiteral("friction"), 1).toDouble(),
 				parameter(component, QStringLiteral("priority"), 1).toInt());
+			const double cap = parameter(component, QStringLiteral("speedCap"), 0).toDouble();
+			const Vector velocity = ball->velocity();
+			if (cap > 0 && velocity.magnitude() > cap)
+				ball->setVelocity(QPointF(velocity) * (cap / velocity.magnitude()));
 		} else if (component.type == QLatin1String("force")) {
-			const double radians = parameter(component, QStringLiteral("direction"), rotation).toDouble() * M_PI / 180.0;
-			const double strength = 0.013 * parameter(component, QStringLiteral("strength"), 0).toDouble();
-			context.force(kind, Vector(QPointF(std::cos(radians), std::sin(radians)) * strength));
+			const double strength = 0.013 * parameter(component, QStringLiteral("strength"), 0).toDouble()
+				* (component.parameters.contains(QStringLiteral("period")) ? gustFactor() : 1.0);
+			const QString mode = parameter(component, QStringLiteral("mode"), QStringLiteral("direction")).toString();
+			if (mode == QLatin1String("direction")) {
+				const double radians = parameter(component, QStringLiteral("direction"), rotation).toDouble() * M_PI / 180.0;
+				context.force(kind, Vector(QPointF(std::cos(radians), std::sin(radians)) * strength));
+				continue;
+			}
+			const QPointF toCentre = pos() - ball->pos();
+			const double distance = std::hypot(toCentre.x(), toCentre.y());
+			const double radius = qMax(1.0, qMax(m_size.width(), m_size.height()) / 2);
+			if (distance < 0.5 || distance > radius)
+				continue;
+			const QPointF inward = toCentre / distance;
+			const double falloff = 1.0 - distance / radius;
+			QPointF force = inward * (mode == QLatin1String("repel") ? -strength : strength) * falloff;
+			if (mode == QLatin1String("vortex")) {
+				const double twist = parameter(component, QStringLiteral("twist"), 0.6).toDouble();
+				force = inward * strength * falloff * (1.0 - twist)
+					+ QPointF(-inward.y(), inward.x()) * qMin(strength * falloff * twist, MaximumVortexTwist);
+			}
+			context.force(kind, Vector(force));
 		} else if (component.type == QLatin1String("boost")) {
 			const qint64 now = game ? qint64(game->physicsSteps()) : 0;
 			if (now - m_lastBoost < parameter(component, QStringLiteral("cooldown"), 30).toInt())

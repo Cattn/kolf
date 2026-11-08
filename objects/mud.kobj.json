@@ -1,0 +1,46 @@
+{
+  "kolfObject": 1,
+  "id": "mud",
+  "name": "Mud",
+  "category": "terrain",
+  "help": "Sticky ground: the ball slows hard and cannot go faster than a slow roll.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      60,
+      40
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "mud.svg",
+    "layer": "ground"
+  },
+  "properties": {
+    "thickness": {
+      "type": "number",
+      "label": "Friction",
+      "min": 2,
+      "max": 10,
+      "step": 0.5,
+      "default": 5
+    },
+    "cap": {
+      "type": "number",
+      "label": "Speed limit",
+      "min": 0.5,
+      "max": 6,
+      "step": 0.1,
+      "default": 2.5
+    }
+  },
+  "components": [
+    {
+      "type": "surface",
+      "friction": "$thickness",
+      "speedCap": "$cap",
+      "priority": 2
+    }
+  ]
+}

@@ -66,6 +66,8 @@ public:
 	QVariantMap properties() const override;
 	void applyProperties(const QVariantMap &values) override;
 	QVariantMap runtimeState() const override;
+	bool gusting() const;
+	double gustFactor() const;
 	void setRuntimeState(const QVariantMap &state) override;
 	void onBall(BallStepContext &context) override;
 	bool isHazardAt(const QPointF &point) const override;
@@ -92,6 +94,7 @@ private:
 	QVariantMap m_values;
 	QSizeF m_size;
 	qint64 m_lastBoost = -1000000;
+	qint64 m_phase = 0;
 	Kolf::RectShape *m_solidShape = nullptr;
 	bool m_open = false;
 	bool m_running = true;

@@ -1,0 +1,37 @@
+{
+  "kolfObject": 1,
+  "id": "rough",
+  "name": "Rough Grass",
+  "category": "terrain",
+  "help": "Long grass: the ball rolls about half as far.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      60,
+      40
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "rough.svg",
+    "layer": "ground"
+  },
+  "properties": {
+    "drag": {
+      "type": "number",
+      "label": "Friction",
+      "min": 1.2,
+      "max": 4,
+      "step": 0.1,
+      "default": 2
+    }
+  },
+  "components": [
+    {
+      "type": "surface",
+      "friction": "$drag",
+      "priority": 1
+    }
+  ]
+}

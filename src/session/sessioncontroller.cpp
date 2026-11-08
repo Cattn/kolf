@@ -431,7 +431,11 @@ void SessionController::receive(const QJsonObject &message) {
             send(QStringLiteral("StateApplied"), {{QStringLiteral("stateRevision"), m_revision},
                 {QStringLiteral("syncId"), m_syncId}, {QStringLiteral("manifestHash"), m_adapter->manifestHash()}});
             const auto actual = m_role == Role::Guest ? state() : s;
-            if (m_role == Role::Guest && actual != s) { interrupt(QStringLiteral("Applied snapshot differs from authoritative state")); return; }
+            if (m_role == Role::Guest && actual != s) {
+                log(QStringLiteral("snapshotMismatch"), {{QStringLiteral("expected"), s}, {QStringLiteral("actual"), actual}});
+                interrupt(QStringLiteral("Applied snapshot differs from authoritative state"));
+                return;
+            }
             if (m_role == Role::Guest && m_config[QStringLiteral("verifySnapshots")].toBool()) {
                 QString error;
                 if (!m_adapter->apply(s, error) || state() != actual || m_game->physicsSteps() || m_game->collisionCalls() || m_game->gameplayRandomCalls()) {

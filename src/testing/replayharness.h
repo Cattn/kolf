@@ -10,4 +10,5 @@ int runReplayFromEnvironment();
 bool resaveCourse(const QString &courseFile, const QString &outputFile, QString &error);
 int runResaveFromEnvironment();
 int runCollisionProbeFromEnvironment();
+int runSolverFromEnvironment();
 }

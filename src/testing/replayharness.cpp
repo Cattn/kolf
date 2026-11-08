@@ -459,6 +459,123 @@ int runCollisionProbeFromEnvironment()
     return wrong ? 1 : 0;
 }
 
+namespace {
+
+struct SolveResult {
+    bool holed = false;
+    double distance = 1e9;
+    int strokes = 0;
+};
+
+SolveResult playShots(const QString &courseFile, int hole, const QList<ShotIntent> &shots)
+{
+    PlayerList players;
+    Player player;
+    player.setId(1);
+    player.setName(QStringLiteral("Solver"));
+    player.ball()->setColor(Qt::white);
+    players.append(player);
+    QWidget host;
+    auto *game = new KolfGame(&players, courseFile, &host, Role::Authority);
+    game->setManualStepping(true);
+    game->setSound(false);
+    auto *adapter = new GameSessionAdapter(game);
+    QString phase;
+    QObject::connect(adapter, &GameSessionAdapter::transition, adapter, [&phase](const QString &next) { phase = next; });
+    SolveResult result;
+    if (!adapter->loadHole(hole)) {
+        delete game;
+        return result;
+    }
+    game->setRandomSeed(1 + quint32(hole));
+    adapter->enableSimulation(true);
+    Ball *ball = players.first().ball();
+    const QPointF cup = cupPosition(game, ball->pos());
+    for (const auto &intent : shots) {
+        if (adapter->hole() != hole || ball->curState() == Holed) break;
+        if (!adapter->shoot(intent)) break;
+        phase.clear();
+        for (int steps = 0; steps < MaximumStepsPerShot; ++steps) {
+            game->stepSimulation();
+            game->timeout();
+            QCoreApplication::processEvents();
+            if (phase == QLatin1String("AwaitingHazardChoice")) {
+                phase.clear();
+                if (!adapter->choose(QStringLiteral("drop"))) break;
+                QCoreApplication::processEvents();
+            }
+            if (phase == QLatin1String("Simulating")) phase.clear();
+            if (!phase.isEmpty()) break;
+        }
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        if (phase.isEmpty()) break;
+    }
+    result.strokes = players.first().score(hole);
+    result.holed = adapter->hole() != hole || phase == QLatin1String("Finished") || ball->curState() == Holed;
+    result.distance = result.holed ? 0 : QLineF(ball->pos(), cup).length();
+    delete game;
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    return result;
+}
+
+}
+
+int runSolverFromEnvironment()
+{
+    const QString courseFile = qEnvironmentVariable("KOLF_SOLVE_COURSE");
+    int holeCount = 1;
+    {
+        PlayerList players;
+        Player player;
+        player.setId(1);
+        players.append(player);
+        QWidget host;
+        auto *game = new KolfGame(&players, courseFile, &host, Role::Authority);
+        auto *adapter = new GameSessionAdapter(game);
+        adapter->loadHole(1);
+        holeCount = adapter->highestHole();
+        delete game;
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
+    int unsolved = 0;
+    for (int hole = 1; hole <= holeCount; ++hole) {
+        QList<ShotIntent> chosen;
+        SolveResult best;
+        int par = 0;
+        {
+            KConfig config(courseFile, KConfig::SimpleConfig);
+            par = KConfigGroup(&config, QStringLiteral("%1-hole@-50,-50|0").arg(hole)).readEntry("par", 3);
+        }
+        for (int depth = 0; depth < par + 2 && !best.holed; ++depth) {
+            SolveResult bestStep;
+            ShotIntent bestShot;
+            for (int angle = 0; angle < 48; ++angle) {
+                for (const double power : {0.15, 0.25, 0.35, 0.5, 0.7, 0.9}) {
+                    ShotIntent intent;
+                    intent.directionRadians = rounded(angle * 2 * M_PI / 48 - M_PI);
+                    intent.launchMagnitude = rounded(power * MaximumMagnitude);
+                    auto shots = chosen;
+                    shots.append(intent);
+                    const auto result = playShots(courseFile, hole, shots);
+                    const bool better = (result.holed && (!bestStep.holed || result.strokes < bestStep.strokes))
+                        || (!bestStep.holed && !result.holed && result.distance < bestStep.distance);
+                    if (better) {
+                        bestStep = result;
+                        bestShot = intent;
+                    }
+                }
+            }
+            chosen.append(bestShot);
+            best = bestStep;
+        }
+        std::cout << "solve: hole " << hole << " par " << par << ": "
+                  << (best.holed ? "holed in " : "not holed after ") << best.strokes << " strokes"
+                  << (best.holed ? "" : qPrintable(QStringLiteral(", %1 px from the cup").arg(best.distance, 0, 'f', 0))) << std::endl;
+        if (!best.holed) ++unsolved;
+    }
+    return unsolved ? 1 : 0;
+}
+
 int runResaveFromEnvironment()
 {
     const QString courses = qEnvironmentVariable("KOLF_RESAVE_COURSES");

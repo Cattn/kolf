@@ -5,5 +5,21 @@ install(FILES
     plate.svg
     gate.kobj.json
     gate.svg
+    mud.kobj.json
+    mud.svg
+    rough.kobj.json
+    rough.svg
+    speedpad.kobj.json
+    speedpad.svg
+    conveyor.kobj.json
+    conveyor.svg
+    wind.kobj.json
+    wind.svg
+    magnet.kobj.json
+    magnet.svg
+    repulsor.kobj.json
+    repulsor.svg
+    whirlpool.kobj.json
+    whirlpool.svg
     kobj.schema.json
     DESTINATION ${KDE_INSTALL_DATADIR}/kolf/objects)

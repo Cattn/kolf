@@ -31,6 +31,9 @@ before a release or deploy.
 
 Quick tier, then:
 
+**Showcase courses solvable** (`replay/run-solve.ps1`, about 45 s): the greedy
+solver holes every hole of each showcase course within par + 2 shots.
+
 **Online scenarios** (`multiplayer/run-online-native.ts`, real Kolf clients
 against a local server; [multiplayer/README.md](multiplayer/README.md)):
 

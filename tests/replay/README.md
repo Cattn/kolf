@@ -51,3 +51,15 @@ installed Kolf offscreen.
 
 Phase 3 baseline (8 Nov 2026, development machine): step mean 3.6 ms, p95
 5.5 ms, max 15.7 ms (first step) against the 11 ms step; full render 1.7 ms.
+
+## Solver
+
+`KOLF_SOLVE_COURSE=<course file>` plays each hole with one player and, shot
+by shot, tries 48 directions x 6 powers from the current position, keeping
+the shot that holes out (fewest strokes) or ends nearest the cup in a
+straight line. It stops at par + 2 shots and prints `solve: hole N par P:
+holed in K strokes` or how far from the cup it got; the exit code is 1 if any
+hole was not holed. It is greedy and only proves that a hole can be finished;
+its stroke counts are an upper bound. `run-solve.ps1` runs it on the showcase
+courses (full tier).
+

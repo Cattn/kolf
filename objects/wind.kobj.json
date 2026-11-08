@@ -1,0 +1,54 @@
+{
+  "kolfObject": 1,
+  "id": "wind",
+  "name": "Wind Zone",
+  "category": "mechanism",
+  "help": "Blows the ball along its arrows in gusts. The zone is clearest when the wind is strongest.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      100,
+      60
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "wind.svg",
+    "layer": "ground"
+  },
+  "properties": {
+    "strength": {
+      "type": "number",
+      "label": "Strength",
+      "min": 0,
+      "max": 7.5,
+      "step": 0.1,
+      "default": 3
+    },
+    "gust": {
+      "type": "number",
+      "label": "Gust cycle (seconds)",
+      "min": 0,
+      "max": 10,
+      "step": 0.5,
+      "default": 3
+    },
+    "calm": {
+      "type": "number",
+      "label": "Calmest strength",
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "default": 0.2
+    }
+  },
+  "components": [
+    {
+      "type": "force",
+      "strength": "$strength",
+      "period": "$gust",
+      "minimum": "$calm"
+    }
+  ]
+}

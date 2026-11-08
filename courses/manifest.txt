@@ -7,3 +7,4 @@ practice|Practice
 impossible|Impossible
 usapro|USApro
 tokyo|Tokyo.course
+weatherreport|WeatherReport

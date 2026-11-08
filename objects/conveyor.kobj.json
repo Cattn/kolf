@@ -1,0 +1,36 @@
+{
+  "kolfObject": 1,
+  "id": "conveyor",
+  "name": "Conveyor",
+  "category": "mechanism",
+  "help": "A moving belt that carries the ball along its arrows.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      80,
+      30
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "conveyor.svg",
+    "layer": "ground"
+  },
+  "properties": {
+    "speed": {
+      "type": "number",
+      "label": "Strength",
+      "min": 0.8,
+      "max": 15,
+      "step": 0.1,
+      "default": 4
+    }
+  },
+  "components": [
+    {
+      "type": "force",
+      "strength": "$speed"
+    }
+  ]
+}

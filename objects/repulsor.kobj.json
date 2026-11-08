@@ -1,0 +1,37 @@
+{
+  "kolfObject": 1,
+  "id": "repulsor",
+  "name": "Repulsor",
+  "category": "mechanism",
+  "help": "Pushes the ball away from its centre, more strongly the closer it gets.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      120,
+      120
+    ],
+    "resizable": true,
+    "rotatable": false
+  },
+  "visual": {
+    "sprite": "repulsor.svg",
+    "layer": "ground"
+  },
+  "properties": {
+    "push": {
+      "type": "number",
+      "label": "Strength",
+      "min": 0.5,
+      "max": 12,
+      "step": 0.1,
+      "default": 4
+    }
+  },
+  "components": [
+    {
+      "type": "force",
+      "mode": "repel",
+      "strength": "$push"
+    }
+  ]
+}

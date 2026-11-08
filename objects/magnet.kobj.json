@@ -1,0 +1,37 @@
+{
+  "kolfObject": 1,
+  "id": "magnet",
+  "name": "Magnet",
+  "category": "mechanism",
+  "help": "Pulls the ball towards its centre, more strongly the closer it gets.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      120,
+      120
+    ],
+    "resizable": true,
+    "rotatable": false
+  },
+  "visual": {
+    "sprite": "magnet.svg",
+    "layer": "ground"
+  },
+  "properties": {
+    "pull": {
+      "type": "number",
+      "label": "Strength",
+      "min": 0.5,
+      "max": 12,
+      "step": 0.1,
+      "default": 4
+    }
+  },
+  "components": [
+    {
+      "type": "force",
+      "mode": "attract",
+      "strength": "$pull"
+    }
+  ]
+}

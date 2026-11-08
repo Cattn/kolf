@@ -223,6 +223,18 @@
                   "$ref": "#/$defs/binding"
                 }
               ]
+            },
+            "speedCap": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.1,
+                  "maximum": 20
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
             }
           }
         },
@@ -253,6 +265,57 @@
                   "type": "number",
                   "minimum": 0,
                   "maximum": 20
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "mode": {
+              "oneOf": [
+                {
+                  "enum": [
+                    "direction",
+                    "attract",
+                    "repel",
+                    "vortex"
+                  ]
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "twist": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "period": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 30
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "minimum": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
                 },
                 {
                   "$ref": "#/$defs/binding"

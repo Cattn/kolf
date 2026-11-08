@@ -1,0 +1,46 @@
+{
+  "kolfObject": 1,
+  "id": "whirlpool",
+  "name": "Whirlpool",
+  "category": "mechanism",
+  "help": "Swirls the ball around and pulls it towards the middle. A ball always slows and escapes or settles.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      120,
+      120
+    ],
+    "resizable": true,
+    "rotatable": false
+  },
+  "visual": {
+    "sprite": "whirlpool.svg",
+    "layer": "ground"
+  },
+  "properties": {
+    "pull": {
+      "type": "number",
+      "label": "Strength",
+      "min": 0.5,
+      "max": 12,
+      "step": 0.1,
+      "default": 3
+    },
+    "twist": {
+      "type": "number",
+      "label": "Swirl",
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "default": 0.6
+    }
+  },
+  "components": [
+    {
+      "type": "force",
+      "mode": "vortex",
+      "strength": "$pull",
+      "twist": "$twist"
+    }
+  ]
+}

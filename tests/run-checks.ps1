@@ -53,6 +53,7 @@ Invoke-Check 'save round trip + defaults' { powershell -NoProfile -ExecutionPoli
 Invoke-Check 'server tests' { Push-Location (Join-Path $repo 'server'); try { npm test } finally { Pop-Location } }
 
 if ($Tier -eq 'full') {
+    Invoke-Check 'showcase courses solvable' { powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tests\replay\run-solve.ps1') -Kolf $Kolf }
     foreach ($scenario in $nativeScenarios) {
         Stop-TestRelay
         Invoke-Check "online: $scenario" { node (Join-Path $repo 'tests\multiplayer\run-online-native.ts') $scenario }

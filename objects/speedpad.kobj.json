@@ -1,0 +1,37 @@
+{
+  "kolfObject": 1,
+  "id": "speedpad",
+  "name": "Speed Pad",
+  "category": "mechanism",
+  "help": "Kicks the ball along its arrows when it rolls on.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      40,
+      24
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "speedpad.svg",
+    "layer": "ground"
+  },
+  "properties": {
+    "power": {
+      "type": "number",
+      "label": "Kick",
+      "min": 0.5,
+      "max": 6,
+      "step": 0.1,
+      "default": 3
+    }
+  },
+  "components": [
+    {
+      "type": "boost",
+      "impulse": "$power",
+      "cooldown": 30
+    }
+  ]
+}

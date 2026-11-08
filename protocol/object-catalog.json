@@ -1,5 +1,5 @@
 {
-    "catalogHash": "1316e7187e3771c66ce4d542cfeef0f1b15a6548a122c44fb0ecc36390bb8b12",
+    "catalogHash": "b34508be86d15fe4a8f4ee3ae897f89ee5d587977a3d4892cb4126b4d411536f",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -113,6 +113,52 @@
             "id": "bumper",
             "name": "Bumper",
             "properties": [
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "conveyor",
+            "name": "Conveyor",
+            "properties": [
+                {
+                    "default": 80,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 30,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": 4,
+                    "key": "speed",
+                    "label": "Strength",
+                    "max": 15,
+                    "min": 0.8,
+                    "step": 0.1,
+                    "type": "number"
+                }
             ],
             "runtime": [
             ]
@@ -327,6 +373,99 @@
             "addOnNewHole": false,
             "affectsGameplay": true,
             "category": "mechanism",
+            "id": "magnet",
+            "name": "Magnet",
+            "properties": [
+                {
+                    "default": 120,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 120,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 4,
+                    "key": "pull",
+                    "label": "Strength",
+                    "max": 12,
+                    "min": 0.5,
+                    "step": 0.1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "terrain",
+            "id": "mud",
+            "name": "Mud",
+            "properties": [
+                {
+                    "default": 60,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": 2.5,
+                    "key": "cap",
+                    "label": "Speed limit",
+                    "max": 6,
+                    "min": 0.5,
+                    "step": 0.1,
+                    "type": "number"
+                },
+                {
+                    "default": 5,
+                    "key": "thickness",
+                    "label": "Friction",
+                    "max": 10,
+                    "min": 2,
+                    "step": 0.5,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
             "id": "plate",
             "name": "Pressure Plate",
             "properties": [
@@ -392,6 +531,90 @@
                     "max": 100,
                     "min": 1,
                     "type": "int"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "repulsor",
+            "name": "Repulsor",
+            "properties": [
+                {
+                    "default": 120,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 120,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 4,
+                    "key": "push",
+                    "label": "Strength",
+                    "max": 12,
+                    "min": 0.5,
+                    "step": 0.1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "terrain",
+            "id": "rough",
+            "name": "Rough Grass",
+            "properties": [
+                {
+                    "default": 60,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": 2,
+                    "key": "drag",
+                    "label": "Friction",
+                    "max": 4,
+                    "min": 1.2,
+                    "step": 0.1,
+                    "type": "number"
                 }
             ],
             "runtime": [
@@ -564,6 +787,53 @@
         {
             "addOnNewHole": false,
             "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "speedpad",
+            "name": "Speed Pad",
+            "properties": [
+                {
+                    "default": 40,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 24,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": 3,
+                    "key": "power",
+                    "label": "Kick",
+                    "max": 6,
+                    "min": 0.5,
+                    "step": 0.1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+                "lastBoost"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
             "category": "obstacle",
             "id": "wall",
             "name": "Wall",
@@ -592,6 +862,118 @@
                 }
             ],
             "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "whirlpool",
+            "name": "Whirlpool",
+            "properties": [
+                {
+                    "default": 120,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 120,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 3,
+                    "key": "pull",
+                    "label": "Strength",
+                    "max": 12,
+                    "min": 0.5,
+                    "step": 0.1,
+                    "type": "number"
+                },
+                {
+                    "default": 0.6,
+                    "key": "twist",
+                    "label": "Swirl",
+                    "max": 1,
+                    "min": 0,
+                    "step": 0.05,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "wind",
+            "name": "Wind Zone",
+            "properties": [
+                {
+                    "default": 100,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 60,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": 0.2,
+                    "key": "calm",
+                    "label": "Calmest strength",
+                    "max": 1,
+                    "min": 0,
+                    "step": 0.05,
+                    "type": "number"
+                },
+                {
+                    "default": 3,
+                    "key": "gust",
+                    "label": "Gust cycle (seconds)",
+                    "max": 10,
+                    "min": 0,
+                    "step": 0.5,
+                    "type": "number"
+                },
+                {
+                    "default": 3,
+                    "key": "strength",
+                    "label": "Strength",
+                    "max": 7.5,
+                    "min": 0,
+                    "step": 0.1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+                "phase"
             ]
         },
         {

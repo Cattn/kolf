@@ -15,8 +15,9 @@ const course = (type: string, properties: string[] = ['dummykey=true']) => Buffe
   `[1-${type}@150,150|2]`, ...properties, ''].join('\n'));
 
 test('the committed object catalog lists the built-in types', () => {
-  assert.deepEqual(objectCatalog.types.map(type => type.id), ['blackhole', 'bridge', 'bumper', 'cup', 'floater',
-    'gate', 'ice', 'plate', 'puddle', 'sand', 'sign', 'slope', 'wall', 'windmill']);
+  assert.deepEqual(objectCatalog.types.map(type => type.id), ['blackhole', 'bridge', 'bumper', 'conveyor', 'cup',
+    'floater', 'gate', 'ice', 'magnet', 'mud', 'plate', 'puddle', 'repulsor', 'rough', 'sand', 'sign', 'slope', 'speedpad',
+    'wall', 'whirlpool', 'wind', 'windmill']);
   assert.deepEqual(objectCatalog.structuralGroups, ['ball', 'course', 'hole']);
   assert.match(objectCatalog.catalogHash, /^[0-9a-f]{64}$/u);
 });
