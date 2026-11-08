@@ -376,6 +376,89 @@ bool resaveCourse(const QString &courseFile, const QString &outputFile, QString 
     return error.isEmpty() && target.sync();
 }
 
+int runCollisionProbeFromEnvironment()
+{
+    const QString courseFile = qEnvironmentVariable("KOLF_COLLISION_PROBE");
+    const double power = qEnvironmentVariableIsEmpty("KOLF_COLLISION_POWER") ? 0.4 : qEnvironmentVariable("KOLF_COLLISION_POWER").toDouble();
+    const QString cupCourse = qEnvironmentVariable("KOLF_COLLISION_CUP_COURSE");
+    int wrong = 0;
+    const QList<double> offsets = cupCourse.isEmpty() ? QList<double>{-7.0, -5.0, -3.0, -1.0, 0.0, 1.0, 3.0, 5.0, 7.0} : QList<double>{0.0};
+    for (const double offset : offsets) {
+        PlayerList players;
+        for (int id = 1; id <= 2; ++id) {
+            Player player;
+            player.setId(id);
+            player.setName(QStringLiteral("Probe %1").arg(id));
+            player.ball()->setColor(Qt::white);
+            players.append(player);
+        }
+        QWidget host;
+        auto *game = new KolfGame(&players, cupCourse.isEmpty() ? courseFile : cupCourse, &host, Role::Authority);
+        game->setManualStepping(true);
+        game->setSound(false);
+        auto *adapter = new GameSessionAdapter(game);
+        QString phase;
+        QObject::connect(adapter, &GameSessionAdapter::transition, adapter, [&phase](const QString &next) { phase = next; });
+        if (!adapter->loadHole(1)) { std::cerr << "collision: could not load hole" << std::endl; return 2; }
+        adapter->enableSimulation(true);
+        Ball *striker = players[0].ball();
+        Ball *target = players[1].ball();
+        target->setPos(striker->pos() + QPointF(40, offset));
+        target->setVisible(true);
+        target->setBeginningOfHole(false);
+        target->setState(Stopped);
+        ShotIntent intent;
+        intent.directionRadians = 0;
+        intent.launchMagnitude = power * MaximumMagnitude;
+        if (!adapter->shoot(intent)) { std::cerr << "collision: shot rejected" << std::endl; return 2; }
+        const QPointF targetStart = target->pos();
+        QPointF normal;
+        QPointF strikerAtContact;
+        bool contact = false;
+        for (int step = 0; step < 3000; ++step) {
+            const QPointF strikerBefore = striker->pos();
+            game->stepSimulation();
+            game->timeout();
+            QCoreApplication::processEvents();
+            if (!contact && (target->pos() != targetStart || !target->velocity().isNull())) {
+                contact = true;
+                strikerAtContact = strikerBefore;
+                normal = targetStart - strikerBefore;
+            }
+            if (phase == QLatin1String("AwaitingShot") || phase == QLatin1String("Finished")) break;
+        }
+        if (!cupCourse.isEmpty()) {
+            const bool holed = target->curState() == Holed;
+            const bool strikerNext = game->curBall() == striker;
+            std::cout << "collision: pushed into cup: holed " << holed << ", phase " << qPrintable(phase)
+                      << ", striker plays next " << strikerNext << ", target strokes " << players[1].score(1) << std::endl;
+            if (!holed || !strikerNext) ++wrong;
+            delete game;
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+            continue;
+        }
+        const QString screenshot = qEnvironmentVariable("KOLF_COLLISION_SCREENSHOT");
+        if (!screenshot.isEmpty() && offset == 3.0) {
+            game->resize(500, 420);
+            game->grab().save(screenshot);
+        }
+        const QPointF moved = target->pos() - targetStart;
+        const auto degrees = [](QPointF v) { return std::atan2(v.y(), v.x()) * 180.0 / M_PI; };
+        double difference = degrees(moved) - degrees(normal);
+        while (difference > 180) difference -= 360;
+        while (difference < -180) difference += 360;
+        const bool sideways = contact && qAbs(offset) > 0.5;
+        const bool opposite = sideways && ((offset > 0) != (moved.y() > 0));
+        if (!contact || opposite || qAbs(difference) > 20 || (offset == 0 && QLineF(QPointF(), moved).length() < 50)) ++wrong;
+        std::cout << "collision: offset " << offset << " contact " << contact << " normal " << degrees(normal)
+                  << " target moved " << degrees(moved) << " (" << QLineF(QPointF(), moved).length() << " px)"
+                  << " difference " << difference << (opposite ? " OPPOSITE" : "") << std::endl;
+        delete game;
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
+    return wrong ? 1 : 0;
+}
+
 int runResaveFromEnvironment()
 {
     const QString courses = qEnvironmentVariable("KOLF_RESAVE_COURSES");

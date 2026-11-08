@@ -23,6 +23,7 @@ before a release or deploy.
 | --- | --- | --- |
 | Unit tests (ctest) | Result summaries, server list, invite links, object registry and catalog (up to date with the code), property validation, course play policy, data-object loader and SVG sanitiser | `autotests/` |
 | Golden replays | Physics of every shipped course hole: 3 fixed shots each, ball, strokes and moving objects | [replay/README.md](replay/README.md) |
+| Ball collisions | A struck ball moves along the contact normal and keeps its momentum (head-on over 50 px); a ball pushed into the cup is holed and the striker plays next | `replay/run-collision.ps1` |
 | Save round trip + defaults | Every shipped course saves and re-saves identically; every object type's defaults match its schema and runtime fields | `replay/run-resave.ps1` |
 | Server tests | Protocol, lobbies, matches, resume, hardening, course and object catalogs | `server/test/` |
 

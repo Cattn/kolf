@@ -48,6 +48,7 @@ function Stop-TestRelay {
 
 Invoke-Check 'unit tests (ctest)' { ctest --test-dir $BuildDirectory --output-on-failure }
 Invoke-Check 'golden replays' { powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tests\replay\run-replay.ps1') -Kolf $Kolf }
+Invoke-Check 'ball collisions' { powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tests\replay\run-collision.ps1') -Kolf $Kolf }
 Invoke-Check 'save round trip + defaults' { powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo 'tests\replay\run-resave.ps1') -Kolf $Kolf }
 Invoke-Check 'server tests' { Push-Location (Join-Path $repo 'server'); try { npm test } finally { Pop-Location } }
 

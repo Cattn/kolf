@@ -1,0 +1,14 @@
+[0-course@-50,-50]
+Name=Ball collision
+author=Kolf tests
+
+[1-hole@-50,-50|0]
+par=3
+maxstrokes=10
+borderWalls=true
+
+[1-ball@60,200|0]
+dummy=1
+
+[1-cup@380,40|1]
+dummy=1

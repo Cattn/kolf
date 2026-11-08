@@ -105,13 +105,12 @@ void Ball::moveBy(double dx, double dy)
 void Ball::endSimulation()
 {
 	if (game && !game->maySimulate()) return;
+	if (state == Stopped && !qFuzzyIsNull(Vector(velocity()).magnitude())) {
+		//ball was resting, but received some momentum from collision with other ball
+		setState(Rolling);
+	}
 	CanvasItem::endSimulation();
-	if (state == Stopped) {
-		if (!qFuzzyIsNull(Vector(velocity()).magnitude())) {
-			//ball was resting, but received some momentum from collision with other ball
-			setState(Rolling);
-		}
-	} else if (state == Rolling) {
+	if (state == Rolling) {
 		if (qFuzzyIsNull(Vector(velocity()).magnitude())) {
 			//ball was moving, but stopped moving from collision with other ball
 			setState(Stopped);
