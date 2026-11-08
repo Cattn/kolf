@@ -154,6 +154,8 @@ private:
 	KToggleAction *useMouseAction;
 	KToggleAction *useAdvancedPuttingAction;
 	KToggleAction *showGuideLineAction;
+	KSelectAction *effectsAction;
+	KToggleAction *ballTrailsAction;
 	KToggleAction *soundAction;
 	void setHoleMovementEnabled(bool);
 	void setHoleOtherEnabled(bool);

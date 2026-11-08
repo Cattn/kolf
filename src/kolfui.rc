@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gui name="kolf"
-     version="17"
+     version="18"
      xmlns="http://www.kde.org/standards/kxmlgui/1.0"
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xsi:schemaLocation="http://www.kde.org/standards/kxmlgui/1.0
@@ -34,6 +34,9 @@
 		<Menu name="view"><text>&amp;View</text>
 			<Action name="showinfo" />
 			<Action name="showguideline" />
+			<Separator />
+			<Action name="balltrails" />
+			<Action name="effects" />
 		</Menu>
 
 		<Menu name="course"><text>&amp;Course</text>

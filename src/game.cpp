@@ -26,6 +26,7 @@
 #include "landscape.h"
 #include "obstacles.h"
 #include "shape.h"
+#include "balltrails.h"
 
 #include "tagaro/board.h"
 
@@ -596,6 +597,7 @@ KolfGame::KolfGame(PlayerList *players, const QString &filename, QWidget *parent
 		curHole = highestLog;
 
 	putter = new Putter(courseBoard, m_world.get());
+	new Kolf::BallTrails(courseBoard);
 
 	// border walls:
 

@@ -20,6 +20,7 @@
 #include "ball.h"
 #include <QPropertyAnimation>
 #include "ballstep.h"
+#include "effects.h"
 #include "game.h"
 #include "overlay.h"
 #include "shape.h"
@@ -70,6 +71,10 @@ void Ball::showHoled(bool holed)
 		m_dropAnimation->setEasingCurve(QEasingCurve::InQuad);
 	}
 	setTransformOriginPoint(boundingRect().center());
+	if (Kolf::Effects::level() == Kolf::Effects::Level::Off) {
+		setScale(0.55);
+		return;
+	}
 	m_dropAnimation->setStartValue(1.0);
 	m_dropAnimation->setEndValue(0.55);
 	m_dropAnimation->start();

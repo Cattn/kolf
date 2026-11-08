@@ -17,6 +17,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include "effects.h"
 #include "kolf.h"
 #include "editor.h"
 #include "landscape.h"
@@ -242,6 +243,17 @@ void KolfWindow::setupActions()
 	connect(showGuideLineAction, &QAction::triggered, this, &KolfWindow::emptySlot);
 	connect(showGuideLineAction, &QAction::toggled, this, &KolfWindow::showGuideLineChanged);
 	showGuideLineAction->setChecked(configGroup.readEntry("showGuideLine", true));
+
+	effectsAction = new KSelectAction(i18nc("@title:menu", "&Effects"), this);
+	actionCollection()->addAction(QStringLiteral("effects"), effectsAction);
+	effectsAction->setItems({i18nc("@item:inmenu effects level", "Full"), i18nc("@item:inmenu effects level", "Reduced"), i18nc("@item:inmenu effects level", "Off")});
+	effectsAction->setCurrentItem(int(Kolf::Effects::level()));
+	connect(effectsAction, &KSelectAction::indexTriggered, this, [](int index) { Kolf::Effects::setLevel(Kolf::Effects::Level(index)); });
+
+	ballTrailsAction = new KToggleAction(i18nc("@option:check", "Show Ball &Trails"), this);
+	actionCollection()->addAction(QStringLiteral("balltrails"), ballTrailsAction);
+	ballTrailsAction->setChecked(Kolf::Effects::ballTrails());
+	connect(ballTrailsAction, &QAction::toggled, this, [](bool enabled) { Kolf::Effects::setBallTrails(enabled); });
 
 	KStandardAction::preferences(this, &KolfWindow::showSettings, actionCollection());
 
