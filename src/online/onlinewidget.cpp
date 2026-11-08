@@ -247,7 +247,10 @@ OnlineWidget::OnlineWidget(QWidget *parent)
     resultsLayout->addLayout(resultButtons);
     m_pages->addWidget(resultsPage);
 
-    connect(m_connectButton, &QPushButton::clicked, this, &OnlineWidget::beginConnection);
+    connect(m_connectButton, &QPushButton::clicked, this, [this] {
+        m_sessionServer = m_endpoint->text().trimmed();
+        beginConnection();
+    });
     connect(m_serverMenu, &QMenu::aboutToShow, this, &OnlineWidget::rebuildServerMenu);
     connect(m_endpoint, &QLineEdit::textChanged, this, [this] {
         if (m_connectionState != ConnectionState::Connecting) setConnectionState(m_connectionState);
@@ -683,7 +686,7 @@ void OnlineWidget::showEntry()
     setConnectionState(ConnectionState::Connected);
     KConfigGroup onlineConfig(KSharedConfig::openConfig(), QStringLiteral("Online"));
     const auto endpoint = normalizeServerAddress(m_endpoint->text()).url.toString();
-    m_sessionServer = endpoint;
+    if (!m_sessionServer.isEmpty()) m_sessionServer = endpoint;
     if (!m_servers.contains(endpoint)) {
         auto list = ServerList::load(onlineConfig);
         list.remember(endpoint);

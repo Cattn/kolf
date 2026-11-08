@@ -23,6 +23,7 @@ const clientCount = variableRoster ? 3 : 2;
 const matchCount = scenario === 'two-rematch' || scenario === 'custom-course' || scenario === 'host-combined' ? 2 : 1;
 const turnCount = slopeScenario ? 2 : hazardScenario ? 40 : scenario === 'host-proposal-four-player' ? 12 : variableRoster ? 8
   : scenario === 'host-combined' ? 30
+  : scenario === 'host-undo-dynamics' ? 12
   : scenario === 'host-reset' || hostUndo || scenario === 'host-go'
     || scenario.startsWith('host-proposal-') ? 8 : 4;
 const directory = resolve(root, 'server/local-session', `online-${scenario}-${Date.now()}`);

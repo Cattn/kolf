@@ -10,6 +10,7 @@ NetworkClient::NetworkClient(QObject *parent) : QObject(parent) {
     m_socket.setMaxAllowedIncomingFrameSize(MaxBytes);
     m_socket.setMaxAllowedIncomingMessageSize(MaxBytes);
     connect(&m_socket, &QWebSocket::textMessageReceived, this, [this](const QString &text) {
+        if (m_closed) return;
         m_lastReceived.restart();
         QJsonParseError error;
         const auto document = QJsonDocument::fromJson(text.toUtf8(), &error);
@@ -27,6 +28,7 @@ NetworkClient::NetworkClient(QObject *parent) : QObject(parent) {
     });
     connect(&m_socket, &QWebSocket::binaryMessageReceived, this, [this] { Q_EMIT failed(QStringLiteral("Unexpected binary message")); close(); });
     connect(&m_socket, &QWebSocket::connected, this, [this] {
+        if (m_closed) { m_socket.abort(); return; }
         m_lastReceived.restart();
         m_opened = true;
         Q_EMIT connected();
@@ -89,5 +91,6 @@ void NetworkClient::send(const QJsonObject &m, bool visual) {
 }
 void NetworkClient::close() {
     m_closed = true; m_watchdog.stop(); m_flush.stop(); m_frame.clear(); m_initialMessage = {};
-    m_socket.close();
+    if (m_socket.state() == QAbstractSocket::ConnectedState) m_socket.close();
+    else m_socket.abort();
 }

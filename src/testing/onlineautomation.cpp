@@ -14,6 +14,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QPushButton>
+#include <QSaveFile>
 #include <QTimer>
 
 using namespace Kolf::Testing;
@@ -96,11 +97,13 @@ void OnlineAutomation::writeResultsEvidence(const QJsonObject &state)
     const auto result = state.value(QStringLiteral("latestResult")).toObject();
     if (result.isEmpty()) return;
     const auto matchId = result.value(QStringLiteral("matchId")).toString();
-    QFile evidence(QDir(m_config.value(QStringLiteral("logDirectory")).toString())
+    QSaveFile evidence(QDir(m_config.value(QStringLiteral("logDirectory")).toString())
         .filePath(matchId + QStringLiteral("/results.json")));
-    if (evidence.open(QIODevice::WriteOnly | QIODevice::Truncate))
+    if (evidence.open(QIODevice::WriteOnly)) {
         evidence.write(QJsonDocument(QJsonObject{{QStringLiteral("result"), result},
             {QStringLiteral("visibleText"), m_widget->resultsText()}}).toJson());
+        evidence.commit();
+    }
     const auto image = QDir(m_config.value(QStringLiteral("logDirectory")).toString()).filePath(matchId + QStringLiteral("/results.png"));
     if (auto *view = m_widget->findChild<Kolf::Ui::ResultsView *>()) {
         view->resize(m_widget->size());
