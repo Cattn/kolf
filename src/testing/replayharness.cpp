@@ -10,12 +10,14 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <KConfig>
 #include <QWidget>
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 
@@ -25,6 +27,19 @@ namespace Kolf::Testing {
 namespace {
 
 constexpr int MaximumStepsPerShot = 30000;
+QList<qint64> profileStepNs;
+QList<qint64> profileRenderNs;
+
+QString profileSummary(QList<qint64> samples)
+{
+    if (samples.isEmpty()) return QStringLiteral("none");
+    std::sort(samples.begin(), samples.end());
+    qint64 total = 0;
+    for (const auto value : std::as_const(samples)) total += value;
+    const auto ms = [](qint64 ns) { return QString::number(double(ns) / 1e6, 'f', 3); };
+    return QStringLiteral("%1 samples, mean %2 ms, p95 %3 ms, max %4 ms").arg(samples.size())
+        .arg(ms(total / samples.size()), ms(samples.at(int(samples.size() * 0.95))), ms(samples.last()));
+}
 constexpr double MaximumMagnitude = 55.5 / 8.0;
 
 struct FixedShot {
@@ -167,10 +182,22 @@ QJsonObject replayHole(const QString &courseFile, int hole, quint32 seed, int &h
         phase.clear();
         int steps = 0;
         int choices = 0;
+        const bool profile = qEnvironmentVariable("KOLF_REPLAY_PROFILE") == QLatin1String("1");
         while (steps < MaximumStepsPerShot) {
+            QElapsedTimer stepClock;
+            stepClock.start();
             game->stepSimulation();
             game->timeout();
             QCoreApplication::processEvents();
+            if (profile) {
+                profileStepNs.append(stepClock.nsecsElapsed());
+                if (steps % 10 == 0) {
+                    QElapsedTimer renderClock;
+                    renderClock.start();
+                    game->grab();
+                    profileRenderNs.append(renderClock.nsecsElapsed());
+                }
+            }
             ++steps;
             if (phase == QLatin1String("AwaitingHazardChoice")) {
                 ++choices;
@@ -240,7 +267,13 @@ int runReplayFromEnvironment()
     for (const auto &file : files) {
         const QString name = QFileInfo(file).completeBaseName();
         QString error;
+        profileStepNs.clear();
+        profileRenderNs.clear();
         const auto result = replayCourse(file, seed, error);
+        if (!profileStepNs.isEmpty()) {
+            std::cout << "profile: " << qPrintable(name) << ": step " << qPrintable(profileSummary(profileStepNs)) << std::endl;
+            std::cout << "profile: " << qPrintable(name) << ": render " << qPrintable(profileSummary(profileRenderNs)) << std::endl;
+        }
         if (!error.isEmpty()) {
             std::cerr << "replay: " << qPrintable(name) << ": " << qPrintable(error) << std::endl;
             ++failures;

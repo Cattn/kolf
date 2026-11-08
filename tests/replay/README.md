@@ -39,3 +39,15 @@ two differ. The same run checks that a newly created object of every
 registered type reports exactly the properties in its schema, with the
 schema's default values. When changing how objects load or save, record the
 output before the change and compare the files byte for byte afterwards.
+
+## Profiling
+
+`KOLF_REPLAY_PROFILE=1` makes the harness print, per course, the time of each
+simulation step and of a full render of the view every tenth step (mean, p95,
+max). `make-stress-course.ps1 -Output <dir>\Stress` writes a hole with 256
+gameplay objects (bumpers, floaters, windmills, slopes, sand, puddles, Ice,
+plates and gates); point `KOLF_REPLAY_COURSES` at `<dir>` and run the
+installed Kolf offscreen.
+
+Phase 3 baseline (8 Nov 2026, development machine): step mean 3.6 ms, p95
+5.5 ms, max 15.7 ms (first step) against the 11 ms step; full render 1.7 ms.
