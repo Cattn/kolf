@@ -51,6 +51,20 @@ Kolf::Shape::Shape()
 	m_fixtureDef->userData = this;
 }
 
+void Kolf::Shape::setMaterial(double density, double restitution, double friction)
+{
+	m_fixtureDef->density = density;
+	m_fixtureDef->restitution = restitution;
+	m_fixtureDef->friction = friction;
+	if (m_fixture) {
+		m_fixture->SetDensity(density);
+		m_fixture->SetRestitution(restitution);
+		m_fixture->SetFriction(friction);
+		if (m_body)
+			m_body->ResetMassData();
+	}
+}
+
 Kolf::Shape::~Shape()
 {
 	delete m_fixtureDef;

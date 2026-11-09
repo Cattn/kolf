@@ -35,5 +35,11 @@ install(FILES
     fence.svg
     mine.kobj.json
     mine.svg
+    crate.kobj.json
+    crate.svg
+    barrel.kobj.json
+    barrel.svg
+    pin.kobj.json
+    pin.svg
     kobj.schema.json
     DESTINATION ${KDE_INSTALL_DATADIR}/kolf/objects)

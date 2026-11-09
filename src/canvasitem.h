@@ -149,6 +149,8 @@ private:
 		///This is the velocity used by the physics engine: In each time step,
 		///the position of this canvas item changes by the value of this property.
 		QPointF velocity() const;
+	void setBodyDamping(double linear);
+	void setFixedRotation(bool fixed);
 		void setVelocity(const QPointF& velocity);
 	protected:
 		void addShape(Kolf::Shape* shape);

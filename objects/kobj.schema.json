@@ -660,6 +660,53 @@
               ]
             }
           }
+        },
+        {
+          "additionalProperties": false,
+          "required": [
+            "mass"
+          ],
+          "properties": {
+            "type": {
+              "const": "body"
+            },
+            "mass": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.02,
+                  "maximum": 5
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "damping": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.2,
+                  "maximum": 10
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "bounce": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            }
+          }
         }
       ]
     }

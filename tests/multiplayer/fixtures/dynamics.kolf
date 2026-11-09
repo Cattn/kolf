@@ -146,3 +146,12 @@ width=60
 [1-mine@20,100|27]
 power=4
 radius=20
+
+[1-crate@60,30|28]
+weight=0.2
+
+[1-barrel@110,30|29]
+weight=0.2
+
+[1-pin@150,30|30]
+dummykey=true

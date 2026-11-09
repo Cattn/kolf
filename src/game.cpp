@@ -666,6 +666,14 @@ KolfGame::KolfGame(PlayerList *players, const QString &filename, QWidget *parent
 	m_editHistory = new QUndoStack(this);
 }
 
+bool KolfGame::bodiesMoving() const
+{
+	for (QGraphicsItem *item : std::as_const(m_topLevelQItems))
+		if (auto *object = dynamic_cast<Kolf::DataObject *>(item); object && object->bodyMoving())
+			return true;
+	return false;
+}
+
 void KolfGame::applyHazardResets()
 {
 	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it) {
@@ -1507,8 +1515,11 @@ void KolfGame::timeout()
 			}
 		}
 		if (outOfBounds) loadStateList();
-		else for (const auto &player : std::as_const(*players)) {
-			if (player.ball()->forceStillGoing() || (player.ball()->curState() == Rolling && player.ball()->isVisible())) return;
+		else {
+			for (const auto &player : std::as_const(*players)) {
+				if (player.ball()->forceStillGoing() || (player.ball()->curState() == Rolling && player.ball()->isVisible())) return;
+			}
+			if (bodiesMoving()) return;
 		}
 		m_settlementQueued = true;
 		QTimer::singleShot(0, this, [this] {
@@ -1541,6 +1552,8 @@ void KolfGame::timeout()
 	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it)
 		if ((*it).ball()->forceStillGoing() || ((*it).ball()->curState() == Rolling && Vector((*it).ball()->velocity()).magnitude() > 0 && (*it).ball()->isVisible()))
 			return;
+	if (bodiesMoving())
+		return;
 
 	int curState = curBall->curState();
 	if (curState == Stopped && inPlay)

@@ -165,7 +165,7 @@ inline qreal b2MixFriction(qreal friction1, qreal friction2)
 /// Restitution mixing law. Feel free to customize this.
 inline qreal b2MixRestitution(qreal restitution1, qreal restitution2)
 {
-	return restitution1 > restitution2 ? restitution1 : restitution2;
+	return restitution1 < restitution2 ? restitution1 : restitution2;
 }
 
 #endif

@@ -1,0 +1,28 @@
+{
+  "kolfObject": 1,
+  "id": "pin",
+  "name": "Bowling Pin",
+  "category": "obstacle",
+  "help": "A light pin that scatters when hit. Set up a few for a strike.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      9,
+      9
+    ],
+    "resizable": false,
+    "rotatable": false
+  },
+  "visual": {
+    "sprite": "pin.svg",
+    "layer": "raised"
+  },
+  "components": [
+    {
+      "type": "body",
+      "mass": 0.4,
+      "damping": 1.2,
+      "bounce": 0.6
+    }
+  ]
+}

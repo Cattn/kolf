@@ -1,5 +1,5 @@
 {
-    "catalogHash": "f492930fa8705494372f544fbcf944d2dc4001b5a6ce77218b7f5c9c85d315fa",
+    "catalogHash": "bcd5bf106757e0c945bf66b3a122a9c9cf14ffdde38d8acc4071513246e26152",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -7,6 +7,28 @@
         "hole"
     ],
     "types": [
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "obstacle",
+            "id": "barrel",
+            "name": "Barrel",
+            "properties": [
+                {
+                    "default": 0.2,
+                    "key": "weight",
+                    "label": "Weight",
+                    "max": 2,
+                    "min": 0.05,
+                    "step": 0.05,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+                "vx",
+                "vy"
+            ]
+        },
         {
             "addOnNewHole": false,
             "affectsGameplay": true,
@@ -161,6 +183,46 @@
                 }
             ],
             "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "obstacle",
+            "id": "crate",
+            "name": "Crate",
+            "properties": [
+                {
+                    "default": 26,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 26,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0.2,
+                    "key": "weight",
+                    "label": "Weight",
+                    "max": 2,
+                    "min": 0.05,
+                    "step": 0.05,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+                "vx",
+                "vy"
             ]
         },
         {
@@ -621,6 +683,19 @@
                 }
             ],
             "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "obstacle",
+            "id": "pin",
+            "name": "Bowling Pin",
+            "properties": [
+            ],
+            "runtime": [
+                "vx",
+                "vy"
             ]
         },
         {

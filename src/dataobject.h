@@ -13,7 +13,7 @@
 class QSvgRenderer;
 class Ball;
 
-namespace Kolf { class RectShape; }
+namespace Kolf { class RectShape; class EllipseShape; }
 
 namespace Kolf
 {
@@ -75,6 +75,7 @@ public:
 	void setGame(KolfGame *game) override;
 	void receiveChannel(const QString &channel, bool level, bool pulse);
 	bool hasComponent(const QString &type) const;
+	bool bodyMoving() const { return m_definition && !velocity().isNull() && hasComponent(QStringLiteral("body")); }
 	bool isResizable() const { return m_definition->resizable; }
 	bool isRotatable() const { return m_definition->rotatable; }
 	QStringList channels(const QString &componentType) const;
@@ -101,6 +102,7 @@ private:
 	qint64 m_phase = 0;
 	int m_swirl = 0;
 	Kolf::RectShape *m_solidShape = nullptr;
+	Kolf::EllipseShape *m_bodyEllipse = nullptr;
 	bool m_open = false;
 	bool m_running = true;
 	double m_t = 0;

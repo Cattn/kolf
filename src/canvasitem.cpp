@@ -255,6 +255,16 @@ void CanvasItem::setSimulationType(CanvasItem::SimulationType type)
 	}
 }
 
+void CanvasItem::setBodyDamping(double linear)
+{
+	m_body->SetLinearDamping(linear);
+}
+
+void CanvasItem::setFixedRotation(bool fixed)
+{
+	m_body->SetFixedRotation(fixed);
+}
+
 QPointF CanvasItem::velocity() const
 {
 	b2Vec2 v = m_body->GetLinearVelocity();

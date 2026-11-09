@@ -68,6 +68,7 @@ namespace Kolf
 			Kolf::Shape::Traits traits() const;
 			///Configures the behavior of this shape.
 			void setTraits(Kolf::Shape::Traits traits);
+	void setMaterial(double density, double restitution, double friction);
 
 			///Returns the two-dimensional activation outline, i.e. the area of this geometry (plus some defined padding). The editor overlay is supposed to activate the editor interface of the object associated with this geometry, if a mouse click occurs inside the activation outline.
 			///@see ActivationOutlinePadding

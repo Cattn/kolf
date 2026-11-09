@@ -297,6 +297,7 @@ public:
 	int currentHole() { return curHole; }
 	void impact(Kolf::Impact kind, const QPointF &position, double strength);
 	void applyHazardResets();
+	bool bodiesMoving() const;
 	void celebrate(const QPointF &cup, int score, int par);
 	void setRecordEffects(bool record) { m_recordEffects = record; }
 	QJsonArray takeEffectEvents();

@@ -1,0 +1,38 @@
+{
+  "kolfObject": 1,
+  "id": "barrel",
+  "name": "Barrel",
+  "category": "obstacle",
+  "help": "A round barrel that keeps rolling once it gets going.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      20,
+      20
+    ],
+    "resizable": false,
+    "rotatable": false
+  },
+  "visual": {
+    "sprite": "barrel.svg",
+    "layer": "raised"
+  },
+  "properties": {
+    "weight": {
+      "type": "number",
+      "label": "Weight",
+      "min": 0.05,
+      "max": 2,
+      "step": 0.05,
+      "default": 0.2
+    }
+  },
+  "components": [
+    {
+      "type": "body",
+      "mass": "$weight",
+      "damping": 0.8,
+      "bounce": 0.4
+    }
+  ]
+}

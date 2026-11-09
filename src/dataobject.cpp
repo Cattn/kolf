@@ -25,6 +25,7 @@ namespace
 {
 constexpr qsizetype MaximumDefinitionBytes = 64 * 1024;
 constexpr int SwirlSteps = 500;
+constexpr double BodyRestSpeed = 0.03;
 constexpr double SwirlFadeSteps = 250;
 constexpr double MaximumSwirlSpeed = 3;
 constexpr double SinkSpeed = 0.25;
@@ -36,14 +37,14 @@ const QStringList &componentTypes()
 	static const QStringList types{QStringLiteral("surface"), QStringLiteral("force"), QStringLiteral("boost"),
 		QStringLiteral("hazard"), QStringLiteral("sound"), QStringLiteral("decor"), QStringLiteral("solid"),
 		QStringLiteral("trigger"), QStringLiteral("receiver"), QStringLiteral("motion"), QStringLiteral("crumble"),
-		QStringLiteral("pulse"), QStringLiteral("blast")};
+		QStringLiteral("pulse"), QStringLiteral("blast"), QStringLiteral("body")};
 	return types;
 }
 
 const QStringList &plannedComponentTypes()
 {
 	static const QStringList types{QStringLiteral("animation"), QStringLiteral("teleport"),
-		QStringLiteral("capture"), QStringLiteral("body")};
+		QStringLiteral("capture")};
 	return types;
 }
 
@@ -78,6 +79,10 @@ QList<ParameterRule> parameterRules(const QString &type)
 	if (type == QLatin1String("hazard"))
 		return {{QStringLiteral("outcome"), ParameterRule::Choice, 0, 0, {QStringLiteral("water"), QStringLiteral("reset-last"),
 			QStringLiteral("reset-tee"), QStringLiteral("sink")}, true}};
+	if (type == QLatin1String("body"))
+		return {{QStringLiteral("mass"), ParameterRule::Number, 0.02, 5, {}, true},
+			{QStringLiteral("damping"), ParameterRule::Number, 0.2, 10, {}, false},
+			{QStringLiteral("bounce"), ParameterRule::Number, 0, 1, {}, false}};
 	if (type == QLatin1String("pulse"))
 		return {{QStringLiteral("period"), ParameterRule::Number, 0.2, 30, {}, true},
 			{QStringLiteral("duty"), ParameterRule::Number, 0.05, 0.95, {}, false}};
@@ -437,6 +442,10 @@ std::shared_ptr<const Kolf::DataObjectDefinition> Kolf::DataObjectLibrary::parse
 		runtime << QStringLiteral("swirl");
 	if (uses("crumble"))
 		runtime << QStringLiteral("crumbled");
+	if (uses("body"))
+		runtime << QStringLiteral("vx") << QStringLiteral("vy");
+	if (uses("body") && uses("solid"))
+		return fail(QStringLiteral("components"), QStringLiteral("an object is either solid or a body, not both"));
 	if (uses("blast"))
 		runtime << QStringLiteral("spent");
 	if (uses("pulse") && !uses("solid"))
@@ -574,6 +583,22 @@ Kolf::DataObject::DataObject(std::shared_ptr<const DataObjectDefinition> definit
 		m_solidShape = new Kolf::RectShape(boundingRect());
 		addShape(m_solidShape);
 		setSimulationType(CanvasItem::CollisionSimulation);
+	} else if (hasComponent(QStringLiteral("body"))) {
+		for (const auto &component : m_definition->components) {
+			if (component.type != QLatin1String("body"))
+				continue;
+			if (m_definition->shape == QLatin1String("ellipse"))
+				m_bodyEllipse = new Kolf::EllipseShape(boundingRect());
+			else
+				m_solidShape = new Kolf::RectShape(boundingRect());
+			Kolf::Shape *shape = m_bodyEllipse ? static_cast<Kolf::Shape *>(m_bodyEllipse) : m_solidShape;
+			shape->setMaterial(parameter(component, QStringLiteral("mass"), 0.1).toDouble(),
+				parameter(component, QStringLiteral("bounce"), 0.3).toDouble(), 0.3);
+			addShape(shape);
+			setSimulationType(CanvasItem::DynamicSimulation);
+			setFixedRotation(true);
+			setBodyDamping(parameter(component, QStringLiteral("damping"), 2).toDouble());
+		}
 	} else {
 		setSimulationType(CanvasItem::NoSimulation);
 	}
@@ -605,7 +630,7 @@ void Kolf::DataObject::setGame(KolfGame *game)
 	CanvasItem::setGame(game);
 	if (game && (hasComponent(QStringLiteral("trigger")) || hasComponent(QStringLiteral("motion")) || gusting()
 		|| hasComponent(QStringLiteral("pulse")) || hasComponent(QStringLiteral("crumble")) || hasComponent(QStringLiteral("blast"))
-		|| swirling()))
+		|| swirling() || hasComponent(QStringLiteral("body"))))
 		connect(game, &KolfGame::simulationStepped, this, &DataObject::step, Qt::UniqueConnection);
 }
 
@@ -651,6 +676,8 @@ void Kolf::DataObject::step()
 	}
 	if (gusting() || hasComponent(QStringLiteral("pulse")))
 		++m_phase;
+	if (hasComponent(QStringLiteral("body")) && !velocity().isNull() && Vector(velocity()).magnitude() < BodyRestSpeed)
+		setVelocity(QPointF());
 	if (swirling()) {
 		bool occupied = false;
 		for (Ball *ball : game->balls())
@@ -910,6 +937,10 @@ QVariantMap Kolf::DataObject::runtimeState() const
 		state.insert(QStringLiteral("running"), m_running);
 	if (fields.contains(QStringLiteral("phase")))
 		state.insert(QStringLiteral("phase"), double(m_phase));
+	if (fields.contains(QStringLiteral("vx"))) {
+		state.insert(QStringLiteral("vx"), velocity().x());
+		state.insert(QStringLiteral("vy"), velocity().y());
+	}
 	if (fields.contains(QStringLiteral("swirl")))
 		state.insert(QStringLiteral("swirl"), m_swirl);
 	if (fields.contains(QStringLiteral("crumbled")))
@@ -933,6 +964,8 @@ void Kolf::DataObject::setRuntimeState(const QVariantMap &state)
 	m_phase = qint64(state.value(QStringLiteral("phase"), double(m_phase)).toDouble());
 	m_crumbled = state.value(QStringLiteral("crumbled"), m_crumbled).toBool();
 	m_swirl = state.value(QStringLiteral("swirl"), m_swirl).toInt();
+	if (state.contains(QStringLiteral("vx")) && hasComponent(QStringLiteral("body")))
+		setVelocity(QPointF(state.value(QStringLiteral("vx")).toDouble(), state.value(QStringLiteral("vy")).toDouble()));
 	m_spent = state.value(QStringLiteral("spent"), m_spent).toBool();
 	if (hasComponent(QStringLiteral("blast")))
 		setOpacity(m_spent ? 0.35 : 1.0);
@@ -960,6 +993,8 @@ void Kolf::DataObject::updateGeometry()
 		m_solidShape->setRect(boundingRect());
 		m_solidShape->setAngle(rotation());
 	}
+	if (m_bodyEllipse)
+		m_bodyEllipse->setRect(boundingRect());
 	update();
 	propagateUpdate();
 }
