@@ -71,6 +71,31 @@ private Q_SLOTS:
         QVERIFY(!copy.fromJson(bad, 2));
         QCOMPARE(copy.toJson(), json);
     }
+
+    void usingItemsAppliesStatusesAndShields()
+    {
+        Kolf::PowerUpState state;
+        state.reset(Kolf::PowerUpRule::Casual, 3);
+        state.give(0, QStringLiteral("wobble"));
+        QCOMPARE(state.use(0, 0, 0), Kolf::PowerUpState::UseResult::Invalid);
+        QCOMPARE(state.use(0, 0, 7), Kolf::PowerUpState::UseResult::Invalid);
+        QCOMPARE(state.use(0, 0, 1), Kolf::PowerUpState::UseResult::Applied);
+        QVERIFY(state.hasStatus(1, QStringLiteral("wobble")));
+        QVERIFY(state.player(0).slots.isEmpty());
+        state.give(2, QStringLiteral("shield"));
+        QCOMPARE(state.use(2, 0, -1), Kolf::PowerUpState::UseResult::Applied);
+        state.give(0, QStringLiteral("heavy"));
+        QCOMPARE(state.use(0, 0, 2), Kolf::PowerUpState::UseResult::Shielded);
+        QVERIFY(!state.hasStatus(2, QStringLiteral("heavy")));
+        QVERIFY(!state.hasStatus(2, QStringLiteral("shield")));
+        state.give(1, QStringLiteral("mulligan"));
+        QCOMPARE(state.use(1, 0, -1), Kolf::PowerUpState::UseResult::Applied);
+        QVERIFY(state.hasStatus(1, QStringLiteral("mulligan")));
+        for (int i = 0; i < 200; ++i) {
+            const double degrees = state.wobbleDegrees();
+            QVERIFY(degrees >= -8.0 && degrees <= 8.0);
+        }
+    }
 };
 
 QTEST_GUILESS_MAIN(PowerUpsTest)

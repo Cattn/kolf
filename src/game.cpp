@@ -636,6 +636,8 @@ KolfGame::KolfGame(PlayerList *players, const QString &filename, QWidget *parent
 	new Kolf::BallTrails(courseBoard);
 	m_impacts = new Kolf::ImpactEffects(courseBoard);
 	m_themeGround = new Kolf::ThemeGround(courseBoard);
+	m_fog = new Kolf::FogOverlay(courseBoard);
+	connect(this, &KolfGame::powerUpsChanged, this, &KolfGame::updateStatusView);
 	connect(Kolf::Effects::notifier(), &Kolf::Effects::Notifier::changed, this, &KolfGame::applyCourseTheme);
 
 	// border walls:
@@ -2028,6 +2030,7 @@ void KolfGame::shotDone()
 	while ((*curPlayer).ball()->curState() == Holed);
 
 	Q_EMIT newPlayersTurn(&(*curPlayer));
+	updateStatusView();
 
 	(*curPlayer).ball()->setVisible(true);
 
@@ -2095,7 +2098,16 @@ bool KolfGame::applyAcceptedShot(const Kolf::Session::ShotIntent &intent)
 	// Preparatory collisions may put the ball in a cup, hazard or teleport.
 	Vector ignored;
 	if (curBall()->curState() == Holed || curBall()->forceStillGoing() || curBall()->placeOnGround(ignored)) return false;
-	startBall(Vector::fromMagnitudeDirection(intent.launchMagnitude, intent.directionRadians));
+	double direction = intent.directionRadians;
+	double magnitude = intent.launchMagnitude;
+	const int slot = currentSlot();
+	if (m_powerUps.hasStatus(slot, QStringLiteral("wobble")))
+		direction += m_powerUps.wobbleDegrees() * M_PI / 180.0;
+	if (m_powerUps.hasStatus(slot, QStringLiteral("heavy")))
+		magnitude *= 0.65;
+	if (m_powerUps.consumeStatus(slot, QStringLiteral("mulligan")))
+		dontAddStroke = true;
+	startBall(Vector::fromMagnitudeDirection(magnitude, direction));
 	addHoleInfo(ballStateList);
 	m_onlineShot = isOnline();
 	return true;
@@ -2224,6 +2236,7 @@ void KolfGame::startNextHole()
 	}
 
 	Q_EMIT newPlayersTurn(&(*curPlayer));
+	updateStatusView();
 
 	if (reset)
 		openFile();
@@ -2462,6 +2475,24 @@ void KolfGame::openFile()
 		m_editSnapshot = holeSnapshot();
 	}
 	applyCourseTheme();
+}
+
+void KolfGame::setViewerOwnsTurn(bool owns)
+{
+	m_viewerOwnsTurn = owns;
+	updateStatusView();
+}
+
+void KolfGame::updateStatusView()
+{
+	const bool fogged = m_viewerOwnsTurn && hasCurrentPlayer() && m_powerUps.hasStatus(currentSlot(), QStringLiteral("fog"));
+	if (m_fog) {
+		m_fog->setVisible(fogged);
+		if (fogged)
+			m_fog->setCentre(curBall()->pos());
+	}
+	if (putter)
+		putter->setShowGuideLine(m_showGuideLineSetting && !fogged);
 }
 
 void KolfGame::turnEnded(int slot)
@@ -3002,6 +3033,7 @@ void KolfGame::setUseAdvancedPutting(bool yes)
 
 void KolfGame::setShowGuideLine(bool yes)
 {
+	m_showGuideLineSetting = yes;
 	putter->setShowGuideLine(yes);
 }
 

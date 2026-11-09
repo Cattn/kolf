@@ -174,6 +174,8 @@ QJsonObject replayHole(const QString &courseFile, int hole, quint32 seed, int &h
     for (const auto &fixed : FixedShots) {
         Ball *ball = players.first().ball();
         if (adapter->hole() != hole || ball->curState() == Holed) break;
+        if (!qEnvironmentVariableIsEmpty("KOLF_REPLAY_STATUS"))
+            game->powerUps().addStatus(0, qEnvironmentVariable("KOLF_REPLAY_STATUS"), 1);
         const auto intent = fixedIntent(fixed, ball->pos(), cupPosition(game, ball->pos()));
         QJsonObject shot{{QStringLiteral("direction"), intent.directionRadians}, {QStringLiteral("magnitude"), intent.launchMagnitude}};
         if (!adapter->shoot(intent)) {

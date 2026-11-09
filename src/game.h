@@ -56,7 +56,7 @@ namespace Kolf
 
 enum Direction { D_Left, D_Right, Forwards, Backwards };
 enum Amount { Amount_Less, Amount_Normal, Amount_More };
-namespace Kolf { enum class Impact; class ImpactEffects; class ThemeGround; }
+namespace Kolf { enum class Impact; class ImpactEffects; class ThemeGround; class FogOverlay; }
 
 enum class Sound {
 	BlackHole,
@@ -304,6 +304,8 @@ public:
 	const Kolf::PowerUpState &powerUps() const { return m_powerUps; }
 	void setPowerUpRule(Kolf::PowerUpRule rule);
 	void turnEnded(int slot);
+	void setViewerOwnsTurn(bool owns);
+	void updateStatusView();
 	void notifyPowerUpsChanged() { Q_EMIT powerUpsChanged(); }
 	bool bodiesMoving() const;
 	void celebrate(const QPointF &cup, int score, int par);
@@ -456,6 +458,9 @@ private:
 	Kolf::ThemeGround *m_themeGround = nullptr;
 	Kolf::CourseTheme m_courseTheme;
 	Kolf::PowerUpState m_powerUps;
+	Kolf::FogOverlay *m_fog = nullptr;
+	bool m_viewerOwnsTurn = true;
+	bool m_showGuideLineSetting = true;
 	bool m_recordEffects = false;
 	bool m_replayingEffects = false;
 	QJsonArray m_effectEvents;

@@ -41,6 +41,11 @@ public:
     void resetHole();
     QString draw(int hole);
     static QStringList pool(PowerUpRule rule);
+    static bool isAttack(const QString &item);
+    static bool isKnown(const QString &item);
+    enum class UseResult { Applied, Shielded, Invalid };
+    UseResult use(int user, int index, int target);
+    double wobbleDegrees();
 
     QJsonObject toJson() const;
     bool fromJson(const QJsonObject &json, int players);

@@ -22,6 +22,17 @@ struct CourseTheme {
     static QStringList presetNames();
 };
 
+class FogOverlay : public QGraphicsItem {
+public:
+    explicit FogOverlay(QGraphicsItem *parent);
+    void setCentre(const QPointF &centre);
+    QRectF boundingRect() const override;
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+
+private:
+    QPointF m_centre;
+};
+
 class ThemeGround : public QGraphicsItem {
 public:
     explicit ThemeGround(QGraphicsItem *parent);

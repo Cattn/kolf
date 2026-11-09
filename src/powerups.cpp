@@ -127,6 +127,43 @@ QString PowerUpState::draw(int hole)
     return items.at(int(value % quint32(items.size())));
 }
 
+bool PowerUpState::isAttack(const QString &item)
+{
+    return item == QLatin1String("wobble") || item == QLatin1String("heavy") || item == QLatin1String("fog");
+}
+
+bool PowerUpState::isKnown(const QString &item)
+{
+    return isAttack(item) || item == QLatin1String("shield") || item == QLatin1String("mulligan");
+}
+
+PowerUpState::UseResult PowerUpState::use(int user, int index, int target)
+{
+    if (!enabled() || user < 0 || user >= m_players.size() || index < 0 || index >= m_players.at(user).slots.size())
+        return UseResult::Invalid;
+    const QString item = m_players.at(user).slots.at(index);
+    if (!isKnown(item))
+        return UseResult::Invalid;
+    if (isAttack(item)) {
+        if (target < 0 || target >= m_players.size() || target == user)
+            return UseResult::Invalid;
+        m_players[user].slots.removeAt(index);
+        if (consumeStatus(target, QStringLiteral("shield")))
+            return UseResult::Shielded;
+        addStatus(target, item, 1);
+        return UseResult::Applied;
+    }
+    m_players[user].slots.removeAt(index);
+    addStatus(user, item, item == QLatin1String("shield") ? MaximumStatusTurns : 1);
+    return UseResult::Applied;
+}
+
+double PowerUpState::wobbleDegrees()
+{
+    const quint32 value = qHash(QStringLiteral("kolf-wobble/%1").arg(nextDraw()), 0x776f6262u);
+    return (double(value % 1601u) - 800.0) / 100.0;
+}
+
 void PowerUpState::resetHole()
 {
     for (auto &player : m_players)

@@ -56,6 +56,37 @@ CourseTheme CourseTheme::read(const KConfigGroup &course, const KConfigGroup &ho
     return theme;
 }
 
+FogOverlay::FogOverlay(QGraphicsItem *parent)
+    : QGraphicsItem(parent)
+{
+    setZValue(9000);
+    setAcceptedMouseButtons(Qt::NoButton);
+    setVisible(false);
+}
+
+void FogOverlay::setCentre(const QPointF &centre)
+{
+    m_centre = centre;
+    update();
+}
+
+QRectF FogOverlay::boundingRect() const
+{
+    return QRectF(-2000, -2000, 4400, 4400);
+}
+
+void FogOverlay::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
+{
+    QRadialGradient fog(m_centre, 160);
+    fog.setColorAt(0, QColor(200, 210, 220, 0));
+    fog.setColorAt(0.7, QColor(200, 210, 220, 0));
+    fog.setColorAt(0.78, QColor(200, 210, 220, 200));
+    fog.setColorAt(1, QColor(200, 210, 220, 235));
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(fog);
+    painter->drawRect(boundingRect());
+}
+
 ThemeGround::ThemeGround(QGraphicsItem *parent)
     : QGraphicsItem(parent)
 {
