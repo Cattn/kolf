@@ -51,6 +51,11 @@ KConfigGroup modeGroup()
 }
 }
 
+QString NewGameView::savedPowerUpRule()
+{
+    return modeGroup().readEntry("powerUps", QStringLiteral("off"));
+}
+
 NewGameView::NewGameView(QWidget *parent)
     : QWidget(parent)
 {
@@ -127,6 +132,23 @@ NewGameView::NewGameView(QWidget *parent)
     m_strict = new QCheckBox(i18n("Strict mode: no undo, editing, or switching holes; scores count for high scores"), this);
     m_strict->setObjectName(QStringLiteral("setupStrict"));
     outer->addWidget(m_strict);
+    auto *powerUpRow = new QHBoxLayout;
+    auto *powerUpLabel = new QLabel(i18nc("@label:listbox", "Power-ups:"), this);
+    m_powerUps = new QComboBox(this);
+    m_powerUps->setObjectName(QStringLiteral("setupPowerUps"));
+    m_powerUps->addItem(i18nc("@item:inlistbox power-ups", "Off"), QStringLiteral("off"));
+    m_powerUps->addItem(i18nc("@item:inlistbox power-ups", "Casual"), QStringLiteral("casual"));
+    m_powerUps->addItem(i18nc("@item:inlistbox power-ups", "Chaos"), QStringLiteral("chaos"));
+    m_powerUps->setToolTip(i18nc("@info:tooltip", "Collect items from power-up boxes and use them on other players. Not allowed in strict mode."));
+    powerUpLabel->setBuddy(m_powerUps);
+    powerUpRow->addWidget(powerUpLabel);
+    powerUpRow->addWidget(m_powerUps);
+    powerUpRow->addStretch();
+    outer->addLayout(powerUpRow);
+    connect(m_strict, &QCheckBox::toggled, m_powerUps, [this](bool strict) {
+        if (strict) m_powerUps->setCurrentIndex(0);
+        m_powerUps->setEnabled(!strict);
+    });
     auto *buttons = new QHBoxLayout;
     auto *back = new QPushButton(QIcon::fromTheme(QStringLiteral("go-previous")), i18nc("@action:button", "Back"), this);
     back->setObjectName(QStringLiteral("setupBack"));
@@ -167,6 +189,8 @@ void NewGameView::prepare(const QString &lockedCourse)
         addPlayerRow(i18n("Player %1", 2), defaultColors().at(1));
     }
     m_strict->setChecked(modeGroup().readEntry("competition", false));
+    m_powerUps->setCurrentIndex(qMax(0, m_powerUps->findData(modeGroup().readEntry("powerUps", QStringLiteral("off")))));
+    m_powerUps->setEnabled(!m_strict->isChecked());
     m_locked = !lockedCourse.isEmpty();
     loadCourses();
     if (m_locked) {
@@ -386,6 +410,7 @@ void NewGameView::start()
     roster.writeEntry("colors", colors);
     auto group = modeGroup();
     group.writeEntry("competition", m_strict->isChecked());
+    group.writeEntry("powerUps", m_strict->isChecked() ? QStringLiteral("off") : m_powerUps->currentData().toString());
     if (!m_locked) group.writeEntry("course", m_course->currentData().toString());
     group.writeEntry("extra", m_extraCourses);
     group.sync();

@@ -16,6 +16,7 @@ public:
     void setHole(int hole, int holes, int par);
     void setTurn(const QString &name, const QColor &color, int stroke, bool yourTurn = true, bool markLocalTurn = false);
     void setMessage(const QString &message);
+    void setPowerUps(bool enabled, const QStringList &items, const QStringList &statuses);
     void setEditing(int hole, int holes);
     void setHint(const QString &hint);
     void clearHint();
@@ -32,6 +33,7 @@ private:
     QLabel *m_stroke;
     QWidget *m_hintRow;
     QLabel *m_hint;
+    QLabel *m_powerUps = nullptr;
     QToolButton *m_dismissHint;
 };
 }

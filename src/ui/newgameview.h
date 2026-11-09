@@ -22,6 +22,7 @@ struct LocalPlayer {
 class NewGameView : public QWidget {
     Q_OBJECT
 public:
+    static QString savedPowerUpRule();
     explicit NewGameView(QWidget *parent = nullptr);
     void prepare(const QString &lockedCourse = {});
     static QPixmap thumbnail(const QString &course);
@@ -57,6 +58,7 @@ private:
     QPushButton *m_removeCourse;
     QPushButton *m_highScores;
     QCheckBox *m_strict;
+    QComboBox *m_powerUps;
     QPushButton *m_start;
     QStringList m_extraCourses;
     bool m_locked = false;

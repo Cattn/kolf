@@ -668,6 +668,7 @@ KolfGame::KolfGame(PlayerList *players, const QString &filename, QWidget *parent
 	connect(putterTimer, &QTimer::timeout, this, &KolfGame::putterTimeout);
 	putterTimerMsec = 20;
 	m_editHistory = new QUndoStack(this);
+	m_powerUps.reset(Kolf::PowerUpRule::Off, players ? int(players->size()) : 0);
 }
 
 bool KolfGame::bodiesMoving() const
@@ -2459,6 +2460,12 @@ void KolfGame::openFile()
 		m_editSnapshot = holeSnapshot();
 	}
 	applyCourseTheme();
+}
+
+void KolfGame::setPowerUpRule(Kolf::PowerUpRule rule)
+{
+	m_powerUps.reset(rule, players ? int(players->size()) : 0);
+	Q_EMIT powerUpsChanged();
 }
 
 void KolfGame::applyCourseTheme()

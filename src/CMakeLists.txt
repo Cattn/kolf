@@ -161,6 +161,8 @@ target_sources(kolfprivate PRIVATE
     ballstep.h
     coursetheme.cpp
     coursetheme.h
+    powerups.cpp
+    powerups.h
     effects.cpp
     effects.h
     impacteffects.cpp

@@ -23,6 +23,7 @@
 
 #include "ball.h"
 #include "coursetheme.h"
+#include "powerups.h"
 
 #include "tagaro/scene.h"
 
@@ -299,6 +300,10 @@ public:
 	void impact(Kolf::Impact kind, const QPointF &position, double strength);
 	void applyHazardResets();
 	void applyCourseTheme();
+	Kolf::PowerUpState &powerUps() { return m_powerUps; }
+	const Kolf::PowerUpState &powerUps() const { return m_powerUps; }
+	void setPowerUpRule(Kolf::PowerUpRule rule);
+	void notifyPowerUpsChanged() { Q_EMIT powerUpsChanged(); }
 	bool bodiesMoving() const;
 	void celebrate(const QPointF &cup, int score, int par);
 	void setRecordEffects(bool record) { m_recordEffects = record; }
@@ -308,6 +313,7 @@ public:
 	int holeCount() const { return highestHole; }
 	bool hasCurrentPlayer() const { return players && curPlayer != players->end(); }
 	QString currentPlayerName() const { return hasCurrentPlayer() ? (*curPlayer).name() : QString(); }
+	int currentSlot() const { return hasCurrentPlayer() ? int(curPlayer - players->begin()) : -1; }
 	QColor currentPlayerColor() const { return hasCurrentPlayer() ? (*curPlayer).ball()->color() : QColor(); }
 	int currentPlayerStrokes() const { return hasCurrentPlayer() && curHole >= 1 && curHole <= int((*curPlayer).numHoles()) ? (*curPlayer).score(curHole) : 0; }
 	void setStrict(bool yes) { strict = yes; }
@@ -364,6 +370,7 @@ public Q_SLOTS:
 	void sayWhosGoing();
 
 Q_SIGNALS:
+	void powerUpsChanged();
 	void shotIntentReady(const Kolf::Session::ShotIntent &intent);
 	void onlineSettlementRequested();
 	void holesDone();
@@ -447,6 +454,7 @@ private:
 	int m_movingSteps = 0;
 	Kolf::ThemeGround *m_themeGround = nullptr;
 	Kolf::CourseTheme m_courseTheme;
+	Kolf::PowerUpState m_powerUps;
 	bool m_recordEffects = false;
 	bool m_replayingEffects = false;
 	QJsonArray m_effectEvents;

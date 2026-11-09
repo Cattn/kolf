@@ -57,6 +57,12 @@ GameHud::GameHud(QWidget *parent)
     m_stroke->setObjectName(QStringLiteral("hudStroke"));
     row->addSpacing(12);
     row->addWidget(m_stroke);
+    m_powerUps = new QLabel(this);
+    m_powerUps->setObjectName(QStringLiteral("hudPowerUps"));
+    m_powerUps->setAccessibleName(i18n("Held power-ups"));
+    m_powerUps->hide();
+    row->addSpacing(12);
+    row->addWidget(m_powerUps);
     outer->addLayout(row);
 
     auto *hintCard = new QFrame(this);
@@ -108,6 +114,20 @@ void GameHud::setTurn(const QString &name, const QColor &color, int stroke, bool
             : i18nc("@info HUD: waiting for another player", "Waiting for %1", name));
     m_stroke->setText(i18nc("@info HUD: stroke number", "Stroke %1", stroke));
     m_stroke->show();
+}
+
+void GameHud::setPowerUps(bool enabled, const QStringList &items, const QStringList &statuses)
+{
+    m_powerUps->setVisible(enabled);
+    if (!enabled)
+        return;
+    QStringList parts;
+    for (int i = 0; i < 2; ++i)
+        parts << (i < items.size() ? QStringLiteral("%1 %2").arg(i + 1).arg(items.at(i)) : QStringLiteral("%1 \u2014").arg(i + 1));
+    QString text = i18nc("@info HUD: held power-ups", "Items: %1", parts.join(QStringLiteral("  ")));
+    if (!statuses.isEmpty())
+        text += QStringLiteral("  \u00b7  ") + statuses.join(QStringLiteral(", "));
+    m_powerUps->setText(text);
 }
 
 void GameHud::setMessage(const QString &message)

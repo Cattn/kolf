@@ -180,6 +180,11 @@ bool GameSessionAdapter::undoShot() {
         const auto object = value.toObject();
         if (!map.contains(object[QStringLiteral("id")].toString())) return false;
     }
+    Kolf::PowerUpState powerUps = g->m_powerUps;
+    if (m_undoState.contains(QStringLiteral("powerups"))
+        && !powerUps.fromJson(m_undoState[QStringLiteral("powerups")].toObject(), int(g->players->size()))) return false;
+    g->m_powerUps = powerUps;
+    Q_EMIT g->powerUpsChanged();
     enableSimulation(false); enableInput(false);
     g->paused = true; g->setUpdatesEnabled(false);
     for (const auto &value : objects) {
@@ -257,7 +262,8 @@ QJsonObject GameSessionAdapter::capture(int revision, int generation, int turn, 
         {QStringLiteral("par"), g->curPar}, {QStringLiteral("activeSlot"), activeSlot()},
         {QStringLiteral("manifestHash"), manifestHash()}, {QStringLiteral("objects"), objects},
         {QStringLiteral("balls"), balls}, {QStringLiteral("scores"), scores},
-        {QStringLiteral("choiceId"), m_choiceId}, {QStringLiteral("choiceSlot"), m_choiceSlot}};
+        {QStringLiteral("choiceId"), m_choiceId}, {QStringLiteral("choiceSlot"), m_choiceSlot},
+        {QStringLiteral("powerups"), g->m_powerUps.toJson()}};
 }
 bool GameSessionAdapter::apply(const QJsonObject &s, QString &error) {
     if (g->m_role != Role::Guest) { error = QStringLiteral("snapshot application on authority"); return false; }
@@ -295,6 +301,8 @@ bool GameSessionAdapter::apply(const QJsonObject &s, QString &error) {
     if (s[QStringLiteral("phase")] == QLatin1String("AwaitingHazardChoice")
         && (s[QStringLiteral("choiceId")].toString().isEmpty()
             || !counter(s[QStringLiteral("choiceSlot")], 0, rosterSize - 1))) return reject();
+    Kolf::PowerUpState powerUps = g->m_powerUps;
+    if (s.contains(QStringLiteral("powerups")) && !powerUps.fromJson(s[QStringLiteral("powerups")].toObject(), rosterSize)) return reject();
     const bool changedHole = hole() != s[QStringLiteral("hole")].toInt();
     g->setUpdatesEnabled(false);
     if (changedHole && !loadHole(s[QStringLiteral("hole")].toInt())) { g->setUpdatesEnabled(true); return reject(); }
@@ -318,6 +326,8 @@ bool GameSessionAdapter::apply(const QJsonObject &s, QString &error) {
     }
     g->curPlayer = g->players->begin() + s[QStringLiteral("activeSlot")].toInt();
     g->curPar = s[QStringLiteral("par")].toInt();
+    g->m_powerUps = powerUps;
+    Q_EMIT g->powerUpsChanged();
     m_choiceId = s[QStringLiteral("choiceId")].toString();
     m_choiceSlot = s[QStringLiteral("choiceSlot")].toInt(-1);
     m_finished = s[QStringLiteral("phase")] == QLatin1String("Finished");

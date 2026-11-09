@@ -25,3 +25,7 @@ ecm_add_test(dataobjecttest.cpp
 target_include_directories(dataobjecttest PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_compile_definitions(dataobjecttest PRIVATE KOLF_SOURCE_OBJECTS="${CMAKE_SOURCE_DIR}/objects")
 set_tests_properties(dataobjecttest PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+ecm_add_test(powerupstest.cpp
+    TEST_NAME powerupstest
+    LINK_LIBRARIES kolfprivate Qt6::Test)
+target_include_directories(powerupstest PRIVATE ${CMAKE_SOURCE_DIR}/src)

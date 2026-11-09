@@ -703,6 +703,8 @@ void KolfWindow::launchGame(int firstHole)
 	delete game;
         game = new KolfGame(&players, filename, dummy);
 	game->setStrict(competition);
+	game->setPowerUpRule(competition || isTutorial ? Kolf::PowerUpRule::Off : Kolf::powerUpRuleFromId(Kolf::Ui::NewGameView::savedPowerUpRule()));
+	connect(game, &KolfGame::powerUpsChanged, this, &KolfWindow::updateHud);
 	if (m_savedRandomSeed >= 0)
 		game->setRandomSeed(quint32(m_savedRandomSeed));
 	m_savedRandomSeed = -1;
@@ -815,6 +817,11 @@ void KolfWindow::updateHud()
 		return;
 	}
 	gameHud->setTurn(game->currentPlayerName(), game->currentPlayerColor(), game->currentPlayerStrokes() + 1);
+	const auto &held = game->powerUps().player(game->currentSlot());
+	QStringList items, statuses;
+	for (const auto &item : held.slots) items << Kolf::powerUpName(item);
+	for (auto it = held.statuses.cbegin(); it != held.statuses.cend(); ++it) statuses << Kolf::powerUpName(it.key());
+	gameHud->setPowerUps(game->powerUps().enabled(), items, statuses);
 }
 
 void KolfWindow::editNewCourse()
