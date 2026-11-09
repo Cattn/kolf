@@ -5,6 +5,7 @@
 #include "ball.h"
 #include "ballstep.h"
 #include "game.h"
+#include "effects.h"
 #include "overlay.h"
 #include "shape.h"
 
@@ -902,6 +903,8 @@ void Kolf::DataObject::updateCanopyFade()
 
 void Kolf::DataObject::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 {
+	if (hasComponent(QStringLiteral("decor")) && Kolf::Effects::plainMode())
+		return;
 	if (m_canopyFade < 1.0)
 		painter->setOpacity(painter->opacity() * m_canopyFade);
 	m_definition->sprite->render(painter, boundingRect());

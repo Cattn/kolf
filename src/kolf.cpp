@@ -255,6 +255,12 @@ void KolfWindow::setupActions()
 	ballTrailsAction->setChecked(Kolf::Effects::ballTrails());
 	connect(ballTrailsAction, &QAction::toggled, this, [](bool enabled) { Kolf::Effects::setBallTrails(enabled); });
 
+	plainModeAction = new KToggleAction(i18nc("@option:check", "&Plain Mode"), this);
+	plainModeAction->setToolTip(i18nc("@info:tooltip", "Flat, high-contrast colours with no decorations"));
+	actionCollection()->addAction(QStringLiteral("plainmode"), plainModeAction);
+	plainModeAction->setChecked(Kolf::Effects::plainMode());
+	connect(plainModeAction, &QAction::toggled, this, [](bool plain) { Kolf::Effects::setPlainMode(plain); });
+
 	KStandardAction::preferences(this, &KolfWindow::showSettings, actionCollection());
 
 	soundAction = new KToggleAction(QIcon::fromTheme(QStringLiteral("speaker")),

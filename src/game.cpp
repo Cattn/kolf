@@ -27,11 +27,14 @@
 #include "obstacles.h"
 #include "shape.h"
 #include "balltrails.h"
+#include "coursetheme.h"
+#include "objects.h"
 #include "effects.h"
 #include "impacteffects.h"
 
 #include "tagaro/board.h"
 
+#include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
 #include <QApplication>
 #include <QCheckBox>
@@ -633,6 +636,8 @@ KolfGame::KolfGame(PlayerList *players, const QString &filename, QWidget *parent
 	putter = new Putter(courseBoard, m_world.get());
 	new Kolf::BallTrails(courseBoard);
 	m_impacts = new Kolf::ImpactEffects(courseBoard);
+	m_themeGround = new Kolf::ThemeGround(courseBoard);
+	connect(Kolf::Effects::notifier(), &Kolf::Effects::Notifier::changed, this, &KolfGame::applyCourseTheme);
 
 	// border walls:
 
@@ -2312,6 +2317,7 @@ void KolfGame::openFile()
 	holeInfo.setPar(curPar);
 	holeInfo.borderWallsChanged(cfgGroup.readEntry("borderWalls", holeInfo.borderWalls()));
 	holeInfo.setMaxStrokes(cfgGroup.readEntry("maxstrokes", 10));
+	m_courseTheme = Kolf::CourseTheme::read(KConfigGroup(cfg->group(QStringLiteral("0-course@-50,-50"))), cfgGroup);
 
 	QStringList missingPlugins;
 
@@ -2452,6 +2458,43 @@ void KolfGame::openFile()
 	if (editing && !m_restoringSnapshot && m_editHistory) {
 		m_editHistory->clear();
 		m_editSnapshot = holeSnapshot();
+	}
+	applyCourseTheme();
+}
+
+void KolfGame::applyCourseTheme()
+{
+	const bool plain = Kolf::Effects::plainMode();
+	Kolf::CourseTheme theme = plain ? Kolf::CourseTheme() : m_courseTheme;
+	if (plain) {
+		theme.ground = QColor(0x6f, 0xb3, 0x4a);
+		theme.border = QColor(Qt::black);
+		theme.wall = QColor(0x20, 0x20, 0x20);
+	}
+	if (m_themeGround)
+		m_themeGround->setTheme(theme);
+	const bool darkGround = theme.ground.isValid() && theme.ground.lightnessF() < 0.35;
+	if (putter)
+		putter->setPen(QPen(darkGround ? QColor(Qt::white) : QColor(Qt::black), 4));
+	for (Kolf::Wall *wall : std::as_const(borderWalls))
+		wall->setPen(QPen(theme.border.isValid() ? theme.border : QColor(Qt::darkRed), 3));
+	for (QGraphicsItem *item : std::as_const(m_topLevelQItems)) {
+		if (auto *wall = dynamic_cast<Kolf::Wall *>(item); wall && !borderWalls.contains(wall))
+			wall->setPen(QPen(theme.wall.isValid() ? theme.wall : QColor(Qt::darkRed), 3));
+		if (auto *object = dynamic_cast<Kolf::DataObject *>(item))
+			object->update();
+		if (auto *cup = dynamic_cast<Kolf::Cup *>(item)) {
+			const bool dark = theme.ground.isValid() && theme.ground.lightnessF() < 0.35;
+			if (dark && !cup->graphicsEffect()) {
+				auto *glow = new QGraphicsDropShadowEffect;
+				glow->setOffset(0, 0);
+				glow->setBlurRadius(16);
+				glow->setColor(QColor(255, 255, 255));
+				cup->setGraphicsEffect(glow);
+			} else if (!dark && cup->graphicsEffect()) {
+				cup->setGraphicsEffect(nullptr);
+			}
+		}
 	}
 }
 

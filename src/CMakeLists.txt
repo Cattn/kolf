@@ -159,6 +159,8 @@ target_sources(kolfprivate PRIVATE
     ball.h
     ballstep.cpp
     ballstep.h
+    coursetheme.cpp
+    coursetheme.h
     effects.cpp
     effects.h
     impacteffects.cpp

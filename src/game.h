@@ -22,6 +22,7 @@
 #include "session/shotcommand.h"
 
 #include "ball.h"
+#include "coursetheme.h"
 
 #include "tagaro/scene.h"
 
@@ -54,7 +55,7 @@ namespace Kolf
 
 enum Direction { D_Left, D_Right, Forwards, Backwards };
 enum Amount { Amount_Less, Amount_Normal, Amount_More };
-namespace Kolf { enum class Impact; class ImpactEffects; }
+namespace Kolf { enum class Impact; class ImpactEffects; class ThemeGround; }
 
 enum class Sound {
 	BlackHole,
@@ -297,6 +298,7 @@ public:
 	int currentHole() { return curHole; }
 	void impact(Kolf::Impact kind, const QPointF &position, double strength);
 	void applyHazardResets();
+	void applyCourseTheme();
 	bool bodiesMoving() const;
 	void celebrate(const QPointF &cup, int score, int par);
 	void setRecordEffects(bool record) { m_recordEffects = record; }
@@ -443,6 +445,8 @@ private:
 	Putter *putter;
 	Kolf::ImpactEffects *m_impacts = nullptr;
 	int m_movingSteps = 0;
+	Kolf::ThemeGround *m_themeGround = nullptr;
+	Kolf::CourseTheme m_courseTheme;
 	bool m_recordEffects = false;
 	bool m_replayingEffects = false;
 	QJsonArray m_effectEvents;

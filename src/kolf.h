@@ -156,6 +156,7 @@ private:
 	KToggleAction *showGuideLineAction;
 	KSelectAction *effectsAction;
 	KToggleAction *ballTrailsAction;
+	KToggleAction *plainModeAction;
 	KToggleAction *soundAction;
 	void setHoleMovementEnabled(bool);
 	void setHoleOtherEnabled(bool);

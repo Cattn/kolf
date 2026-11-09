@@ -13,6 +13,8 @@ bool ballTrails();
 void setBallTrails(bool enabled);
 int volume();
 void setVolume(int percent);
+bool plainMode();
+void setPlainMode(bool plain);
 
 class Notifier : public QObject {
     Q_OBJECT

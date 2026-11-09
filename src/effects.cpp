@@ -57,6 +57,19 @@ void setVolume(int percent)
     Q_EMIT notifier()->changed();
 }
 
+bool plainMode()
+{
+    return settings().readEntry("plainMode", false);
+}
+
+void setPlainMode(bool plain)
+{
+    auto group = settings();
+    group.writeEntry("plainMode", plain);
+    group.sync();
+    Q_EMIT notifier()->changed();
+}
+
 Notifier *notifier()
 {
     static Notifier instance;
