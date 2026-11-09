@@ -16,6 +16,8 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#include "game.h"
+#include "online/coursefile.h"
 #include "kolf.h"
 #include "kolf_version.h"
 #include "objectregistry.h"
@@ -110,6 +112,7 @@ int main(int argc, char **argv)
         parser.addOption(QCommandLineOption(QStringList() << QStringLiteral("course-info"), i18n("Print course information and exit")));
         parser.addOption(QCommandLineOption(QStringList() << QStringLiteral("dump-object-catalog"), i18n("Write the object catalog to a file and exit"), i18n("file")));
         parser.addOption(QCommandLineOption(QStringList() << QStringLiteral("check-object-catalog"), i18n("Check that an object catalog file is up to date and exit"), i18n("file")));
+    parser.addOption(QCommandLineOption(QStringList() << QStringLiteral("check-course"), i18n("Check that a course file is valid and playable and exit"), i18n("file")));
 
     aboutData.setupCommandLine(&parser);
     parser.process(app);
@@ -124,6 +127,26 @@ int main(int argc, char **argv)
         if (Kolf::ObjectRegistry::instance().catalogMatchesFile(parser.value(QStringLiteral("check-object-catalog")), difference)) return 0;
         std::cerr << qPrintable(difference) << std::endl;
         return 1;
+    }
+
+    if (parser.isSet(QStringLiteral("check-course"))) {
+        const QString path = parser.value(QStringLiteral("check-course"));
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly)) {
+            std::cerr << "course: cannot read " << qPrintable(path) << std::endl;
+            return 1;
+        }
+        QString error;
+        if (!Kolf::Online::validateCourseBytes(file.readAll(), error)) {
+            std::cerr << "course: " << qPrintable(error) << std::endl;
+            return 1;
+        }
+        if (const QString problem = KolfGame::coursePlayProblem(path); !problem.isEmpty()) {
+            std::cerr << "course: " << qPrintable(problem) << std::endl;
+            return 1;
+        }
+        std::cout << "course: valid and playable" << std::endl;
+        return 0;
     }
 
     const auto protocolTests = qEnvironmentVariable("KOLF_ONLINE_PROTOCOL_TESTS");

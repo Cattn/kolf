@@ -59,7 +59,7 @@ inline bool validateCourseBytes(const QByteArray &bytes, QString &error)
             if (!match.hasMatch() || !Kolf::ObjectRegistry::instance().isKnownGroup(match.captured(2)) || !validHole || hole > 1000
                 || !validX || !validY || x < -100000 || x > 100000 || y < -100000 || y > 100000
                 || groups.contains(group) || groups.size() >= 4096) {
-                error = QStringLiteral("Unsupported or duplicate course object."); return false;
+                error = QStringLiteral("Unsupported or duplicate course object [%1].").arg(group.left(80)); return false;
             }
             groups.insert(group); current = group; currentType = match.captured(2);
             if (match.captured(2) == QLatin1String("ball")) balls.insert(hole);
