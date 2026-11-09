@@ -1,0 +1,25 @@
+{
+  "kolfObject": 1,
+  "id": "peg",
+  "name": "Peg",
+  "category": "obstacle",
+  "help": "A small round post. Lay out a few for a pinball-style field.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      10,
+      10
+    ],
+    "resizable": true,
+    "rotatable": false
+  },
+  "visual": {
+    "sprite": "peg.svg",
+    "layer": "raised"
+  },
+  "components": [
+    {
+      "type": "solid"
+    }
+  ]
+}

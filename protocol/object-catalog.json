@@ -1,5 +1,5 @@
 {
-    "catalogHash": "cfdc78d9e4ac327366162155619adec96c3825b6917899189998a8f9468105e9",
+    "catalogHash": "a82301cc1ce86163cf98c722708283ceb2d6cf9a922c15e25d5a63a2bb3cd1a6",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -679,6 +679,35 @@
                     "max": 10,
                     "min": 2,
                     "step": 0.5,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "obstacle",
+            "id": "peg",
+            "name": "Peg",
+            "properties": [
+                {
+                    "default": 10,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 10,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
                     "type": "number"
                 }
             ],

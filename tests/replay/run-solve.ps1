@@ -3,7 +3,7 @@
 # by the greedy solver (see tests/replay/README.md).
 param(
     [string]$Kolf = 'C:\CraftRoot\bin\kolf.exe',
-    [string[]]$Course = @('WeatherReport', 'DangerZone')
+    [string[]]$Course = @('WeatherReport', 'DangerZone', 'ToyBox')
 )
 $ErrorActionPreference = 'Continue'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path

@@ -49,5 +49,7 @@ install(FILES
     ramp.svg
     trampoline.kobj.json
     trampoline.svg
+    peg.kobj.json
+    peg.svg
     kobj.schema.json
     DESTINATION ${KDE_INSTALL_DATADIR}/kolf/objects)

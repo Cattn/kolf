@@ -588,8 +588,13 @@ Kolf::DataObject::DataObject(std::shared_ptr<const DataObjectDefinition> definit
 	else
 		setZBehavior(CanvasItem::FixedZValue, 2);
 	if (hasComponent(QStringLiteral("solid"))) {
-		m_solidShape = new Kolf::RectShape(boundingRect());
-		addShape(m_solidShape);
+		if (m_definition->shape == QLatin1String("ellipse")) {
+			m_bodyEllipse = new Kolf::EllipseShape(boundingRect());
+			addShape(m_bodyEllipse);
+		} else {
+			m_solidShape = new Kolf::RectShape(boundingRect());
+			addShape(m_solidShape);
+		}
 		setSimulationType(CanvasItem::CollisionSimulation);
 	} else if (hasComponent(QStringLiteral("body"))) {
 		for (const auto &component : m_definition->components) {

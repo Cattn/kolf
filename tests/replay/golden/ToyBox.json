@@ -1,0 +1,709 @@
+{
+    "course": "ToyBox",
+    "holes": [
+        {
+            "hole": 1,
+            "shots": [
+                {
+                    "ball": [
+                        184.024,
+                        200
+                    ],
+                    "direction": 0,
+                    "magnitude": 4.163,
+                    "objects": {
+                        "1-crate@190,174|4": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 190,
+                            "y": 173.541
+                        },
+                        "1-crate@190,200|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 202.007,
+                            "y": 200.007
+                        },
+                        "1-crate@190,226|5": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 190,
+                            "y": 226.459
+                        }
+                    },
+                    "state": 1,
+                    "steps": 71,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        190.125,
+                        208.606
+                    ],
+                    "direction": 0.436,
+                    "magnitude": 2.428,
+                    "objects": {
+                        "1-crate@190,174|4": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 190.75,
+                            "y": 173.541
+                        },
+                        "1-crate@190,200|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 207.782,
+                            "y": 200.007
+                        },
+                        "1-crate@190,226|5": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 190.75,
+                            "y": 226.459
+                        }
+                    },
+                    "state": 1,
+                    "steps": 25,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        192.064,
+                        208.089
+                    ],
+                    "direction": -0.054,
+                    "magnitude": 1.388,
+                    "objects": {
+                        "1-crate@190,174|4": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 191.829,
+                            "y": 173.541
+                        },
+                        "1-crate@190,200|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 209.733,
+                            "y": 200.007
+                        },
+                        "1-crate@190,226|5": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 191.829,
+                            "y": 226.459
+                        }
+                    },
+                    "state": 1,
+                    "steps": 18,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 2,
+            "shots": [
+                {
+                    "ball": [
+                        153.802,
+                        159.836
+                    ],
+                    "direction": -0.714,
+                    "magnitude": 4.163,
+                    "objects": {
+                        "2-barrel@150,250|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 251.934,
+                            "y": 214.803
+                        }
+                    },
+                    "state": 1,
+                    "steps": 243,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        288.578,
+                        118.058
+                    ],
+                    "direction": 0.007,
+                    "magnitude": 2.428,
+                    "objects": {
+                        "2-barrel@150,250|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 252.415,
+                            "y": 217.576
+                        },
+                        "2-barrel@230,170|4": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 258.749,
+                            "y": 196.887
+                        },
+                        "2-barrel@300,110|5": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 301.275,
+                            "y": 109.101
+                        }
+                    },
+                    "state": 1,
+                    "steps": 179,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        293.059,
+                        113.543
+                    ],
+                    "direction": -0.664,
+                    "magnitude": 1.388,
+                    "objects": {
+                        "2-barrel@150,250|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 252.415,
+                            "y": 217.576
+                        },
+                        "2-barrel@230,170|4": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 258.749,
+                            "y": 196.887
+                        },
+                        "2-barrel@300,110|5": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 335.055,
+                            "y": 85.814
+                        }
+                    },
+                    "state": 1,
+                    "steps": 169,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 3,
+            "shots": [
+                {
+                    "ball": [
+                        256.435,
+                        200
+                    ],
+                    "direction": 0,
+                    "magnitude": 4.163,
+                    "objects": {
+                        "3-pin@250,200|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 275.688,
+                            "y": 200
+                        },
+                        "3-pin@259,195|4": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 286.014,
+                            "y": 176.424
+                        },
+                        "3-pin@259,205|5": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 286.012,
+                            "y": 223.577
+                        },
+                        "3-pin@268,190|6": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 308.966,
+                            "y": 164.505
+                        },
+                        "3-pin@268,200|7": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 298.1,
+                            "y": 200
+                        },
+                        "3-pin@268,210|8": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 308.966,
+                            "y": 235.495
+                        }
+                    },
+                    "state": 1,
+                    "steps": 181,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        321.508,
+                        271.239
+                    ],
+                    "direction": 0.436,
+                    "magnitude": 2.428,
+                    "objects": {
+                        "3-pin@250,200|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 279.178,
+                            "y": 194.066
+                        },
+                        "3-pin@259,195|4": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 286.014,
+                            "y": 176.424
+                        },
+                        "3-pin@259,205|5": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 281.835,
+                            "y": 244.668
+                        },
+                        "3-pin@268,190|6": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 308.966,
+                            "y": 164.505
+                        },
+                        "3-pin@268,200|7": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 298.1,
+                            "y": 200
+                        },
+                        "3-pin@268,210|8": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 308.966,
+                            "y": 235.495
+                        }
+                    },
+                    "state": 1,
+                    "steps": 169,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        368.632,
+                        289.75
+                    ],
+                    "direction": -1.075,
+                    "magnitude": 1.388,
+                    "objects": {
+                        "3-pin@250,200|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 279.178,
+                            "y": 194.066
+                        },
+                        "3-pin@259,195|4": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 286.014,
+                            "y": 176.424
+                        },
+                        "3-pin@259,205|5": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 281.835,
+                            "y": 244.668
+                        },
+                        "3-pin@268,190|6": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 308.966,
+                            "y": 164.505
+                        },
+                        "3-pin@268,200|7": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 298.1,
+                            "y": 200
+                        },
+                        "3-pin@268,210|8": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 308.966,
+                            "y": 235.495
+                        }
+                    },
+                    "state": 1,
+                    "steps": 99,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 4,
+            "shots": [
+                {
+                    "ball": [
+                        375.361,
+                        272.362
+                    ],
+                    "direction": 0,
+                    "magnitude": 4.163,
+                    "objects": {
+                        "4-spinner@150,200|3": {
+                            "rotation": 4.8,
+                            "visible": true,
+                            "x": 150,
+                            "y": 200
+                        },
+                        "4-spinner@260,200|4": {
+                            "rotation": 216.4,
+                            "visible": true,
+                            "x": 260,
+                            "y": 200
+                        }
+                    },
+                    "state": 1,
+                    "steps": 304,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        359.081,
+                        57.024
+                    ],
+                    "direction": -1.409,
+                    "magnitude": 2.428,
+                    "objects": {
+                        "4-spinner@150,200|3": {
+                            "rotation": 214.8,
+                            "visible": true,
+                            "x": 150,
+                            "y": 200
+                        },
+                        "4-spinner@260,200|4": {
+                            "rotation": 136.4,
+                            "visible": true,
+                            "x": 260,
+                            "y": 200
+                        }
+                    },
+                    "state": 1,
+                    "steps": 175,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        357.071,
+                        128.257
+                    ],
+                    "direction": 1.599,
+                    "magnitude": 1.388,
+                    "objects": {
+                        "4-spinner@150,200|3": {
+                            "rotation": 333.6,
+                            "visible": true,
+                            "x": 150,
+                            "y": 200
+                        },
+                        "4-spinner@260,200|4": {
+                            "rotation": 294.8,
+                            "visible": true,
+                            "x": 260,
+                            "y": 200
+                        }
+                    },
+                    "state": 1,
+                    "steps": 99,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 5,
+            "shots": [
+                {
+                    "ball": [
+                        195.807,
+                        63.521
+                    ],
+                    "direction": -1.571,
+                    "magnitude": 4.163,
+                    "objects": {
+                        "5-sweeper@200,150|4": {
+                            "rotation": 40.245,
+                            "visible": true,
+                            "x": 200,
+                            "y": 150
+                        },
+                        "5-sweeper@200,270|3": {
+                            "rotation": 4.184,
+                            "visible": true,
+                            "x": 200,
+                            "y": 270
+                        }
+                    },
+                    "state": 1,
+                    "steps": 304,
+                    "strokes": 1
+                },
+                {
+                    "direction": -0.834,
+                    "holed": true,
+                    "magnitude": 2.428,
+                    "steps": 4,
+                    "strokes": 2
+                }
+            ]
+        },
+        {
+            "hole": 6,
+            "shots": [
+                {
+                    "direction": 0,
+                    "holed": true,
+                    "magnitude": 4.163,
+                    "steps": 93,
+                    "strokes": 1
+                }
+            ]
+        },
+        {
+            "hole": 7,
+            "shots": [
+                {
+                    "ball": [
+                        50,
+                        340
+                    ],
+                    "direction": -0.75,
+                    "magnitude": 4.163,
+                    "state": 1,
+                    "steps": 81,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        50,
+                        340
+                    ],
+                    "direction": -0.313,
+                    "magnitude": 2.428,
+                    "state": 1,
+                    "steps": 53,
+                    "strokes": 4
+                },
+                {
+                    "ball": [
+                        103.157,
+                        290.479
+                    ],
+                    "direction": -0.75,
+                    "magnitude": 1.388,
+                    "state": 1,
+                    "steps": 100,
+                    "strokes": 5
+                }
+            ]
+        },
+        {
+            "hole": 8,
+            "shots": [
+                {
+                    "direction": -1.571,
+                    "holed": true,
+                    "magnitude": 4.163,
+                    "steps": 91,
+                    "strokes": 1
+                }
+            ]
+        },
+        {
+            "hole": 9,
+            "shots": [
+                {
+                    "ball": [
+                        130.603,
+                        122.22
+                    ],
+                    "direction": -0.785,
+                    "magnitude": 4.163,
+                    "objects": {
+                        "9-crate@120,300|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 128.26,
+                            "y": 300
+                        },
+                        "9-pin@120,120|8": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 116.802,
+                            "y": 118.392
+                        },
+                        "9-pin@129,115|9": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 127.13,
+                            "y": 61.467
+                        },
+                        "9-pin@129,125|10": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 128.704,
+                            "y": 106.855
+                        },
+                        "9-pin@138,110|11": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 139.452,
+                            "y": 107.352
+                        },
+                        "9-pin@138,120|12": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 144.279,
+                            "y": 117.417
+                        },
+                        "9-pin@138,130|13": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 153.025,
+                            "y": 127.104
+                        },
+                        "9-spinner@230,160|5": {
+                            "rotation": 320.6,
+                            "visible": true,
+                            "x": 230,
+                            "y": 160
+                        }
+                    },
+                    "state": 1,
+                    "steps": 229,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        174.376,
+                        155.144
+                    ],
+                    "direction": 0.092,
+                    "magnitude": 2.428,
+                    "objects": {
+                        "9-crate@120,300|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 128.26,
+                            "y": 300
+                        },
+                        "9-pin@120,120|8": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 116.802,
+                            "y": 118.392
+                        },
+                        "9-pin@129,115|9": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 127.13,
+                            "y": 61.467
+                        },
+                        "9-pin@129,125|10": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 128.704,
+                            "y": 106.855
+                        },
+                        "9-pin@138,110|11": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 139.452,
+                            "y": 107.352
+                        },
+                        "9-pin@138,120|12": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 188.609,
+                            "y": 79.996
+                        },
+                        "9-pin@138,130|13": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 202.037,
+                            "y": 118.827
+                        },
+                        "9-spinner@230,160|5": {
+                            "rotation": 153.8,
+                            "visible": true,
+                            "x": 230,
+                            "y": 160
+                        }
+                    },
+                    "state": 1,
+                    "steps": 138,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        240.165,
+                        115.611
+                    ],
+                    "direction": -0.555,
+                    "magnitude": 1.388,
+                    "objects": {
+                        "9-crate@120,300|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 128.26,
+                            "y": 300
+                        },
+                        "9-pin@120,120|8": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 116.802,
+                            "y": 118.392
+                        },
+                        "9-pin@129,115|9": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 127.13,
+                            "y": 61.467
+                        },
+                        "9-pin@129,125|10": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 128.704,
+                            "y": 106.855
+                        },
+                        "9-pin@138,110|11": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 139.452,
+                            "y": 107.352
+                        },
+                        "9-pin@138,120|12": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 188.609,
+                            "y": 79.996
+                        },
+                        "9-pin@138,130|13": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 202.037,
+                            "y": 118.827
+                        },
+                        "9-spinner@230,160|5": {
+                            "rotation": 292.4,
+                            "visible": true,
+                            "x": 230,
+                            "y": 160
+                        }
+                    },
+                    "state": 1,
+                    "steps": 99,
+                    "strokes": 3
+                }
+            ]
+        }
+    ],
+    "seed": 1
+}
