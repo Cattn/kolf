@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "lamp",
+  "name": "Lamp Post",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: lamp post. It never affects the ball.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      16,
+      16
+    ],
+    "resizable": true,
+    "rotatable": false
+  },
+  "visual": {
+    "sprite": "lamp.svg",
+    "layer": "raised"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}

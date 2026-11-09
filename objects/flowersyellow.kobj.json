@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "flowersyellow",
+  "name": "Flower Bed (yellow)",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: flower bed (yellow). It never affects the ball.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      48,
+      40
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "flowersyellow.svg",
+    "layer": "ground"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}

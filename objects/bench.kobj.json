@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "bench",
+  "name": "Bench",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: bench. It never affects the ball.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      40,
+      16
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "bench.svg",
+    "layer": "raised"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}

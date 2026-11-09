@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "oak",
+  "name": "Oak Tree",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: oak tree. It never affects the ball.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      70,
+      70
+    ],
+    "resizable": true,
+    "rotatable": false
+  },
+  "visual": {
+    "sprite": "oak.svg",
+    "layer": "canopy"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}

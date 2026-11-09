@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "brickwall",
+  "name": "Low Brick Wall",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: low brick wall. It never affects the ball.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      80,
+      12
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "brickwall.svg",
+    "layer": "raised"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}

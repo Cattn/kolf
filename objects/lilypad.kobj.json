@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "lilypad",
+  "name": "Lily Pad",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: lily pad. It never affects the ball.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      22,
+      22
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "lilypad.svg",
+    "layer": "ground"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}

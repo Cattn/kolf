@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "cactus",
+  "name": "Cactus",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: cactus. It never affects the ball.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      30,
+      30
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "cactus.svg",
+    "layer": "raised"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}

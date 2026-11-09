@@ -11,6 +11,7 @@
 #include <memory>
 
 class QSvgRenderer;
+class QTimer;
 class Ball;
 
 namespace Kolf { class RectShape; class EllipseShape; }
@@ -96,6 +97,7 @@ private:
 	void updatePulse();
 	void stepOccupants();
 	bool teleport(Ball *ball);
+	void updateCanopyFade();
 	QPointF edgeOutside(const QPointF &from) const;
 
 	std::shared_ptr<const DataObjectDefinition> m_definition;
@@ -121,5 +123,7 @@ private:
 	bool m_crumbled = false;
 	bool m_spent = false;
 	int m_count = 0;
+	double m_canopyFade = 1.0;
+	QTimer *m_canopyTimer = nullptr;
 };
 }

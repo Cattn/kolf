@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "hedge",
+  "name": "Hedge",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: hedge. It never affects the ball.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      90,
+      20
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "hedge.svg",
+    "layer": "raised"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}

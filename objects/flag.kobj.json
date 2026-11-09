@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "flag",
+  "name": "Flag",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: flag. It never affects the ball.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      24,
+      20
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "flag.svg",
+    "layer": "raised"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}

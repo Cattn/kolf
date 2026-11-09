@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "grasstuft",
+  "name": "Tall Grass",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: tall grass. It never affects the ball.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      24,
+      18
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "grasstuft.svg",
+    "layer": "ground"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}

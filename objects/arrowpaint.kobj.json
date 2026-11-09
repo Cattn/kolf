@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "arrowpaint",
+  "name": "Painted Arrow",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: painted arrow. It never affects the ball.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      40,
+      20
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "arrowpaint.svg",
+    "layer": "ground"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}

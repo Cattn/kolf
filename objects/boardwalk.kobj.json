@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "boardwalk",
+  "name": "Boardwalk",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: boardwalk. It never affects the ball.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      80,
+      30
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "boardwalk.svg",
+    "layer": "ground"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}

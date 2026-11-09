@@ -1,5 +1,5 @@
 {
-    "catalogHash": "56538e90c629ed99e93a18448ffe55272187a52c85af519b08795137b8b7f0b4",
+    "catalogHash": "e029b1191754cdc8abf407bd69b5851596ee7c12e85723e08123d75e3ff2ebf4",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -7,6 +7,43 @@
         "hole"
     ],
     "types": [
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "arrowpaint",
+            "name": "Painted Arrow",
+            "properties": [
+                {
+                    "default": 40,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 20,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
+            ]
+        },
         {
             "addOnNewHole": false,
             "affectsGameplay": true,
@@ -27,6 +64,43 @@
             "runtime": [
                 "vx",
                 "vy"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "bench",
+            "name": "Bench",
+            "properties": [
+                {
+                    "default": 40,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 16,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
             ]
         },
         {
@@ -72,6 +146,80 @@
                     "min": 0,
                     "step": 0.01,
                     "type": "number"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "boardwalk",
+            "name": "Boardwalk",
+            "properties": [
+                {
+                    "default": 80,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 30,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "brickwall",
+            "name": "Low Brick Wall",
+            "properties": [
+                {
+                    "default": 80,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 12,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
                 }
             ],
             "runtime": [
@@ -141,6 +289,43 @@
         },
         {
             "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "bush",
+            "name": "Bush",
+            "properties": [
+                {
+                    "default": 36,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 30,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
             "affectsGameplay": true,
             "category": "mechanism",
             "id": "button",
@@ -165,6 +350,43 @@
             ],
             "runtime": [
                 "occupied"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "cactus",
+            "name": "Cactus",
+            "properties": [
+                {
+                    "default": 30,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 30,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
             ]
         },
         {
@@ -479,6 +701,43 @@
         },
         {
             "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "flag",
+            "name": "Flag",
+            "properties": [
+                {
+                    "default": 24,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 20,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
             "affectsGameplay": true,
             "category": "mechanism",
             "id": "floater",
@@ -562,6 +821,154 @@
         },
         {
             "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "flowerspurple",
+            "name": "Flower Bed (purple)",
+            "properties": [
+                {
+                    "default": 48,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "flowersred",
+            "name": "Flower Bed (red)",
+            "properties": [
+                {
+                    "default": 48,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "flowerswhite",
+            "name": "Flower Bed (white)",
+            "properties": [
+                {
+                    "default": 48,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "flowersyellow",
+            "name": "Flower Bed (yellow)",
+            "properties": [
+                {
+                    "default": 48,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
             "affectsGameplay": true,
             "category": "mechanism",
             "id": "gate",
@@ -628,6 +1035,80 @@
         },
         {
             "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "grasstuft",
+            "name": "Tall Grass",
+            "properties": [
+                {
+                    "default": 24,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 18,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "hedge",
+            "name": "Hedge",
+            "properties": [
+                {
+                    "default": 90,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 20,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
             "affectsGameplay": true,
             "category": "terrain",
             "id": "ice",
@@ -674,6 +1155,35 @@
         },
         {
             "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "lamp",
+            "name": "Lamp Post",
+            "properties": [
+                {
+                    "default": 16,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 16,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
             "affectsGameplay": true,
             "category": "hazard",
             "id": "lava",
@@ -690,6 +1200,43 @@
                 },
                 {
                     "default": 40,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "lilypad",
+            "name": "Lily Pad",
+            "properties": [
+                {
+                    "default": 22,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 22,
                     "key": "height",
                     "label": "Height",
                     "max": 2000,
@@ -834,6 +1381,64 @@
         },
         {
             "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "oak",
+            "name": "Oak Tree",
+            "properties": [
+                {
+                    "default": 70,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 70,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "palm",
+            "name": "Palm Tree",
+            "properties": [
+                {
+                    "default": 64,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 64,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
             "affectsGameplay": true,
             "category": "obstacle",
             "id": "peg",
@@ -863,6 +1468,43 @@
         },
         {
             "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "picketfence",
+            "name": "Picket Fence",
+            "properties": [
+                {
+                    "default": 80,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 10,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
             "affectsGameplay": true,
             "category": "obstacle",
             "id": "pin",
@@ -872,6 +1514,35 @@
             "runtime": [
                 "vx",
                 "vy"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "pine",
+            "name": "Pine Tree",
+            "properties": [
+                {
+                    "default": 56,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 56,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
             ]
         },
         {
@@ -1147,6 +1818,43 @@
                     "min": 0.5,
                     "step": 0.1,
                     "type": "number"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "rock",
+            "name": "Rock",
+            "properties": [
+                {
+                    "default": 30,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 24,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
                 }
             ],
             "runtime": [
@@ -1502,6 +2210,43 @@
                 "t",
                 "direction",
                 "running"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": false,
+            "category": "decoration",
+            "id": "stones",
+            "name": "Stepping Stones",
+            "properties": [
+                {
+                    "default": 60,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 24,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                }
+            ],
+            "runtime": [
             ]
         },
         {

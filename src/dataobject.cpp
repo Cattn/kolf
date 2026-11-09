@@ -8,6 +8,7 @@
 #include "overlay.h"
 #include "shape.h"
 
+#include <QTimer>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -652,6 +653,12 @@ bool Kolf::DataObject::hasComponent(const QString &type) const
 void Kolf::DataObject::setGame(KolfGame *game)
 {
 	CanvasItem::setGame(game);
+	if (game && m_definition->layer == QLatin1String("canopy") && !m_canopyTimer) {
+		m_canopyTimer = new QTimer(this);
+		m_canopyTimer->setInterval(40);
+		connect(m_canopyTimer, &QTimer::timeout, this, &DataObject::updateCanopyFade);
+		m_canopyTimer->start();
+	}
 	if (game && (hasComponent(QStringLiteral("trigger")) || hasComponent(QStringLiteral("motion")) || gusting()
 		|| hasComponent(QStringLiteral("pulse")) || hasComponent(QStringLiteral("crumble")) || hasComponent(QStringLiteral("blast"))
 		|| swirling() || hasComponent(QStringLiteral("body")) || hasComponent(QStringLiteral("teleport"))))
@@ -876,8 +883,27 @@ QPainterPath Kolf::DataObject::shape() const
 	return path;
 }
 
+void Kolf::DataObject::updateCanopyFade()
+{
+	if (!game)
+		return;
+	const QRectF area = mapRectToParent(boundingRect()).adjusted(-8, -8, 8, 8);
+	bool covering = false;
+	const double reach = qMax(m_size.width(), m_size.height()) / 2 + 14;
+	for (Ball *ball : game->balls())
+		if (ball->isVisible() && (area.contains(ball->pos()) || QLineF(ball->pos(), pos()).length() < reach))
+			covering = true;
+	const double target = covering ? 0.3 : 1.0;
+	if (qFuzzyCompare(m_canopyFade, target))
+		return;
+	m_canopyFade = m_canopyFade < target ? qMin(target, m_canopyFade + 0.12) : qMax(target, m_canopyFade - 0.12);
+	update();
+}
+
 void Kolf::DataObject::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 {
+	if (m_canopyFade < 1.0)
+		painter->setOpacity(painter->opacity() * m_canopyFade);
 	m_definition->sprite->render(painter, boundingRect());
 	for (const auto &component : m_definition->components) {
 		if (component.type != QLatin1String("counter"))

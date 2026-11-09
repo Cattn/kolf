@@ -63,5 +63,47 @@ install(FILES
     cuplid.svg
     portal.kobj.json
     portal.svg
+    oak.kobj.json
+    oak.svg
+    pine.kobj.json
+    pine.svg
+    palm.kobj.json
+    palm.svg
+    bush.kobj.json
+    bush.svg
+    hedge.kobj.json
+    hedge.svg
+    flowersred.kobj.json
+    flowersred.svg
+    flowersyellow.kobj.json
+    flowersyellow.svg
+    flowerspurple.kobj.json
+    flowerspurple.svg
+    flowerswhite.kobj.json
+    flowerswhite.svg
+    grasstuft.kobj.json
+    grasstuft.svg
+    cactus.kobj.json
+    cactus.svg
+    lilypad.kobj.json
+    lilypad.svg
+    stones.kobj.json
+    stones.svg
+    boardwalk.kobj.json
+    boardwalk.svg
+    arrowpaint.kobj.json
+    arrowpaint.svg
+    bench.kobj.json
+    bench.svg
+    lamp.kobj.json
+    lamp.svg
+    flag.kobj.json
+    flag.svg
+    brickwall.kobj.json
+    brickwall.svg
+    rock.kobj.json
+    rock.svg
+    picketfence.kobj.json
+    picketfence.svg
     kobj.schema.json
     DESTINATION ${KDE_INSTALL_DATADIR}/kolf/objects)

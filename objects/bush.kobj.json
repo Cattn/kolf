@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "bush",
+  "name": "Bush",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: bush. It never affects the ball.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      36,
+      30
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "bush.svg",
+    "layer": "raised"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "kolfObject": 1,
+  "id": "palm",
+  "name": "Palm Tree",
+  "category": "decoration",
+  "affectsGameplay": false,
+  "help": "Decoration: palm tree. It never affects the ball.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      64,
+      64
+    ],
+    "resizable": true,
+    "rotatable": false
+  },
+  "visual": {
+    "sprite": "palm.svg",
+    "layer": "canopy"
+  },
+  "components": [
+    {
+      "type": "decor"
+    }
+  ]
+}
