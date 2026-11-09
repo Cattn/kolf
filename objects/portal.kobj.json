@@ -1,0 +1,45 @@
+{
+  "kolfObject": 1,
+  "id": "portal",
+  "name": "Portal",
+  "category": "mechanism",
+  "help": "Portals with the same channel are linked. A ball entering one comes out of the other at the same speed, heading the way that portal's arrow points.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      26,
+      26
+    ],
+    "resizable": false,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "portal.svg",
+    "layer": "ground"
+  },
+  "properties": {
+    "channel": {
+      "type": "text",
+      "label": "Channel",
+      "default": "a",
+      "maxLength": 32
+    },
+    "role": {
+      "type": "enum",
+      "label": "Role",
+      "values": [
+        "both",
+        "entry",
+        "exit"
+      ],
+      "default": "both"
+    }
+  },
+  "components": [
+    {
+      "type": "teleport",
+      "channel": "$channel",
+      "role": "$role"
+    }
+  ]
+}

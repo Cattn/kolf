@@ -1,0 +1,38 @@
+{
+  "kolfObject": 1,
+  "id": "cuplid",
+  "name": "Cup Lid",
+  "category": "mechanism",
+  "help": "Covers the cup so the ball rolls over it, until its channel opens it. Place it on a cup for a locked cup.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      22,
+      22
+    ],
+    "resizable": false,
+    "rotatable": false
+  },
+  "visual": {
+    "sprite": "cuplid.svg",
+    "layer": "raised"
+  },
+  "properties": {
+    "channel": {
+      "type": "text",
+      "label": "Channel",
+      "default": "a",
+      "maxLength": 32
+    }
+  },
+  "components": [
+    {
+      "type": "deck"
+    },
+    {
+      "type": "receiver",
+      "channel": "$channel",
+      "action": "open"
+    }
+  ]
+}

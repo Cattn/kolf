@@ -51,5 +51,17 @@ install(FILES
     trampoline.svg
     peg.kobj.json
     peg.svg
+    timedgate.kobj.json
+    timedgate.svg
+    button.kobj.json
+    button.svg
+    counter.kobj.json
+    counter.svg
+    drawbridge.kobj.json
+    drawbridge.svg
+    cuplid.kobj.json
+    cuplid.svg
+    portal.kobj.json
+    portal.svg
     kobj.schema.json
     DESTINATION ${KDE_INSTALL_DATADIR}/kolf/objects)

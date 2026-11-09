@@ -1,0 +1,44 @@
+{
+  "kolfObject": 1,
+  "id": "button",
+  "name": "Button Target",
+  "category": "mechanism",
+  "help": "Hit it with enough speed to signal its channel. Gentle rolls don't count.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      20,
+      20
+    ],
+    "resizable": false,
+    "rotatable": false
+  },
+  "visual": {
+    "sprite": "button.svg",
+    "layer": "ground"
+  },
+  "properties": {
+    "channel": {
+      "type": "text",
+      "label": "Channel",
+      "default": "a",
+      "maxLength": 32
+    },
+    "minSpeed": {
+      "type": "number",
+      "label": "Speed needed",
+      "min": 0.5,
+      "max": 6,
+      "step": 0.1,
+      "default": 2
+    }
+  },
+  "components": [
+    {
+      "type": "trigger",
+      "on": "hit",
+      "channel": "$channel",
+      "minSpeed": "$minSpeed"
+    }
+  ]
+}

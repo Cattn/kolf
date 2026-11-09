@@ -95,6 +95,7 @@ private:
 	void perform(const QString &action);
 	void updatePulse();
 	void stepOccupants();
+	bool teleport(Ball *ball);
 	QPointF edgeOutside(const QPointF &from) const;
 
 	std::shared_ptr<const DataObjectDefinition> m_definition;
@@ -119,5 +120,6 @@ private:
 	bool m_resyncOccupants = true;
 	bool m_crumbled = false;
 	bool m_spent = false;
+	int m_count = 0;
 };
 }

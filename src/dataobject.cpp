@@ -37,14 +37,14 @@ const QStringList &componentTypes()
 	static const QStringList types{QStringLiteral("surface"), QStringLiteral("force"), QStringLiteral("boost"),
 		QStringLiteral("hazard"), QStringLiteral("sound"), QStringLiteral("decor"), QStringLiteral("solid"),
 		QStringLiteral("trigger"), QStringLiteral("receiver"), QStringLiteral("motion"), QStringLiteral("crumble"),
-		QStringLiteral("pulse"), QStringLiteral("blast"), QStringLiteral("body"), QStringLiteral("launch")};
+		QStringLiteral("pulse"), QStringLiteral("blast"), QStringLiteral("body"), QStringLiteral("launch"),
+		QStringLiteral("deck"), QStringLiteral("counter"), QStringLiteral("teleport")};
 	return types;
 }
 
 const QStringList &plannedComponentTypes()
 {
-	static const QStringList types{QStringLiteral("animation"), QStringLiteral("teleport"),
-		QStringLiteral("capture")};
+	static const QStringList types{QStringLiteral("animation"), QStringLiteral("capture")};
 	return types;
 }
 
@@ -100,8 +100,16 @@ QList<ParameterRule> parameterRules(const QString &type)
 				QStringLiteral("hit"), QStringLiteral("puddle"), QStringLiteral("wall"), QStringLiteral("woohoo")}, true}};
 	if (type == QLatin1String("trigger"))
 		return {{QStringLiteral("on"), ParameterRule::Choice, 0, 0, {QStringLiteral("occupied"), QStringLiteral("enter"),
-				QStringLiteral("exit"), QStringLiteral("stop")}, true},
+				QStringLiteral("exit"), QStringLiteral("stop"), QStringLiteral("hit")}, true},
+			{QStringLiteral("channel"), ParameterRule::Text, 0, 0, {}, true},
+			{QStringLiteral("minSpeed"), ParameterRule::Number, 0, 8, {}, false}};
+	if (type == QLatin1String("counter"))
+		return {{QStringLiteral("input"), ParameterRule::Text, 0, 0, {}, true},
+			{QStringLiteral("count"), ParameterRule::Integer, 1, 20, {}, true},
 			{QStringLiteral("channel"), ParameterRule::Text, 0, 0, {}, true}};
+	if (type == QLatin1String("teleport"))
+		return {{QStringLiteral("channel"), ParameterRule::Text, 0, 0, {}, true},
+			{QStringLiteral("role"), ParameterRule::Choice, 0, 0, {QStringLiteral("entry"), QStringLiteral("exit"), QStringLiteral("both")}, false}};
 	if (type == QLatin1String("receiver"))
 		return {{QStringLiteral("channel"), ParameterRule::Text, 0, 0, {}, true},
 			{QStringLiteral("action"), ParameterRule::Choice, 0, 0, {QStringLiteral("open"), QStringLiteral("close"),
@@ -112,6 +120,7 @@ QList<ParameterRule> parameterRules(const QString &type)
 			{QStringLiteral("dy"), ParameterRule::Number, -1000, 1000, {}, false},
 			{QStringLiteral("speed"), ParameterRule::Number, 0, 10, {}, true},
 			{QStringLiteral("autostart"), ParameterRule::Bool, 0, 0, {}, false},
+			{QStringLiteral("loop"), ParameterRule::Bool, 0, 0, {}, false},
 			{QStringLiteral("kind"), ParameterRule::Choice, 0, 0, {QStringLiteral("slide"), QStringLiteral("spin"), QStringLiteral("swing")}, false},
 			{QStringLiteral("arc"), ParameterRule::Number, 0, 180, {}, false}};
 	return {};
@@ -450,6 +459,8 @@ std::shared_ptr<const Kolf::DataObjectDefinition> Kolf::DataObjectLibrary::parse
 		runtime << QStringLiteral("swirl");
 	if (uses("crumble"))
 		runtime << QStringLiteral("crumbled");
+	if (uses("counter"))
+		runtime << QStringLiteral("count");
 	if (uses("body"))
 		runtime << QStringLiteral("vx") << QStringLiteral("vy");
 	if (uses("body") && uses("solid"))
@@ -643,7 +654,7 @@ void Kolf::DataObject::setGame(KolfGame *game)
 	CanvasItem::setGame(game);
 	if (game && (hasComponent(QStringLiteral("trigger")) || hasComponent(QStringLiteral("motion")) || gusting()
 		|| hasComponent(QStringLiteral("pulse")) || hasComponent(QStringLiteral("crumble")) || hasComponent(QStringLiteral("blast"))
-		|| swirling() || hasComponent(QStringLiteral("body"))))
+		|| swirling() || hasComponent(QStringLiteral("body")) || hasComponent(QStringLiteral("teleport"))))
 		connect(game, &KolfGame::simulationStepped, this, &DataObject::step, Qt::UniqueConnection);
 }
 
@@ -717,7 +728,7 @@ void Kolf::DataObject::step()
 	if (gusting())
 		setOpacity(0.35 + 0.65 * gustFactor());
 	updatePulse();
-	if (hasComponent(QStringLiteral("crumble")) || hasComponent(QStringLiteral("blast")))
+	if (hasComponent(QStringLiteral("crumble")) || hasComponent(QStringLiteral("blast")) || hasComponent(QStringLiteral("teleport")))
 		stepOccupants();
 	for (const auto &component : m_definition->components) {
 		if (component.type != QLatin1String("motion") || !m_running)
@@ -742,8 +753,9 @@ void Kolf::DataObject::step()
 		if (length <= 0)
 			continue;
 		m_t += m_direction * parameter(component, QStringLiteral("speed"), 0).toDouble() / length;
-		if (m_t >= 1) { m_t = 1; m_direction = -1; }
-		if (m_t <= 0) { m_t = 0; m_direction = 1; }
+		const bool loop = parameter(component, QStringLiteral("loop"), true).toBool();
+		if (m_t >= 1) { m_t = 1; m_direction = -1; if (!loop) m_running = false; }
+		if (m_t <= 0) { m_t = 0; m_direction = 1; if (!loop) m_running = false; }
 		const QPointF target = m_basePosition + offset * m_t;
 		moveBy(target.x() - x(), target.y() - y());
 	}
@@ -780,6 +792,13 @@ void Kolf::DataObject::step()
 			for (Ball *ball : std::as_const(m_insideBalls))
 				if (!inside.contains(ball))
 					game->emitChannel(channel, true, true);
+		} else if (on == QLatin1String("hit")) {
+			const double minSpeed = parameter(component, QStringLiteral("minSpeed"), 0).toDouble();
+			for (Ball *ball : std::as_const(inside))
+				if (!m_insideBalls.contains(ball) && Vector(ball->velocity()).magnitude() >= minSpeed) {
+					game->emitChannel(channel, true, true);
+					game->impact(Kolf::Impact::Tap, pos(), 3);
+				}
 		} else if (on == QLatin1String("stop")) {
 			for (Ball *ball : std::as_const(stopped))
 				if (!m_stoppedBalls.contains(ball))
@@ -793,6 +812,17 @@ void Kolf::DataObject::step()
 
 void Kolf::DataObject::receiveChannel(const QString &channel, bool level, bool pulse)
 {
+	for (const auto &component : m_definition->components) {
+		if (component.type != QLatin1String("counter") || parameter(component, QStringLiteral("input"), QString()).toString() != channel
+			|| !(pulse || level))
+			continue;
+		const int target = parameter(component, QStringLiteral("count"), 3).toInt();
+		if (m_count >= target)
+			continue;
+		if (++m_count == target && game)
+			game->emitChannel(parameter(component, QStringLiteral("channel"), QString()).toString(), true, true);
+		update();
+	}
 	for (const auto &component : m_definition->components) {
 		if (component.type != QLatin1String("receiver") || parameter(component, QStringLiteral("channel"), QString()).toString() != channel)
 			continue;
@@ -849,6 +879,17 @@ QPainterPath Kolf::DataObject::shape() const
 void Kolf::DataObject::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 {
 	m_definition->sprite->render(painter, boundingRect());
+	for (const auto &component : m_definition->components) {
+		if (component.type != QLatin1String("counter"))
+			continue;
+		const int target = parameter(component, QStringLiteral("count"), 3).toInt();
+		QFont font = painter->font();
+		font.setBold(true);
+		font.setPixelSize(qMax(6, int(m_size.height() * 0.45)));
+		painter->setFont(font);
+		painter->setPen(m_count >= target ? QColor(39, 174, 96) : QColor(255, 255, 255));
+		painter->drawText(boundingRect(), Qt::AlignCenter, QStringLiteral("%1/%2").arg(m_count).arg(target));
+	}
 	if (!m_crumbled)
 		return;
 	painter->setRenderHint(QPainter::Antialiasing);
@@ -885,6 +926,11 @@ void Kolf::DataObject::stepOccupants()
 		m_resyncOccupants = false;
 		m_occupants = inside;
 		return;
+	}
+	if (hasComponent(QStringLiteral("teleport"))) {
+		for (Ball *ball : std::as_const(inside))
+			if (!m_occupants.contains(ball) && teleport(ball))
+				inside.removeAll(ball);
 	}
 	if (hasComponent(QStringLiteral("crumble")) && !m_crumbled) {
 		for (Ball *ball : std::as_const(m_occupants)) {
@@ -926,6 +972,43 @@ void Kolf::DataObject::stepOccupants()
 		}
 	}
 	m_occupants = inside;
+}
+
+bool Kolf::DataObject::teleport(Ball *ball)
+{
+	for (const auto &component : m_definition->components) {
+		if (component.type != QLatin1String("teleport"))
+			continue;
+		if (parameter(component, QStringLiteral("role"), QStringLiteral("both")).toString() == QLatin1String("exit"))
+			return false;
+		const QString channel = parameter(component, QStringLiteral("channel"), QString()).toString();
+		for (QGraphicsItem *item : game->scene()->items()) {
+			auto *partner = dynamic_cast<DataObject *>(item);
+			if (!partner || partner == this || !partner->isVisible() || !partner->hasComponent(QStringLiteral("teleport")))
+				continue;
+			bool matches = false;
+			for (const auto &other : partner->m_definition->components)
+				if (other.type == QLatin1String("teleport")
+					&& partner->parameter(other, QStringLiteral("channel"), QString()).toString() == channel
+					&& partner->parameter(other, QStringLiteral("role"), QStringLiteral("both")).toString() != QLatin1String("entry"))
+					matches = true;
+			if (!matches)
+				continue;
+			const double radians = partner->rotation() * M_PI / 180.0;
+			const QPointF direction(std::cos(radians), std::sin(radians));
+			const double speed = qMax(0.5, Vector(ball->velocity()).magnitude());
+			const double clearance = qMax(partner->m_size.width(), partner->m_size.height()) / 2 + 7;
+			ball->setVelocity(QPointF());
+			ball->setPos(partner->pos() + direction * clearance);
+			ball->setVelocity(direction * speed);
+			if (ball->curState() == Stopped)
+				ball->setState(Rolling);
+			game->playSound(Sound::BlackHolePutIn, 0.6);
+			game->impact(Kolf::Impact::Splash, partner->pos(), 1);
+			return true;
+		}
+	}
+	return false;
 }
 
 QPointF Kolf::DataObject::edgeOutside(const QPointF &from) const
@@ -988,6 +1071,8 @@ QVariantMap Kolf::DataObject::runtimeState() const
 	}
 	if (fields.contains(QStringLiteral("swirl")))
 		state.insert(QStringLiteral("swirl"), m_swirl);
+	if (fields.contains(QStringLiteral("count")))
+		state.insert(QStringLiteral("count"), m_count);
 	if (fields.contains(QStringLiteral("crumbled")))
 		state.insert(QStringLiteral("crumbled"), m_crumbled);
 	if (fields.contains(QStringLiteral("spent")))
@@ -1010,6 +1095,7 @@ void Kolf::DataObject::setRuntimeState(const QVariantMap &state)
 	m_direction = state.value(QStringLiteral("direction"), m_direction).toInt() < 0 ? -1 : 1;
 	m_phase = qint64(state.value(QStringLiteral("phase"), double(m_phase)).toDouble());
 	m_crumbled = state.value(QStringLiteral("crumbled"), m_crumbled).toBool();
+	m_count = state.value(QStringLiteral("count"), m_count).toInt();
 	m_swirl = state.value(QStringLiteral("swirl"), m_swirl).toInt();
 	if (state.contains(QStringLiteral("vx")) && hasComponent(QStringLiteral("body")))
 		setVelocity(QPointF(state.value(QStringLiteral("vx")).toDouble(), state.value(QStringLiteral("vy")).toDouble()));
@@ -1101,6 +1187,10 @@ void Kolf::DataObject::onBall(BallStepContext &context)
 		return;
 	const QString kind = m_definition->id;
 	const double rotation = m_values.value(QStringLiteral("rotation"), 0).toDouble();
+	if (hasComponent(QStringLiteral("deck")) && !m_open) {
+		context.cover();
+		return;
+	}
 	for (const auto &component : m_definition->components) {
 		if (component.type == QLatin1String("surface")) {
 			context.surface(kind, parameter(component, QStringLiteral("friction"), 1).toDouble(),

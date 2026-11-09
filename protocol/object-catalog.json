@@ -1,5 +1,5 @@
 {
-    "catalogHash": "a82301cc1ce86163cf98c722708283ceb2d6cf9a922c15e25d5a63a2bb3cd1a6",
+    "catalogHash": "56538e90c629ed99e93a18448ffe55272187a52c85af519b08795137b8b7f0b4",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -143,6 +143,34 @@
             "addOnNewHole": false,
             "affectsGameplay": true,
             "category": "mechanism",
+            "id": "button",
+            "name": "Button Target",
+            "properties": [
+                {
+                    "default": "a",
+                    "key": "channel",
+                    "label": "Channel",
+                    "maxLength": 32,
+                    "type": "text"
+                },
+                {
+                    "default": 2,
+                    "key": "minSpeed",
+                    "label": "Speed needed",
+                    "max": 6,
+                    "min": 0.5,
+                    "step": 0.1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+                "occupied"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
             "id": "conveyor",
             "name": "Conveyor",
             "properties": [
@@ -183,6 +211,40 @@
                 }
             ],
             "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "counter",
+            "name": "Counter",
+            "properties": [
+                {
+                    "default": "a",
+                    "key": "input",
+                    "label": "Counts channel",
+                    "maxLength": 32,
+                    "type": "text"
+                },
+                {
+                    "default": "b",
+                    "key": "output",
+                    "label": "Then signals",
+                    "maxLength": 32,
+                    "type": "text"
+                },
+                {
+                    "default": 3,
+                    "key": "target",
+                    "label": "Target",
+                    "max": 20,
+                    "min": 1,
+                    "type": "int"
+                }
+            ],
+            "runtime": [
+                "count"
             ]
         },
         {
@@ -272,6 +334,91 @@
             "properties": [
             ],
             "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "cuplid",
+            "name": "Cup Lid",
+            "properties": [
+                {
+                    "default": "a",
+                    "key": "channel",
+                    "label": "Channel",
+                    "maxLength": 32,
+                    "type": "text"
+                }
+            ],
+            "runtime": [
+                "open"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "drawbridge",
+            "name": "Extending Bridge",
+            "properties": [
+                {
+                    "default": 80,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 34,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": "a",
+                    "key": "channel",
+                    "label": "Channel",
+                    "maxLength": 32,
+                    "type": "text"
+                },
+                {
+                    "default": 80,
+                    "key": "dx",
+                    "label": "Slide x",
+                    "max": 400,
+                    "min": -400,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "dy",
+                    "label": "Slide y",
+                    "max": 400,
+                    "min": -400,
+                    "step": 1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+                "open",
+                "t",
+                "direction",
+                "running"
             ]
         },
         {
@@ -793,6 +940,43 @@
             ],
             "runtime": [
                 "occupied"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "portal",
+            "name": "Portal",
+            "properties": [
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": "a",
+                    "key": "channel",
+                    "label": "Channel",
+                    "maxLength": 32,
+                    "type": "text"
+                },
+                {
+                    "default": "both",
+                    "key": "role",
+                    "label": "Role",
+                    "type": "enum",
+                    "values": [
+                        "both",
+                        "entry",
+                        "exit"
+                    ]
+                }
+            ],
+            "runtime": [
             ]
         },
         {
@@ -1376,6 +1560,62 @@
                 "t",
                 "direction",
                 "running"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "timedgate",
+            "name": "Timed Gate",
+            "properties": [
+                {
+                    "default": 60,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 10,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": 0.5,
+                    "key": "closedFraction",
+                    "label": "Time closed",
+                    "max": 0.9,
+                    "min": 0.1,
+                    "step": 0.05,
+                    "type": "number"
+                },
+                {
+                    "default": 3,
+                    "key": "cycle",
+                    "label": "Cycle (seconds)",
+                    "max": 12,
+                    "min": 1,
+                    "step": 0.5,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+                "phase"
             ]
         },
         {

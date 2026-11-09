@@ -549,8 +549,9 @@ int runSolverFromEnvironment()
         for (int depth = 0; depth < par + 2 && !best.holed; ++depth) {
             SolveResult bestStep;
             ShotIntent bestShot;
-            for (int angle = 0; angle < 48; ++angle) {
+            for (int angle = 0; angle < 48 && !bestStep.holed; ++angle) {
                 for (const double power : {0.15, 0.25, 0.35, 0.5, 0.7, 0.9}) {
+                    if (bestStep.holed) break;
                     ShotIntent intent;
                     intent.directionRadians = rounded(angle * 2 * M_PI / 48 - M_PI);
                     intent.launchMagnitude = rounded(power * MaximumMagnitude);

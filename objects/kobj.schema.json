@@ -451,7 +451,8 @@
                     "occupied",
                     "enter",
                     "exit",
-                    "stop"
+                    "stop",
+                    "hit"
                   ]
                 },
                 {
@@ -464,6 +465,18 @@
                 {
                   "type": "string",
                   "pattern": "^[A-Za-z0-9_-]{1,32}$"
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "minSpeed": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 8
                 },
                 {
                   "$ref": "#/$defs/binding"
@@ -599,6 +612,16 @@
                   "type": "number",
                   "minimum": 0,
                   "maximum": 180
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "loop": {
+              "oneOf": [
+                {
+                  "type": "boolean"
                 },
                 {
                   "$ref": "#/$defs/binding"
@@ -783,6 +806,101 @@
                   "type": "number",
                   "minimum": 0.2,
                   "maximum": 5
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": [],
+          "properties": {
+            "type": {
+              "const": "deck"
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": [
+            "input",
+            "count",
+            "channel"
+          ],
+          "properties": {
+            "type": {
+              "const": "counter"
+            },
+            "input": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "channel": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "count": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "additionalProperties": false,
+          "required": [
+            "channel"
+          ],
+          "properties": {
+            "type": {
+              "const": "teleport"
+            },
+            "channel": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "role": {
+              "oneOf": [
+                {
+                  "enum": [
+                    "entry",
+                    "exit",
+                    "both"
+                  ]
                 },
                 {
                   "$ref": "#/$defs/binding"

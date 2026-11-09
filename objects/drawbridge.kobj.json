@@ -1,0 +1,62 @@
+{
+  "kolfObject": 1,
+  "id": "drawbridge",
+  "name": "Extending Bridge",
+  "category": "mechanism",
+  "help": "A deck that slides out across water when its channel is signalled. The ball rolls safely over it.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      80,
+      34
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "drawbridge.svg",
+    "layer": "raised"
+  },
+  "properties": {
+    "channel": {
+      "type": "text",
+      "label": "Channel",
+      "default": "a",
+      "maxLength": 32
+    },
+    "dx": {
+      "type": "number",
+      "label": "Slide x",
+      "min": -400,
+      "max": 400,
+      "step": 1,
+      "default": 80
+    },
+    "dy": {
+      "type": "number",
+      "label": "Slide y",
+      "min": -400,
+      "max": 400,
+      "step": 1,
+      "default": 0
+    }
+  },
+  "components": [
+    {
+      "type": "deck"
+    },
+    {
+      "type": "receiver",
+      "channel": "$channel",
+      "action": "start"
+    },
+    {
+      "type": "motion",
+      "dx": "$dx",
+      "dy": "$dy",
+      "speed": 3,
+      "autostart": false,
+      "loop": false
+    }
+  ]
+}

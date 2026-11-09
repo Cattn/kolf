@@ -15,9 +15,9 @@ const course = (type: string, properties: string[] = ['dummykey=true']) => Buffe
   `[1-${type}@150,150|2]`, ...properties, ''].join('\n'));
 
 test('the committed object catalog lists the built-in types', () => {
-  assert.deepEqual(objectCatalog.types.map(type => type.id), ['barrel', 'blackhole', 'bridge', 'bumper', 'conveyor', 'crate', 'crumble',
-    'cup', 'fence', 'floater', 'gate', 'ice', 'lava', 'magnet', 'mine', 'mud', 'peg', 'pin', 'pit', 'plate', 'puddle', 'quicksand', 'ramp',
-    'repulsor', 'rough', 'sand', 'shallowwater', 'sign', 'slope', 'speedpad', 'spinner', 'sweeper', 'trampoline', 'wall', 'whirlpool', 'wind', 'windmill']);
+  assert.deepEqual(objectCatalog.types.map(type => type.id), ['barrel', 'blackhole', 'bridge', 'bumper', 'button', 'conveyor', 'counter', 'crate', 'crumble',
+    'cup', 'cuplid', 'drawbridge', 'fence', 'floater', 'gate', 'ice', 'lava', 'magnet', 'mine', 'mud', 'peg', 'pin', 'pit', 'plate', 'portal', 'puddle', 'quicksand', 'ramp',
+    'repulsor', 'rough', 'sand', 'shallowwater', 'sign', 'slope', 'speedpad', 'spinner', 'sweeper', 'timedgate', 'trampoline', 'wall', 'whirlpool', 'wind', 'windmill']);
   assert.deepEqual(objectCatalog.structuralGroups, ['ball', 'course', 'hole']);
   assert.match(objectCatalog.catalogHash, /^[0-9a-f]{64}$/u);
 });

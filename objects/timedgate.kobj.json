@@ -1,0 +1,48 @@
+{
+  "kolfObject": 1,
+  "id": "timedgate",
+  "name": "Timed Gate",
+  "category": "mechanism",
+  "help": "A gate that opens and closes on a steady, visible cycle. No switch needed.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      60,
+      10
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "timedgate.svg",
+    "layer": "raised"
+  },
+  "properties": {
+    "cycle": {
+      "type": "number",
+      "label": "Cycle (seconds)",
+      "min": 1,
+      "max": 12,
+      "step": 0.5,
+      "default": 3
+    },
+    "closedFraction": {
+      "type": "number",
+      "label": "Time closed",
+      "min": 0.1,
+      "max": 0.9,
+      "step": 0.05,
+      "default": 0.5
+    }
+  },
+  "components": [
+    {
+      "type": "solid"
+    },
+    {
+      "type": "pulse",
+      "period": "$cycle",
+      "duty": "$closedFraction"
+    }
+  ]
+}
