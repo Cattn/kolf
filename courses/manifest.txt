@@ -10,3 +10,4 @@ tokyo|Tokyo.course
 weatherreport|WeatherReport
 dangerzone|DangerZone
 toybox|ToyBox
+clockwork|Clockwork
