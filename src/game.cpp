@@ -687,10 +687,64 @@ void KolfGame::applyHazardResets()
 	}
 }
 
+void KolfGame::celebrate(const QPointF &cup, int score, int par)
+{
+	const bool recording = m_recordEffects;
+	m_recordEffects = false;
+	if (score == 1)
+	{
+		playSound(Sound::HoleINone);
+		if (m_impacts)
+			m_impacts->celebrate(cup, i18nc("@info celebration banner", "Hole in one!"), true);
+	}
+	else if (score > 0 && score < par)
+	{
+		playSound(Sound::WooHoo);
+		const int under = par - score;
+		if (m_impacts)
+			m_impacts->celebrate(cup, under >= 3 ? i18nc("@info celebration banner, three under par", "Albatross!")
+				: under == 2 ? i18nc("@info celebration banner, two under par", "Eagle!")
+				: i18nc("@info celebration banner, one under par", "Birdie!"), under >= 2);
+	}
+	m_recordEffects = recording;
+}
+
+QJsonArray KolfGame::takeEffectEvents()
+{
+	QJsonArray events;
+	events.swap(m_effectEvents);
+	return events;
+}
+
+void KolfGame::playEffectEvents(const QJsonArray &events)
+{
+	m_replayingEffects = true;
+	int played = 0;
+	for (const auto &value : events) {
+		if (++played > 64)
+			break;
+		const auto event = value.toObject();
+		const QString type = event.value(QStringLiteral("t")).toString();
+		const int kind = event.value(QStringLiteral("k")).toInt(-1);
+		if (type == QLatin1String("i") && kind >= 0 && kind <= int(Kolf::Impact::Tap) && m_impacts) {
+			const QPointF position(qBound(-1000.0, event.value(QStringLiteral("x")).toDouble(), 2000.0),
+				qBound(-1000.0, event.value(QStringLiteral("y")).toDouble(), 2000.0));
+			m_impacts->spawn(Kolf::Impact(kind), position, qBound(0.0, event.value(QStringLiteral("s")).toDouble(), 10.0));
+		} else if (type == QLatin1String("s") && kind >= 0 && kind <= int(Sound::Sand)) {
+			playSound(Sound(kind), qBound(0.0, event.value(QStringLiteral("v")).toDouble(1.0), 1.0));
+		}
+	}
+	m_replayingEffects = false;
+}
+
 void KolfGame::impact(Kolf::Impact kind, const QPointF &position, double strength)
 {
 	if (m_impacts)
 		m_impacts->spawn(kind, position, strength);
+	if (m_recordEffects && m_effectEvents.size() < 64)
+		m_effectEvents.append(QJsonObject{{QStringLiteral("t"), QStringLiteral("i")}, {QStringLiteral("k"), int(kind)},
+			{QStringLiteral("x"), std::round(position.x() * 10) / 10}, {QStringLiteral("y"), std::round(position.y() * 10) / 10},
+			{QStringLiteral("s"), std::round(strength * 100) / 100}});
 	if (!m_impactSoundClock.isValid())
 		m_impactSoundClock.start();
 	const qint64 now = m_impactSoundClock.elapsed();
@@ -705,6 +759,9 @@ void KolfGame::impact(Kolf::Impact kind, const QPointF &position, double strengt
 
 void KolfGame::playSound(Sound soundType, double volume)
 {
+	if (m_recordEffects && !m_replayingEffects && m_effectEvents.size() < 64)
+		m_effectEvents.append(QJsonObject{{QStringLiteral("t"), QStringLiteral("s")}, {QStringLiteral("k"), int(soundType)},
+			{QStringLiteral("v"), std::round(volume * 100) / 100}});
 	if (m_sound) {
 		const double level = volume * Kolf::Effects::volume() / 100.0;
 		for (KGameSound *sound : {&m_soundBlackHole, &m_soundBlackHoleEject, &m_soundBlackHolePutIn, &m_soundBumper, &m_soundHit, &m_soundHoled, &m_soundHoleINone, &m_soundPuddle, &m_soundWall, &m_soundWooHoo, &m_soundTap, &m_soundSand})
@@ -1500,22 +1557,7 @@ void KolfGame::timeout()
 		if (!dontAddStroke)
 			curScore++;
 
-		const QPointF cup = (*curPlayer).ball()->pos();
-		if (curScore == 1)
-		{
-			playSound(Sound::HoleINone);
-			if (m_impacts)
-				m_impacts->celebrate(cup, i18nc("@info celebration banner", "Hole in one!"), true);
-		}
-		else if (curScore < holeInfo.par())
-		{
-			playSound(Sound::WooHoo);
-			const int under = holeInfo.par() - curScore;
-			if (m_impacts)
-				m_impacts->celebrate(cup, under >= 3 ? i18nc("@info celebration banner, three under par", "Albatross!")
-					: under == 2 ? i18nc("@info celebration banner, two under par", "Eagle!")
-					: i18nc("@info celebration banner, one under par", "Birdie!"), under >= 2);
-		}
+		celebrate((*curPlayer).ball()->pos(), curScore, holeInfo.par());
 
 		(*curPlayer).ball()->setZValue((*curPlayer).ball()->zValue() + .1 - (.1)/(curScore));
 
@@ -1573,6 +1615,17 @@ void KolfGame::fastTimeout()
 	//velocity would be scaled by Kolf::Box2DScaleFactor, which would result in
 	//very small velocities (below Box2D's internal cutoff thresholds!) for
 	//usual movements. Therefore, we apply the scaling to the timestep instead.
+	bool anyMoving = false;
+	for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it)
+		anyMoving = anyMoving || ((*it).ball()->isVisible() && !(*it).ball()->velocity().isNull());
+	m_movingSteps = anyMoving ? m_movingSteps + 1 : 0;
+	if (m_movingSteps > MaximumMovingSteps) {
+		for (PlayerList::Iterator it = players->begin(); it != players->end(); ++it) {
+			Ball *ball = (*it).ball();
+			const Vector velocity = ball->velocity();
+			ball->setVelocity(velocity.magnitude() < 0.05 ? QPointF() : QPointF(velocity) * 0.85);
+		}
+	}
 	const double timeStep = 1.0 * Kolf::Box2DScaleFactor;
 	m_world->Step(timeStep, 10, 10); //parameters 2/3 = iteration counts (TODO: optimize)
 	for (const auto &contact : m_world->takeImpacts())

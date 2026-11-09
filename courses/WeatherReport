@@ -51,7 +51,7 @@ thickness=5
 width=90
 
 [2-rough@330,260|4]
-drag=2.5
+drag=3.5
 height=120
 rotation=0
 width=120
@@ -77,13 +77,13 @@ maxstrokes=10
 par=3
 
 [3-rough@200,305|4]
-drag=2.4
+drag=4
 height=130
 rotation=0
 width=400
 
 [3-rough@200,95|3]
-drag=2.4
+drag=4
 height=130
 rotation=0
 width=400

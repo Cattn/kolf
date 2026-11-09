@@ -375,8 +375,16 @@ void OnlineMatchView::updateProposalUi(const QJsonObject &state)
         && m_proposal.value(QStringLiteral("proposerId")).toString() == m_localMemberId);
     const bool canPropose = state.value(QStringLiteral("canPropose")).toBool();
     if (!m_isHost) for (auto *action : m_actions) action->setEnabled(canPropose);
-    m_voteYesButton->setEnabled(state.value(QStringLiteral("canVote")).toBool());
-    m_voteNoButton->setEnabled(state.value(QStringLiteral("canVote")).toBool());
+    const bool canVote = state.value(QStringLiteral("canVote")).toBool();
+    QJsonValue ownApproval;
+    for (const auto &voteValue : m_proposal.value(QStringLiteral("votes")).toArray())
+        if (voteValue.toObject().value(QStringLiteral("memberId")).toString() == m_localMemberId)
+            ownApproval = voteValue.toObject().value(QStringLiteral("approve"));
+    const bool isProposer = m_proposal.value(QStringLiteral("proposerId")).toString() == m_localMemberId;
+    m_voteYesButton->setVisible(hasProposal && !isProposer);
+    m_voteNoButton->setVisible(hasProposal && !isProposer);
+    m_voteYesButton->setEnabled(canVote && ownApproval != QJsonValue(true));
+    m_voteNoButton->setEnabled(canVote && ownApproval != QJsonValue(false));
     m_approveButton->setEnabled(state.value(QStringLiteral("canDecide")).toBool());
     m_rejectButton->setEnabled(state.value(QStringLiteral("canDecide")).toBool());
     m_withdrawButton->setEnabled(state.value(QStringLiteral("canWithdraw")).toBool());

@@ -93,24 +93,24 @@
                 },
                 {
                     "ball": [
-                        132.965,
-                        262.37
+                        151.118,
+                        253.913
                     ],
                     "direction": 0.436,
                     "magnitude": 2.428,
                     "state": 1,
-                    "steps": 99,
+                    "steps": 79,
                     "strokes": 2
                 },
                 {
                     "ball": [
-                        161.55,
-                        254.336
+                        168.375,
+                        249.341
                     ],
-                    "direction": -0.274,
+                    "direction": -0.259,
                     "magnitude": 1.388,
                     "state": 1,
-                    "steps": 41,
+                    "steps": 25,
                     "strokes": 3
                 }
             ]

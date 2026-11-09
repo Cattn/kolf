@@ -25,6 +25,7 @@
 
 #include "tagaro/scene.h"
 
+#include <QJsonArray>
 #include <QElapsedTimer>
 #include <QGraphicsView>
 #include <QRandomGenerator>
@@ -296,6 +297,10 @@ public:
 	int currentHole() { return curHole; }
 	void impact(Kolf::Impact kind, const QPointF &position, double strength);
 	void applyHazardResets();
+	void celebrate(const QPointF &cup, int score, int par);
+	void setRecordEffects(bool record) { m_recordEffects = record; }
+	QJsonArray takeEffectEvents();
+	void playEffectEvents(const QJsonArray &events);
 	int holePar() const { return holeInfo.par(); }
 	int holeCount() const { return highestHole; }
 	bool hasCurrentPlayer() const { return players && curPlayer != players->end(); }
@@ -436,6 +441,11 @@ private:
 	Tagaro::Board *courseBoard;
 	Putter *putter;
 	Kolf::ImpactEffects *m_impacts = nullptr;
+	int m_movingSteps = 0;
+	bool m_recordEffects = false;
+	bool m_replayingEffects = false;
+	QJsonArray m_effectEvents;
+	static constexpr int MaximumMovingSteps = 30000 / 11;
 	PlayerList *players;
 	PlayerList::Iterator curPlayer;
 	Ball *whiteBall;

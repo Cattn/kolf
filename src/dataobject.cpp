@@ -24,7 +24,9 @@
 namespace
 {
 constexpr qsizetype MaximumDefinitionBytes = 64 * 1024;
-constexpr double MaximumVortexTwist = 0.008;
+constexpr int SwirlSteps = 500;
+constexpr double SwirlFadeSteps = 250;
+constexpr double MaximumSwirlSpeed = 3;
 constexpr double SinkSpeed = 0.25;
 constexpr qsizetype MaximumSpriteBytes = 256 * 1024;
 constexpr qsizetype MaximumEmbeddedImageBytes = 1024 * 1024;
@@ -429,6 +431,10 @@ std::shared_ptr<const Kolf::DataObjectDefinition> Kolf::DataObjectLibrary::parse
 			return c.type == QLatin1String("force") && c.parameters.contains(QStringLiteral("period"));
 		}))
 		runtime << QStringLiteral("phase");
+	if (std::any_of(definition->components.cbegin(), definition->components.cend(), [](const DataComponent &c) {
+			return c.type == QLatin1String("force") && c.parameters.value(QStringLiteral("mode")).toString() == QLatin1String("vortex");
+		}))
+		runtime << QStringLiteral("swirl");
 	if (uses("crumble"))
 		runtime << QStringLiteral("crumbled");
 	if (uses("blast"))
@@ -574,9 +580,6 @@ Kolf::DataObject::DataObject(std::shared_ptr<const DataObjectDefinition> definit
 	for (const auto &component : m_definition->components)
 		if (component.type == QLatin1String("motion"))
 			m_running = parameter(component, QStringLiteral("autostart"), true).toBool();
-	if (gusting())
-		setOpacity(0.35 + 0.65 * gustFactor());
-	updatePulse();
 	updateGeometry();
 }
 
@@ -601,8 +604,17 @@ void Kolf::DataObject::setGame(KolfGame *game)
 {
 	CanvasItem::setGame(game);
 	if (game && (hasComponent(QStringLiteral("trigger")) || hasComponent(QStringLiteral("motion")) || gusting()
-		|| hasComponent(QStringLiteral("pulse")) || hasComponent(QStringLiteral("crumble")) || hasComponent(QStringLiteral("blast"))))
+		|| hasComponent(QStringLiteral("pulse")) || hasComponent(QStringLiteral("crumble")) || hasComponent(QStringLiteral("blast"))
+		|| swirling()))
 		connect(game, &KolfGame::simulationStepped, this, &DataObject::step, Qt::UniqueConnection);
+}
+
+bool Kolf::DataObject::swirling() const
+{
+	for (const auto &component : m_definition->components)
+		if (component.type == QLatin1String("force") && component.parameters.value(QStringLiteral("mode")).toString() == QLatin1String("vortex"))
+			return true;
+	return false;
 }
 
 bool Kolf::DataObject::gusting() const
@@ -639,6 +651,12 @@ void Kolf::DataObject::step()
 	}
 	if (gusting() || hasComponent(QStringLiteral("pulse")))
 		++m_phase;
+	if (swirling()) {
+		bool occupied = false;
+		for (Ball *ball : game->balls())
+			occupied = occupied || (ball->isVisible() && ball->curState() != Holed && containsPoint(ball->pos()));
+		m_swirl = occupied ? m_swirl + 1 : 0;
+	}
 	if (gusting())
 		setOpacity(0.35 + 0.65 * gustFactor());
 	updatePulse();
@@ -892,6 +910,8 @@ QVariantMap Kolf::DataObject::runtimeState() const
 		state.insert(QStringLiteral("running"), m_running);
 	if (fields.contains(QStringLiteral("phase")))
 		state.insert(QStringLiteral("phase"), double(m_phase));
+	if (fields.contains(QStringLiteral("swirl")))
+		state.insert(QStringLiteral("swirl"), m_swirl);
 	if (fields.contains(QStringLiteral("crumbled")))
 		state.insert(QStringLiteral("crumbled"), m_crumbled);
 	if (fields.contains(QStringLiteral("spent")))
@@ -912,6 +932,7 @@ void Kolf::DataObject::setRuntimeState(const QVariantMap &state)
 	m_direction = state.value(QStringLiteral("direction"), m_direction).toInt() < 0 ? -1 : 1;
 	m_phase = qint64(state.value(QStringLiteral("phase"), double(m_phase)).toDouble());
 	m_crumbled = state.value(QStringLiteral("crumbled"), m_crumbled).toBool();
+	m_swirl = state.value(QStringLiteral("swirl"), m_swirl).toInt();
 	m_spent = state.value(QStringLiteral("spent"), m_spent).toBool();
 	if (hasComponent(QStringLiteral("blast")))
 		setOpacity(m_spent ? 0.35 : 1.0);
@@ -927,6 +948,9 @@ void Kolf::DataObject::setRuntimeState(const QVariantMap &state)
 
 void Kolf::DataObject::updateGeometry()
 {
+	if (gusting())
+		setOpacity(0.35 + 0.65 * gustFactor());
+	updatePulse();
 	prepareGeometryChange();
 	if (m_definition->resizable)
 		m_size = QSizeF(m_values.value(QStringLiteral("width")).toDouble(), m_values.value(QStringLiteral("height")).toDouble());
@@ -1013,17 +1037,26 @@ void Kolf::DataObject::onBall(BallStepContext &context)
 			QPointF force = inward * (mode == QLatin1String("repel") ? -strength : strength) * falloff;
 			if (mode == QLatin1String("vortex")) {
 				const double twist = parameter(component, QStringLiteral("twist"), 0.6).toDouble();
-				force = inward * strength * falloff * (1.0 - twist)
-					+ QPointF(-inward.y(), inward.x()) * qMin(strength * falloff * twist, MaximumVortexTwist);
+				const double fade = qBound(0.0, 1.0 - double(m_swirl - SwirlSteps) / SwirlFadeSteps, 1.0);
+				const double speed = Vector(ball->velocity()).magnitude();
+				const double room = qBound(0.0, 1.0 - speed / MaximumSwirlSpeed, 1.0);
+				force = inward * strength * falloff * (1.0 - twist * fade)
+					+ QPointF(-inward.y(), inward.x()) * strength * falloff * twist * fade * room;
 			}
 			context.force(kind, Vector(force));
 		} else if (component.type == QLatin1String("boost")) {
 			const qint64 now = game ? qint64(game->physicsSteps()) : 0;
 			if (now - m_lastBoost < parameter(component, QStringLiteral("cooldown"), 30).toInt())
 				continue;
-			m_lastBoost = now;
 			const double radians = parameter(component, QStringLiteral("direction"), rotation).toDouble() * M_PI / 180.0;
-			context.impulse(Vector(QPointF(std::cos(radians), std::sin(radians)) * parameter(component, QStringLiteral("impulse"), 0).toDouble()));
+			const QPointF direction(std::cos(radians), std::sin(radians));
+			const QPointF velocity = ball->velocity();
+			const double along = velocity.x() * direction.x() + velocity.y() * direction.y();
+			const double kick = parameter(component, QStringLiteral("impulse"), 0).toDouble();
+			if (along < -0.05 || along >= kick)
+				continue;
+			m_lastBoost = now;
+			context.impulse(Vector(direction * (kick - along)));
 			playSound(QStringLiteral("boost"));
 		} else if (component.type == QLatin1String("hazard") || (component.type == QLatin1String("crumble") && m_crumbled)) {
 			const QString outcome = component.type == QLatin1String("crumble") ? QStringLiteral("reset-tee")

@@ -88,12 +88,16 @@ SessionController::SessionController(const QJsonObject &config, Net::NetworkClie
         {QStringLiteral("processId"), double(QCoreApplication::applicationPid())}});
     connect(&m_frames, &QTimer::timeout, this, [this] {
         if (!m_adapter || !m_ready || m_role != Role::Authority || m_interrupted || m_phase == QLatin1String("Finished")) return;
+        m_game->setRecordEffects(true);
         const auto s = state();
+        const auto events = m_game->takeEffectEvents();
         const auto bytes = QJsonDocument(s).toJson(QJsonDocument::Compact).size();
         m_frameBytes += bytes; ++m_frameCount;
-        if (m_config[QStringLiteral("logFrames")].toBool()) log(QStringLiteral("frame"), {{QStringLiteral("state"), s}, {QStringLiteral("frameSeq"), m_frameSeq + 1}});
-        send(QStringLiteral("StateFrame"), {{QStringLiteral("state"), s}, {QStringLiteral("syncId"), m_syncId},
-            {QStringLiteral("frameSeq"), ++m_frameSeq}, {QStringLiteral("hostMs"), double(m_clock.elapsed())}}, true);
+        if (m_config[QStringLiteral("logFrames")].toBool()) log(QStringLiteral("frame"), {{QStringLiteral("state"), s}, {QStringLiteral("frameSeq"), m_frameSeq + 1}, {QStringLiteral("events"), events}});
+        QJsonObject frame{{QStringLiteral("state"), s}, {QStringLiteral("syncId"), m_syncId},
+            {QStringLiteral("frameSeq"), ++m_frameSeq}, {QStringLiteral("hostMs"), double(m_clock.elapsed())}};
+        if (!events.isEmpty()) frame.insert(QStringLiteral("events"), events);
+        send(QStringLiteral("StateFrame"), frame, true);
     });
     m_frames.start(qBound(25, config[QStringLiteral("frameIntervalMs")].toInt(67), 1000));
     connect(&m_aimTimer, &QTimer::timeout, this, &SessionController::sendAim);
@@ -425,7 +429,11 @@ void SessionController::receive(const QJsonObject &message) {
             m_hostActionPending = false; m_hostResetPending.clear(); m_hostUndoPending.clear();
             m_hostSkipPending.clear(); m_hostGoPending.clear();
         }
-        if (frame) m_receivedFrame = m[QStringLiteral("frameSeq")].toInt();
+        if (frame) {
+            m_receivedFrame = m[QStringLiteral("frameSeq")].toInt();
+            if (m_role == Role::Guest && m[QStringLiteral("events")].isArray())
+                m_game->playEffectEvents(m[QStringLiteral("events")].toArray());
+        }
         else {
             m_receivedFrame = 0; m_ready = false; m_awaitingResync = false;
             send(QStringLiteral("StateApplied"), {{QStringLiteral("stateRevision"), m_revision},
@@ -443,6 +451,7 @@ void SessionController::receive(const QJsonObject &message) {
                 }
             }
             log(QStringLiteral("applied"), {{QStringLiteral("state"), actual}, {QStringLiteral("physicsSteps"), double(m_game->physicsSteps())}, {QStringLiteral("collisions"), double(m_game->collisionCalls())}, {QStringLiteral("gameplayRandomCalls"), double(m_game->gameplayRandomCalls())}});
+            celebrateNewlyHoled(actual);
         }
         refresh();
         if (!frame && m_config[QStringLiteral("capture")].toBool()) {
@@ -540,7 +549,7 @@ void SessionController::refresh() {
         {QStringLiteral("votingEnabled"), m_allowVoting},
         {QStringLiteral("canToggleVoting"), canHostToggle && m_hostControlsEnabled && m_votingTogglePending.isEmpty()},
         {QStringLiteral("canPropose"), proposalsOpen && !hasProposal && m_proposalCommandPending.isEmpty()},
-        {QStringLiteral("canVote"), proposalsOpen && hasProposal && m_proposalCommandPending.isEmpty()},
+        {QStringLiteral("canVote"), proposalsOpen && hasProposal && m_proposalCommandPending.isEmpty() && mayVote()},
         {QStringLiteral("canDecide"), proposalsOpen && hasProposal && m_role == Role::Authority
             && m_proposalCommandPending.isEmpty()},
         {QStringLiteral("canWithdraw"), proposalsOpen && hasProposal && m_proposalCommandPending.isEmpty()
@@ -662,9 +671,40 @@ void SessionController::proposeHostAction(const QString &action, int targetHole)
     refresh();
 }
 
+void SessionController::celebrateNewlyHoled(const QJsonObject &state)
+{
+    const int generation = state.value(QStringLiteral("holeGeneration")).toInt();
+    const int hole = state.value(QStringLiteral("hole")).toInt();
+    const auto balls = state.value(QStringLiteral("balls")).toArray();
+    const auto scores = state.value(QStringLiteral("scores")).toArray();
+    const bool primed = generation == m_celebratedGeneration && hole == m_celebratedHole;
+    if (!primed) {
+        m_celebratedGeneration = generation;
+        m_celebratedHole = hole;
+        m_celebrated.clear();
+    }
+    for (int slot = 0; slot < balls.size(); ++slot) {
+        const auto ball = balls.at(slot).toObject();
+        const bool holed = ball.value(QStringLiteral("state")).toInt() == int(Holed);
+        if (!holed) { m_celebrated.remove(slot); continue; }
+        if (m_celebrated.contains(slot)) continue;
+        m_celebrated.insert(slot);
+        if (!primed) continue;
+        const int score = scores.at(slot).toArray().at(hole - 1).toInt();
+        m_game->celebrate(QPointF(ball.value(QStringLiteral("x")).toDouble(), ball.value(QStringLiteral("y")).toDouble()),
+            score, state.value(QStringLiteral("par")).toInt());
+    }
+}
+
+bool SessionController::mayVote() const
+{
+    const QString self = m_config.value(QStringLiteral("localMemberId")).toString();
+    return !m_hostProposal.isEmpty() && m_hostProposal.value(QStringLiteral("proposerId")).toString() != self;
+}
+
 void SessionController::voteHostProposal(bool approve)
 {
-    if (m_hostProposal.isEmpty() || !m_proposalCommandPending.isEmpty()) return;
+    if (m_hostProposal.isEmpty() || !m_proposalCommandPending.isEmpty() || !mayVote()) return;
     m_proposalCommandPending = QUuid::createUuid().toString(QUuid::WithoutBraces);
     send(QStringLiteral("VoteHostProposal"), {{QStringLiteral("commandId"), m_proposalCommandPending},
         {QStringLiteral("proposalId"), m_hostProposal.value(QStringLiteral("proposalId"))},

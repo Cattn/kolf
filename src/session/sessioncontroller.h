@@ -44,6 +44,8 @@ public Q_SLOTS:
     void setAllowVoting(bool enabled);
     void proposeHostAction(const QString &action, int targetHole = 0);
     void voteHostProposal(bool approve);
+    bool mayVote() const;
+    void celebrateNewlyHoled(const QJsonObject &state);
     void decideHostProposal(bool approve);
     void withdrawHostProposal();
     void resetOnlineHole();
@@ -134,5 +136,8 @@ private:
     bool m_sound = true;
     bool m_showInfo = true;
     bool m_showGuideLine = true;
+    int m_celebratedGeneration = -1;
+    int m_celebratedHole = -1;
+    QSet<int> m_celebrated;
 };
 }

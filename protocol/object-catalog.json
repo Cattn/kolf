@@ -1,5 +1,5 @@
 {
-    "catalogHash": "f1fb34be920733b79734412f42d6096304c08ec2c41d4c61ddb3a75295ceda8a",
+    "catalogHash": "f492930fa8705494372f544fbcf944d2dc4001b5a6ce77218b7f5c9c85d315fa",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -852,11 +852,11 @@
                     "type": "angle"
                 },
                 {
-                    "default": 2,
+                    "default": 3.5,
                     "key": "drag",
                     "label": "Friction",
-                    "max": 4,
-                    "min": 1.2,
+                    "max": 6,
+                    "min": 2,
                     "step": 0.1,
                     "type": "number"
                 }
@@ -1199,6 +1199,7 @@
                 }
             ],
             "runtime": [
+                "swirl"
             ]
         },
         {

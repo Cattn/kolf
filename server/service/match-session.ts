@@ -284,12 +284,13 @@ export class MatchCoordinator {
             : !integer(target, 1, holes) || target === current)) return deny('invalid target hole');
           this.proposal = { id: p.commandId, proposerId: memberId, action, targetHole: p.targetHole,
             stateRevision: p.stateRevision, syncId: p.syncId, holeGeneration: p.holeGeneration,
-            expiresAt: this.now() + 60_000, votes: new Map() };
+            expiresAt: this.now() + 60_000, votes: new Map([[memberId, true]]) };
           this.publishProposal();
         } else {
           const proposal = this.proposal;
           if (!proposal || proposal.id !== p.proposalId) return deny('proposal is no longer active');
           if (message.type === 'VoteHostProposal') {
+            if (memberId === proposal.proposerId) return deny('the proposer already voted yes');
             proposal.votes.set(memberId, p.approve);
             this.publishProposal();
           } else if (message.type === 'WithdrawHostProposal') {

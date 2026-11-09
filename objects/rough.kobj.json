@@ -3,7 +3,7 @@
   "id": "rough",
   "name": "Rough Grass",
   "category": "terrain",
-  "help": "Long grass: the ball rolls about half as far.",
+  "help": "Long grass: the ball slows quickly and rolls about a third as far.",
   "shape": {
     "type": "rect",
     "size": [
@@ -21,10 +21,10 @@
     "drag": {
       "type": "number",
       "label": "Friction",
-      "min": 1.2,
-      "max": 4,
+      "min": 2,
+      "max": 6,
       "step": 0.1,
-      "default": 2
+      "default": 3.5
     }
   },
   "components": [
