@@ -105,5 +105,7 @@ install(FILES
     rock.svg
     picketfence.kobj.json
     picketfence.svg
+    powerbox.kobj.json
+    powerbox.svg
     kobj.schema.json
     DESTINATION ${KDE_INSTALL_DATADIR}/kolf/objects)

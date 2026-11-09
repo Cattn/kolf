@@ -97,6 +97,9 @@ private:
 	void updatePulse();
 	void stepOccupants();
 	bool teleport(Ball *ball);
+public:
+	void tickPickup();
+private:
 	void updateCanopyFade();
 	QPointF edgeOutside(const QPointF &from) const;
 
@@ -123,6 +126,8 @@ private:
 	bool m_crumbled = false;
 	bool m_spent = false;
 	int m_count = 0;
+	bool m_filled = true;
+	int m_refillIn = 0;
 	double m_canopyFade = 1.0;
 	QTimer *m_canopyTimer = nullptr;
 };

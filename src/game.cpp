@@ -2015,6 +2015,8 @@ void KolfGame::shotDone()
 		}
 	}
 
+	turnEnded(currentSlot());
+
 	// change player to next player
 	// skip player if he's Holed
 	do
@@ -2460,6 +2462,17 @@ void KolfGame::openFile()
 		m_editSnapshot = holeSnapshot();
 	}
 	applyCourseTheme();
+}
+
+void KolfGame::turnEnded(int slot)
+{
+	if (!m_powerUps.enabled())
+		return;
+	m_powerUps.finishTurn(slot);
+	for (QGraphicsItem *item : std::as_const(m_topLevelQItems))
+		if (auto *object = dynamic_cast<Kolf::DataObject *>(item))
+			object->tickPickup();
+	Q_EMIT powerUpsChanged();
 }
 
 void KolfGame::setPowerUpRule(Kolf::PowerUpRule rule)

@@ -3,6 +3,7 @@
 
 #include <KLazyLocalizedString>
 #include <KLocalizedString>
+#include <QHash>
 #include <QJsonArray>
 #include <QRegularExpression>
 
@@ -108,6 +109,22 @@ void PowerUpState::finishTurn(int slot)
         else
             ++it;
     }
+}
+
+QStringList PowerUpState::pool(PowerUpRule rule)
+{
+    if (rule == PowerUpRule::Chaos)
+        return {QStringLiteral("wobble"), QStringLiteral("wobble"), QStringLiteral("heavy"), QStringLiteral("heavy"),
+            QStringLiteral("fog"), QStringLiteral("fog"), QStringLiteral("shield"), QStringLiteral("mulligan")};
+    return {QStringLiteral("wobble"), QStringLiteral("heavy"), QStringLiteral("fog"), QStringLiteral("shield"),
+        QStringLiteral("mulligan")};
+}
+
+QString PowerUpState::draw(int hole)
+{
+    const QStringList items = pool(m_rule);
+    const quint32 value = qHash(QStringLiteral("kolf-powerup/%1/%2").arg(hole).arg(nextDraw()), 0x6b6f6c66u);
+    return items.at(int(value % quint32(items.size())));
 }
 
 void PowerUpState::resetHole()

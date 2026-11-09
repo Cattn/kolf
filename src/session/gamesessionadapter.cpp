@@ -406,6 +406,7 @@ void GameSessionAdapter::applyDepartures()
 
 QString GameSessionAdapter::advanceTurn()
 {
+    g->turnEnded(activeSlot());
     bool allDone = true;
     for (const auto &p : std::as_const(*g->players)) if (p.ball()->curState() != Holed) allDone = false;
     if (allDone) {

@@ -39,6 +39,8 @@ public:
     void finishTurn(int slot);
     int nextDraw() { return m_draws++; }
     void resetHole();
+    QString draw(int hole);
+    static QStringList pool(PowerUpRule rule);
 
     QJsonObject toJson() const;
     bool fromJson(const QJsonObject &json, int players);

@@ -1,0 +1,49 @@
+{
+  "kolfObject": 1,
+  "id": "powerbox",
+  "name": "Power-up Box",
+  "category": "mechanism",
+  "help": "Roll through it to collect a power-up (only when power-ups are on). It refills after a few turns.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      22,
+      22
+    ],
+    "resizable": false,
+    "rotatable": false
+  },
+  "visual": {
+    "sprite": "powerbox.svg",
+    "layer": "raised"
+  },
+  "properties": {
+    "item": {
+      "type": "enum",
+      "label": "Item",
+      "values": [
+        "random",
+        "wobble",
+        "heavy",
+        "fog",
+        "shield",
+        "mulligan"
+      ],
+      "default": "random"
+    },
+    "refill": {
+      "type": "int",
+      "label": "Refill after (turns)",
+      "min": 1,
+      "max": 20,
+      "default": 3
+    }
+  },
+  "components": [
+    {
+      "type": "pickup",
+      "item": "$item",
+      "refillTurns": "$refill"
+    }
+  ]
+}

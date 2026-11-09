@@ -1,5 +1,5 @@
 {
-    "catalogHash": "e029b1191754cdc8abf407bd69b5851596ee7c12e85723e08123d75e3ff2ebf4",
+    "catalogHash": "4ef1b43eedde34bafcc48e83dcf5a74f3ab8dea009f46248484218757fc996f0",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -1648,6 +1648,41 @@
                 }
             ],
             "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "powerbox",
+            "name": "Power-up Box",
+            "properties": [
+                {
+                    "default": "random",
+                    "key": "item",
+                    "label": "Item",
+                    "type": "enum",
+                    "values": [
+                        "random",
+                        "wobble",
+                        "heavy",
+                        "fog",
+                        "shield",
+                        "mulligan"
+                    ]
+                },
+                {
+                    "default": 3,
+                    "key": "refill",
+                    "label": "Refill after (turns)",
+                    "max": 20,
+                    "min": 1,
+                    "type": "int"
+                }
+            ],
+            "runtime": [
+                "filled",
+                "refillIn"
             ]
         },
         {

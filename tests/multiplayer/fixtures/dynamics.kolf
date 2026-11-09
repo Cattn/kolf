@@ -216,3 +216,7 @@ rotation=0
 channel=w
 role=exit
 rotation=0
+
+[1-powerbox@370,60|42]
+item=random
+refill=3

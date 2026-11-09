@@ -40,7 +40,7 @@ const QStringList &componentTypes()
 		QStringLiteral("hazard"), QStringLiteral("sound"), QStringLiteral("decor"), QStringLiteral("solid"),
 		QStringLiteral("trigger"), QStringLiteral("receiver"), QStringLiteral("motion"), QStringLiteral("crumble"),
 		QStringLiteral("pulse"), QStringLiteral("blast"), QStringLiteral("body"), QStringLiteral("launch"),
-		QStringLiteral("deck"), QStringLiteral("counter"), QStringLiteral("teleport")};
+		QStringLiteral("deck"), QStringLiteral("counter"), QStringLiteral("teleport"), QStringLiteral("pickup")};
 	return types;
 }
 
@@ -105,6 +105,10 @@ QList<ParameterRule> parameterRules(const QString &type)
 				QStringLiteral("exit"), QStringLiteral("stop"), QStringLiteral("hit")}, true},
 			{QStringLiteral("channel"), ParameterRule::Text, 0, 0, {}, true},
 			{QStringLiteral("minSpeed"), ParameterRule::Number, 0, 8, {}, false}};
+	if (type == QLatin1String("pickup"))
+		return {{QStringLiteral("item"), ParameterRule::Choice, 0, 0, {QStringLiteral("random"), QStringLiteral("wobble"),
+				QStringLiteral("heavy"), QStringLiteral("fog"), QStringLiteral("shield"), QStringLiteral("mulligan")}, false},
+			{QStringLiteral("refillTurns"), ParameterRule::Integer, 1, 20, {}, false}};
 	if (type == QLatin1String("counter"))
 		return {{QStringLiteral("input"), ParameterRule::Text, 0, 0, {}, true},
 			{QStringLiteral("count"), ParameterRule::Integer, 1, 20, {}, true},
@@ -463,6 +467,8 @@ std::shared_ptr<const Kolf::DataObjectDefinition> Kolf::DataObjectLibrary::parse
 		runtime << QStringLiteral("crumbled");
 	if (uses("counter"))
 		runtime << QStringLiteral("count");
+	if (uses("pickup"))
+		runtime << QStringLiteral("filled") << QStringLiteral("refillIn");
 	if (uses("body"))
 		runtime << QStringLiteral("vx") << QStringLiteral("vy");
 	if (uses("body") && uses("solid"))
@@ -662,7 +668,7 @@ void Kolf::DataObject::setGame(KolfGame *game)
 	}
 	if (game && (hasComponent(QStringLiteral("trigger")) || hasComponent(QStringLiteral("motion")) || gusting()
 		|| hasComponent(QStringLiteral("pulse")) || hasComponent(QStringLiteral("crumble")) || hasComponent(QStringLiteral("blast"))
-		|| swirling() || hasComponent(QStringLiteral("body")) || hasComponent(QStringLiteral("teleport"))))
+		|| swirling() || hasComponent(QStringLiteral("body")) || hasComponent(QStringLiteral("teleport")) || hasComponent(QStringLiteral("pickup"))))
 		connect(game, &KolfGame::simulationStepped, this, &DataObject::step, Qt::UniqueConnection);
 }
 
@@ -736,7 +742,8 @@ void Kolf::DataObject::step()
 	if (gusting())
 		setOpacity(0.35 + 0.65 * gustFactor());
 	updatePulse();
-	if (hasComponent(QStringLiteral("crumble")) || hasComponent(QStringLiteral("blast")) || hasComponent(QStringLiteral("teleport")))
+	if (hasComponent(QStringLiteral("crumble")) || hasComponent(QStringLiteral("blast")) || hasComponent(QStringLiteral("teleport"))
+		|| hasComponent(QStringLiteral("pickup")))
 		stepOccupants();
 	for (const auto &component : m_definition->components) {
 		if (component.type != QLatin1String("motion") || !m_running)
@@ -905,6 +912,8 @@ void Kolf::DataObject::paint(QPainter *painter, const QStyleOptionGraphicsItem *
 {
 	if (hasComponent(QStringLiteral("decor")) && Kolf::Effects::plainMode())
 		return;
+	if (hasComponent(QStringLiteral("pickup")) && (!game || !game->powerUps().enabled()) && !(game && game->isEditing()))
+		return;
 	if (m_canopyFade < 1.0)
 		painter->setOpacity(painter->opacity() * m_canopyFade);
 	m_definition->sprite->render(painter, boundingRect());
@@ -918,6 +927,14 @@ void Kolf::DataObject::paint(QPainter *painter, const QStyleOptionGraphicsItem *
 		painter->setFont(font);
 		painter->setPen(m_count >= target ? QColor(39, 174, 96) : QColor(255, 255, 255));
 		painter->drawText(boundingRect(), Qt::AlignCenter, QStringLiteral("%1/%2").arg(m_count).arg(target));
+	}
+	if (hasComponent(QStringLiteral("pickup")) && !m_filled) {
+		QFont font = painter->font();
+		font.setBold(true);
+		font.setPixelSize(qMax(6, int(m_size.height() * 0.5)));
+		painter->setFont(font);
+		painter->setPen(QColor(255, 255, 255));
+		painter->drawText(boundingRect(), Qt::AlignCenter, QString::number(m_refillIn));
 	}
 	if (!m_crumbled)
 		return;
@@ -955,6 +972,32 @@ void Kolf::DataObject::stepOccupants()
 		m_resyncOccupants = false;
 		m_occupants = inside;
 		return;
+	}
+	if (hasComponent(QStringLiteral("pickup")) && m_filled && game->powerUps().enabled()) {
+		const QList<Ball *> balls = game->balls();
+		for (Ball *ball : std::as_const(inside)) {
+			if (m_occupants.contains(ball))
+				continue;
+			const int slot = int(balls.indexOf(ball));
+			if (slot < 0)
+				continue;
+			for (const auto &component : m_definition->components) {
+				if (component.type != QLatin1String("pickup"))
+					continue;
+				QString item = parameter(component, QStringLiteral("item"), QStringLiteral("random")).toString();
+				if (item == QLatin1String("random"))
+					item = game->powerUps().draw(game->currentHole());
+				game->powerUps().give(slot, item);
+				m_filled = false;
+				m_refillIn = parameter(component, QStringLiteral("refillTurns"), 3).toInt();
+				setOpacity(0.4);
+				game->playSound(Sound::WooHoo, 0.4);
+				game->impact(Kolf::Impact::Splash, pos(), 1);
+				game->notifyPowerUpsChanged();
+				update();
+			}
+			break;
+		}
 	}
 	if (hasComponent(QStringLiteral("teleport"))) {
 		for (Ball *ball : std::as_const(inside))
@@ -1001,6 +1044,18 @@ void Kolf::DataObject::stepOccupants()
 		}
 	}
 	m_occupants = inside;
+}
+
+void Kolf::DataObject::tickPickup()
+{
+	if (!hasComponent(QStringLiteral("pickup")) || m_filled)
+		return;
+	if (--m_refillIn <= 0) {
+		m_refillIn = 0;
+		m_filled = true;
+		setOpacity(1.0);
+	}
+	update();
 }
 
 bool Kolf::DataObject::teleport(Ball *ball)
@@ -1100,6 +1155,10 @@ QVariantMap Kolf::DataObject::runtimeState() const
 	}
 	if (fields.contains(QStringLiteral("swirl")))
 		state.insert(QStringLiteral("swirl"), m_swirl);
+	if (fields.contains(QStringLiteral("filled"))) {
+		state.insert(QStringLiteral("filled"), m_filled);
+		state.insert(QStringLiteral("refillIn"), m_refillIn);
+	}
 	if (fields.contains(QStringLiteral("count")))
 		state.insert(QStringLiteral("count"), m_count);
 	if (fields.contains(QStringLiteral("crumbled")))
@@ -1125,6 +1184,11 @@ void Kolf::DataObject::setRuntimeState(const QVariantMap &state)
 	m_phase = qint64(state.value(QStringLiteral("phase"), double(m_phase)).toDouble());
 	m_crumbled = state.value(QStringLiteral("crumbled"), m_crumbled).toBool();
 	m_count = state.value(QStringLiteral("count"), m_count).toInt();
+	if (state.contains(QStringLiteral("filled"))) {
+		m_filled = state.value(QStringLiteral("filled")).toBool();
+		m_refillIn = qBound(0, state.value(QStringLiteral("refillIn")).toInt(), 20);
+		setOpacity(m_filled ? 1.0 : 0.4);
+	}
 	m_swirl = state.value(QStringLiteral("swirl"), m_swirl).toInt();
 	if (state.contains(QStringLiteral("vx")) && hasComponent(QStringLiteral("body")))
 		setVelocity(QPointF(state.value(QStringLiteral("vx")).toDouble(), state.value(QStringLiteral("vy")).toDouble()));

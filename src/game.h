@@ -303,6 +303,7 @@ public:
 	Kolf::PowerUpState &powerUps() { return m_powerUps; }
 	const Kolf::PowerUpState &powerUps() const { return m_powerUps; }
 	void setPowerUpRule(Kolf::PowerUpRule rule);
+	void turnEnded(int slot);
 	void notifyPowerUpsChanged() { Q_EMIT powerUpsChanged(); }
 	bool bodiesMoving() const;
 	void celebrate(const QPointF &cup, int score, int par);

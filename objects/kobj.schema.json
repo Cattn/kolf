@@ -908,6 +908,44 @@
               ]
             }
           }
+        },
+        {
+          "additionalProperties": false,
+          "required": [],
+          "properties": {
+            "type": {
+              "const": "pickup"
+            },
+            "item": {
+              "oneOf": [
+                {
+                  "enum": [
+                    "random",
+                    "wobble",
+                    "heavy",
+                    "fog",
+                    "shield",
+                    "mulligan"
+                  ]
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "refillTurns": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            }
+          }
         }
       ]
     }

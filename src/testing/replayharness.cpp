@@ -167,6 +167,8 @@ QJsonObject replayHole(const QString &courseFile, int hole, quint32 seed, int &h
     }
     holeCount = adapter->highestHole();
     game->setRandomSeed(seed + quint32(hole));
+    if (!qEnvironmentVariableIsEmpty("KOLF_REPLAY_POWERUPS"))
+        game->setPowerUpRule(Kolf::powerUpRuleFromId(qEnvironmentVariable("KOLF_REPLAY_POWERUPS")));
     adapter->enableSimulation(true);
     const auto initialObjects = objectState(*adapter);
     for (const auto &fixed : FixedShots) {
@@ -212,6 +214,8 @@ QJsonObject replayHole(const QString &courseFile, int hole, quint32 seed, int &h
         shot[QStringLiteral("steps")] = steps;
         if (choices) shot[QStringLiteral("hazardDrops")] = choices;
         shot[QStringLiteral("strokes")] = players.first().score(hole);
+        if (game->powerUps().enabled())
+            shot[QStringLiteral("powerups")] = game->powerUps().toJson();
         if (phase.isEmpty()) {
             shot[QStringLiteral("unsettled")] = true;
             shots.append(shot);
