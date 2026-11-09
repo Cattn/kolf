@@ -2,6 +2,7 @@
 Name=Tokyo Nine
 author=Codex
 name=Tokyo Nine
+theme=neon
 
 [1-ball@42,348]
 dummykey=true

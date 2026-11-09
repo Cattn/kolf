@@ -23,6 +23,7 @@
 #include "canvasitem.h"
 
 class QPropertyAnimation;
+class QGraphicsEllipseItem;
 
 enum class HazardReset { None = 0, LastShot = 1, Tee = 2 };
 namespace Kolf::Session { class GameSessionAdapter; }
@@ -107,6 +108,7 @@ private:
 	HazardReset m_hazardReset = HazardReset::None;
 	int m_airSteps = 0;
 	int m_airTotal = 0;
+	QGraphicsEllipseItem *m_airShadow = nullptr;
 	void updateAirVisual();
 	QPropertyAnimation *m_dropAnimation = nullptr;
 	void showHoled(bool holed);

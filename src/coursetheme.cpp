@@ -2,6 +2,7 @@
 #include "coursetheme.h"
 
 #include "effects.h"
+#include "objects.h"
 
 #include <KConfigGroup>
 #include <QPainter>
@@ -84,6 +85,19 @@ void ThemeGround::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWi
     gradient.setColorAt(0, m_theme.ground.lighter(104));
     gradient.setColorAt(1, m_theme.ground.darker(104));
     painter->fillRect(QRectF(0, 0, 400, 400), gradient);
+    if (m_theme.ground.lightnessF() < 0.35 && parentItem()) {
+        for (QGraphicsItem *item : parentItem()->childItems()) {
+            if (!dynamic_cast<Kolf::Cup *>(item) || !item->isVisible())
+                continue;
+            QRadialGradient halo(item->pos(), 16);
+            halo.setColorAt(0, QColor(255, 255, 255, 200));
+            halo.setColorAt(0.55, QColor(255, 255, 255, 90));
+            halo.setColorAt(1, QColor(255, 255, 255, 0));
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(halo);
+            painter->drawEllipse(item->pos(), 16, 16);
+        }
+    }
     if (!m_theme.stars || Effects::plainMode())
         return;
     QRandomGenerator stars(0x4b6f6c66u);

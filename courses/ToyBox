@@ -2,6 +2,7 @@
 Name=Toy Box
 author=Kolf contributors
 formatVersion=2
+theme=beach
 
 [1-ball@50,200]
 dummykey=true

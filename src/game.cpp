@@ -34,7 +34,6 @@
 
 #include "tagaro/board.h"
 
-#include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
 #include <QApplication>
 #include <QCheckBox>
@@ -2483,18 +2482,6 @@ void KolfGame::applyCourseTheme()
 			wall->setPen(QPen(theme.wall.isValid() ? theme.wall : QColor(Qt::darkRed), 3));
 		if (auto *object = dynamic_cast<Kolf::DataObject *>(item))
 			object->update();
-		if (auto *cup = dynamic_cast<Kolf::Cup *>(item)) {
-			const bool dark = theme.ground.isValid() && theme.ground.lightnessF() < 0.35;
-			if (dark && !cup->graphicsEffect()) {
-				auto *glow = new QGraphicsDropShadowEffect;
-				glow->setOffset(0, 0);
-				glow->setBlurRadius(16);
-				glow->setColor(QColor(255, 255, 255));
-				cup->setGraphicsEffect(glow);
-			} else if (!dark && cup->graphicsEffect()) {
-				cup->setGraphicsEffect(nullptr);
-			}
-		}
 	}
 }
 

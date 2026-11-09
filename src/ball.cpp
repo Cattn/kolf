@@ -18,7 +18,7 @@
 */
 
 #include "ball.h"
-#include <QGraphicsDropShadowEffect>
+#include <QGraphicsEllipseItem>
 #include <QPropertyAnimation>
 #include "ballstep.h"
 #include "effects.h"
@@ -70,24 +70,25 @@ void Ball::launch(int steps)
 
 void Ball::updateAirVisual()
 {
-	auto *shadow = qobject_cast<QGraphicsDropShadowEffect *>(graphicsEffect());
 	if (m_airSteps <= 0 || m_airTotal <= 0) {
-		if (shadow)
-			setGraphicsEffect(nullptr);
+		if (m_airShadow)
+			m_airShadow->hide();
 		if (!m_shownHoled)
 			setScale(1);
 		return;
 	}
 	const double progress = 1.0 - double(m_airSteps) / m_airTotal;
 	const double height = std::sin(M_PI * progress) * qMin(1.0, m_airTotal / 60.0);
-	if (!shadow) {
-		shadow = new QGraphicsDropShadowEffect;
-		shadow->setColor(QColor(0, 0, 0, 110));
-		setGraphicsEffect(shadow);
+	if (!m_airShadow) {
+		m_airShadow = new QGraphicsEllipseItem(this);
+		m_airShadow->setFlag(QGraphicsItem::ItemStacksBehindParent);
+		m_airShadow->setPen(Qt::NoPen);
+		m_airShadow->setBrush(QColor(0, 0, 0, 90));
 	}
-	shadow->setOffset(2 + 7 * height, 2 + 7 * height);
-	shadow->setBlurRadius(3 + 4 * height);
-	setTransformOriginPoint(boundingRect().center());
+	const QRectF body = boundingRect();
+	m_airShadow->setRect(body.translated(5 * height, 5 * height));
+	m_airShadow->show();
+	setTransformOriginPoint(body.center());
 	setScale(1 + 0.6 * height);
 }
 

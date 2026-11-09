@@ -2,6 +2,7 @@
 Name=Clockwork
 author=Kolf contributors
 formatVersion=2
+theme=night
 
 [1-ball@50,200]
 dummykey=true
