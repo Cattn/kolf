@@ -1,5 +1,5 @@
 {
-    "catalogHash": "39f2969eefdbe85a5c69f89696b9804018d8f9bc250c6e3c79ecc125df247747",
+    "catalogHash": "cfdc78d9e4ac327366162155619adec96c3825b6917899189998a8f9468105e9",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -859,6 +859,52 @@
             "addOnNewHole": false,
             "affectsGameplay": true,
             "category": "mechanism",
+            "id": "ramp",
+            "name": "Jump Ramp",
+            "properties": [
+                {
+                    "default": 36,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 30,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": 1,
+                    "key": "lift",
+                    "label": "Lift",
+                    "max": 2.5,
+                    "min": 0.3,
+                    "step": 0.1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
             "id": "repulsor",
             "name": "Repulsor",
             "properties": [
@@ -1301,6 +1347,44 @@
                 "t",
                 "direction",
                 "running"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "mechanism",
+            "id": "trampoline",
+            "name": "Trampoline",
+            "properties": [
+                {
+                    "default": 34,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 34,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0.8,
+                    "key": "lift",
+                    "label": "Lift",
+                    "max": 2.5,
+                    "min": 0.3,
+                    "step": 0.1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
             ]
         },
         {

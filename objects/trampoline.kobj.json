@@ -1,0 +1,38 @@
+{
+  "kolfObject": 1,
+  "id": "trampoline",
+  "name": "Trampoline",
+  "category": "mechanism",
+  "help": "Bounces a ball into the air again, from any direction. Each bounce loses some speed.",
+  "shape": {
+    "type": "ellipse",
+    "size": [
+      34,
+      34
+    ],
+    "resizable": true,
+    "rotatable": false
+  },
+  "visual": {
+    "sprite": "trampoline.svg",
+    "layer": "ground"
+  },
+  "properties": {
+    "lift": {
+      "type": "number",
+      "label": "Lift",
+      "min": 0.3,
+      "max": 2.5,
+      "step": 0.1,
+      "default": 0.8
+    }
+  },
+  "components": [
+    {
+      "type": "launch",
+      "lift": "$lift",
+      "anyDirection": true,
+      "minSpeed": 0.8
+    }
+  ]
+}

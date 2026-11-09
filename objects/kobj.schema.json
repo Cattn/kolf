@@ -733,6 +733,63 @@
               ]
             }
           }
+        },
+        {
+          "additionalProperties": false,
+          "required": [
+            "lift"
+          ],
+          "properties": {
+            "type": {
+              "const": "launch"
+            },
+            "lift": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.2,
+                  "maximum": 3
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "direction": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 359
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "anyDirection": {
+              "oneOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "minSpeed": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0.2,
+                  "maximum": 5
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            }
+          }
         }
       ]
     }

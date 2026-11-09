@@ -1,0 +1,37 @@
+{
+  "kolfObject": 1,
+  "id": "ramp",
+  "name": "Jump Ramp",
+  "category": "mechanism",
+  "help": "Roll up it fast enough and the ball jumps along its arrow, flying over walls, water and pits. The faster, the further.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      36,
+      30
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "ramp.svg",
+    "layer": "ground"
+  },
+  "properties": {
+    "lift": {
+      "type": "number",
+      "label": "Lift",
+      "min": 0.3,
+      "max": 2.5,
+      "step": 0.1,
+      "default": 1
+    }
+  },
+  "components": [
+    {
+      "type": "launch",
+      "lift": "$lift",
+      "minSpeed": 1
+    }
+  ]
+}

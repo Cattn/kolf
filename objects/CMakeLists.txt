@@ -45,5 +45,9 @@ install(FILES
     spinner.svg
     sweeper.kobj.json
     sweeper.svg
+    ramp.kobj.json
+    ramp.svg
+    trampoline.kobj.json
+    trampoline.svg
     kobj.schema.json
     DESTINATION ${KDE_INSTALL_DATADIR}/kolf/objects)

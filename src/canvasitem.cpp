@@ -165,6 +165,8 @@ void CanvasItem::moveItemsOnStrut(const QPointF& posDiff)
 	//objects on same strut level or above (i.e. don't collide with
 	//stuff below the current strut)
 	const QGraphicsItem* qitem = dynamic_cast<QGraphicsItem*>(citem);
+	if (ball->airborne())
+		return qitem && qitem->zValue() >= 10000;
 	if (!qitem)
 		return true;
 	const int ballStrutLevel = int(ball->zValue()) / ZValueStep;

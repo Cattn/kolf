@@ -18,12 +18,18 @@
 */
 
 #include "ball.h"
+#include <QGraphicsDropShadowEffect>
 #include <QPropertyAnimation>
 #include "ballstep.h"
 #include "effects.h"
+#include "impacteffects.h"
 #include "game.h"
 #include "overlay.h"
 #include "shape.h"
+
+namespace {
+constexpr int MaximumAirSteps = 160;
+}
 
 #include <QApplication>
 
@@ -54,6 +60,35 @@ Ball::Ball(QGraphicsItem* parent, b2World* world)
 
 	// this sets z
 	setState(Stopped);
+}
+
+void Ball::launch(int steps)
+{
+	m_airTotal = m_airSteps = qBound(1, steps, MaximumAirSteps);
+	updateAirVisual();
+}
+
+void Ball::updateAirVisual()
+{
+	auto *shadow = qobject_cast<QGraphicsDropShadowEffect *>(graphicsEffect());
+	if (m_airSteps <= 0 || m_airTotal <= 0) {
+		if (shadow)
+			setGraphicsEffect(nullptr);
+		if (!m_shownHoled)
+			setScale(1);
+		return;
+	}
+	const double progress = 1.0 - double(m_airSteps) / m_airTotal;
+	const double height = std::sin(M_PI * progress) * qMin(1.0, m_airTotal / 60.0);
+	if (!shadow) {
+		shadow = new QGraphicsDropShadowEffect;
+		shadow->setColor(QColor(0, 0, 0, 110));
+		setGraphicsEffect(shadow);
+	}
+	shadow->setOffset(2 + 7 * height, 2 + 7 * height);
+	shadow->setBlurRadius(3 + 4 * height);
+	setTransformOriginPoint(boundingRect().center());
+	setScale(1 + 0.6 * height);
 }
 
 void Ball::showHoled(bool holed)
@@ -132,6 +167,14 @@ void Ball::moveBy(double dx, double dy)
 void Ball::endSimulation()
 {
 	if (game && !game->maySimulate()) return;
+	if (m_airSteps > 0) {
+		if (--m_airSteps == 0) {
+			setVelocity(QPointF(velocity()) * 0.8);
+			if (game)
+				game->impact(Kolf::Impact::Dust, pos(), 2);
+		}
+		updateAirVisual();
+	}
 	if (state == Stopped && !qFuzzyIsNull(Vector(velocity()).magnitude())) {
 		//ball was resting, but received some momentum from collision with other ball
 		setState(Rolling);
@@ -150,6 +193,9 @@ void Ball::collisionDetect()
 	if (game && !game->maySimulate()) return;
 	if (game) game->recordCollision();
 	if (!isVisible() || state == Holed || !m_doDetect)
+		return;
+
+	if (m_airSteps > 0)
 		return;
 
 	// do friction every other time
@@ -224,7 +270,8 @@ QVariantMap Ball::runtimeState() const
 {
 	return {{QStringLiteral("maxBumperBounceSpeed"), maxBumperBounceSpeed}, {QStringLiteral("frictionMultiplier"), frictionMultiplier},
 		{QStringLiteral("collisionId"), m_collisionId}, {QStringLiteral("beginningOfHole"), m_beginningOfHole},
-		{QStringLiteral("hazardReset"), int(m_hazardReset)}};
+		{QStringLiteral("hazardReset"), int(m_hazardReset)}, {QStringLiteral("airSteps"), m_airSteps},
+		{QStringLiteral("airTotal"), m_airTotal}};
 }
 
 void Ball::setRuntimeState(const QVariantMap &runtime)
@@ -234,4 +281,7 @@ void Ball::setRuntimeState(const QVariantMap &runtime)
 	m_collisionId = runtime.value(QStringLiteral("collisionId"), m_collisionId).toInt() % 2;
 	m_beginningOfHole = runtime.value(QStringLiteral("beginningOfHole"), m_beginningOfHole).toBool();
 	m_hazardReset = HazardReset(qBound(0, runtime.value(QStringLiteral("hazardReset"), int(m_hazardReset)).toInt(), 2));
+	m_airTotal = qBound(0, runtime.value(QStringLiteral("airTotal"), m_airTotal).toInt(), MaximumAirSteps);
+	m_airSteps = qBound(0, runtime.value(QStringLiteral("airSteps"), m_airSteps).toInt(), m_airTotal);
+	updateAirVisual();
 }

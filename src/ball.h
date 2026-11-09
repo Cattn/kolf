@@ -54,6 +54,8 @@ public:
 	void setAddStroke(int newStrokes) { m_addStroke = newStrokes; }
 	void setPlaceOnGround(bool placeOnGround) { m_placeOnGround = placeOnGround; m_pogOldVelocity = velocity(); }
 	HazardReset hazardReset() const { return m_hazardReset; }
+	bool airborne() const { return m_airSteps > 0; }
+	void launch(int steps);
 	void setHazardReset(HazardReset reset) { m_hazardReset = reset; }
 
 	bool beginningOfHole() const { return m_beginningOfHole; }
@@ -103,6 +105,9 @@ private:
 	bool m_doDetect;
 	bool m_shownHoled = false;
 	HazardReset m_hazardReset = HazardReset::None;
+	int m_airSteps = 0;
+	int m_airTotal = 0;
+	void updateAirVisual();
 	QPropertyAnimation *m_dropAnimation = nullptr;
 	void showHoled(bool holed);
 

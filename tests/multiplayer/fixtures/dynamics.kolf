@@ -168,3 +168,14 @@ rotation=0
 swingArc=45
 swingSpeed=1
 width=30
+
+[1-ramp@320,30|33]
+height=16
+lift=1
+rotation=0
+width=20
+
+[1-trampoline@370,30|34]
+height=20
+lift=0.8
+width=20

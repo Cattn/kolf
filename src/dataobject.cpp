@@ -37,7 +37,7 @@ const QStringList &componentTypes()
 	static const QStringList types{QStringLiteral("surface"), QStringLiteral("force"), QStringLiteral("boost"),
 		QStringLiteral("hazard"), QStringLiteral("sound"), QStringLiteral("decor"), QStringLiteral("solid"),
 		QStringLiteral("trigger"), QStringLiteral("receiver"), QStringLiteral("motion"), QStringLiteral("crumble"),
-		QStringLiteral("pulse"), QStringLiteral("blast"), QStringLiteral("body")};
+		QStringLiteral("pulse"), QStringLiteral("blast"), QStringLiteral("body"), QStringLiteral("launch")};
 	return types;
 }
 
@@ -79,6 +79,11 @@ QList<ParameterRule> parameterRules(const QString &type)
 	if (type == QLatin1String("hazard"))
 		return {{QStringLiteral("outcome"), ParameterRule::Choice, 0, 0, {QStringLiteral("water"), QStringLiteral("reset-last"),
 			QStringLiteral("reset-tee"), QStringLiteral("sink")}, true}};
+	if (type == QLatin1String("launch"))
+		return {{QStringLiteral("lift"), ParameterRule::Number, 0.2, 3, {}, true},
+			{QStringLiteral("direction"), ParameterRule::Angle, 0, 359, {}, false},
+			{QStringLiteral("anyDirection"), ParameterRule::Bool, 0, 0, {}, false},
+			{QStringLiteral("minSpeed"), ParameterRule::Number, 0.2, 5, {}, false}};
 	if (type == QLatin1String("body"))
 		return {{QStringLiteral("mass"), ParameterRule::Number, 0.02, 5, {}, true},
 			{QStringLiteral("damping"), ParameterRule::Number, 0.2, 10, {}, false},
@@ -408,7 +413,8 @@ std::shared_ptr<const Kolf::DataObjectDefinition> Kolf::DataObjectLibrary::parse
 		for (const auto &rule : rules)
 			if (rule.required && !component.contains(rule.name))
 				return fail(path + QLatin1Char('.') + rule.name, QStringLiteral("is required"));
-		if ((componentType == QLatin1String("force") || componentType == QLatin1String("boost"))
+		if ((componentType == QLatin1String("force") || componentType == QLatin1String("boost")
+				|| (componentType == QLatin1String("launch") && !component.value(QStringLiteral("anyDirection")).toBool()))
 			&& !component.contains(QStringLiteral("direction")) && !definition->rotatable
 			&& component.value(QStringLiteral("mode")).toString(QStringLiteral("direction")) == QLatin1String("direction"))
 			return fail(path + QStringLiteral(".direction"), QStringLiteral("is required unless the shape is rotatable"));
@@ -1124,6 +1130,23 @@ void Kolf::DataObject::onBall(BallStepContext &context)
 					+ QPointF(-inward.y(), inward.x()) * strength * falloff * twist * fade * room;
 			}
 			context.force(kind, Vector(force));
+		} else if (component.type == QLatin1String("launch")) {
+			if (ball->airborne())
+				continue;
+			const QPointF velocity = ball->velocity();
+			const double speed = Vector(velocity).magnitude();
+			if (speed < parameter(component, QStringLiteral("minSpeed"), 0.8).toDouble())
+				continue;
+			if (!parameter(component, QStringLiteral("anyDirection"), false).toBool()) {
+				const double radians = parameter(component, QStringLiteral("direction"), rotation).toDouble() * M_PI / 180.0;
+				if (velocity.x() * std::cos(radians) + velocity.y() * std::sin(radians) < 0.5 * speed)
+					continue;
+			}
+			ball->launch(qRound(speed * 14 * parameter(component, QStringLiteral("lift"), 1).toDouble()));
+			if (game)
+				game->playSound(Sound::Bumper, 0.5);
+			context.blockForces();
+			return;
 		} else if (component.type == QLatin1String("boost")) {
 			const qint64 now = game ? qint64(game->physicsSteps()) : 0;
 			if (now - m_lastBoost < parameter(component, QStringLiteral("cooldown"), 30).toInt())
