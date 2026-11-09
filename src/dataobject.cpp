@@ -106,7 +106,9 @@ QList<ParameterRule> parameterRules(const QString &type)
 		return {{QStringLiteral("dx"), ParameterRule::Number, -1000, 1000, {}, false},
 			{QStringLiteral("dy"), ParameterRule::Number, -1000, 1000, {}, false},
 			{QStringLiteral("speed"), ParameterRule::Number, 0, 10, {}, true},
-			{QStringLiteral("autostart"), ParameterRule::Bool, 0, 0, {}, false}};
+			{QStringLiteral("autostart"), ParameterRule::Bool, 0, 0, {}, false},
+			{QStringLiteral("kind"), ParameterRule::Choice, 0, 0, {QStringLiteral("slide"), QStringLiteral("spin"), QStringLiteral("swing")}, false},
+			{QStringLiteral("arc"), ParameterRule::Number, 0, 180, {}, false}};
 	return {};
 }
 
@@ -634,6 +636,23 @@ void Kolf::DataObject::setGame(KolfGame *game)
 		connect(game, &KolfGame::simulationStepped, this, &DataObject::step, Qt::UniqueConnection);
 }
 
+bool Kolf::DataObject::rotating() const
+{
+	for (const auto &component : m_definition->components)
+		if (component.type == QLatin1String("motion")
+			&& component.parameters.value(QStringLiteral("kind")).toString(QStringLiteral("slide")) != QLatin1String("slide"))
+			return true;
+	return false;
+}
+
+void Kolf::DataObject::applyAngle(double angle)
+{
+	setRotation(angle);
+	if (m_solidShape)
+		m_solidShape->setAngle(angle);
+	propagateUpdate();
+}
+
 bool Kolf::DataObject::swirling() const
 {
 	for (const auto &component : m_definition->components)
@@ -692,6 +711,21 @@ void Kolf::DataObject::step()
 	for (const auto &component : m_definition->components) {
 		if (component.type != QLatin1String("motion") || !m_running)
 			continue;
+		const QString kind = parameter(component, QStringLiteral("kind"), QStringLiteral("slide")).toString();
+		if (kind != QLatin1String("slide")) {
+			const double base = m_values.value(QStringLiteral("rotation"), 0).toDouble();
+			const double speed = parameter(component, QStringLiteral("speed"), 0).toDouble();
+			double angle = base;
+			if (kind == QLatin1String("spin")) {
+				m_t = std::fmod(m_t + m_direction * speed, 360.0);
+				angle = base + m_t;
+			} else {
+				m_t = std::fmod(m_t + speed * M_PI / 180.0, 2 * M_PI);
+				angle = base + parameter(component, QStringLiteral("arc"), 45).toDouble() * std::sin(m_t);
+			}
+			applyAngle(angle);
+			continue;
+		}
 		const QPointF offset(parameter(component, QStringLiteral("dx"), 0).toDouble(), parameter(component, QStringLiteral("dy"), 0).toDouble());
 		const double length = std::hypot(offset.x(), offset.y());
 		if (length <= 0)
@@ -959,7 +993,9 @@ void Kolf::DataObject::setRuntimeState(const QVariantMap &state)
 	m_lastBoost = qint64(state.value(QStringLiteral("lastBoost"), double(m_lastBoost)).toDouble());
 	m_occupied = state.value(QStringLiteral("occupied"), m_occupied).toInt();
 	m_running = state.value(QStringLiteral("running"), m_running).toBool();
-	m_t = qBound(0.0, state.value(QStringLiteral("t"), m_t).toDouble(), 1.0);
+	m_t = state.value(QStringLiteral("t"), m_t).toDouble();
+	if (!rotating())
+		m_t = qBound(0.0, m_t, 1.0);
 	m_direction = state.value(QStringLiteral("direction"), m_direction).toInt() < 0 ? -1 : 1;
 	m_phase = qint64(state.value(QStringLiteral("phase"), double(m_phase)).toDouble());
 	m_crumbled = state.value(QStringLiteral("crumbled"), m_crumbled).toBool();
@@ -975,6 +1011,15 @@ void Kolf::DataObject::setRuntimeState(const QVariantMap &state)
 		setOpacity(0.35 + 0.65 * gustFactor());
 	if (state.contains(QStringLiteral("open")))
 		setOpen(state.value(QStringLiteral("open")).toBool());
+	if (rotating()) {
+		for (const auto &component : m_definition->components) {
+			if (component.type != QLatin1String("motion"))
+				continue;
+			const double base = m_values.value(QStringLiteral("rotation"), 0).toDouble();
+			const bool spin = parameter(component, QStringLiteral("kind"), QStringLiteral("slide")).toString() == QLatin1String("spin");
+			applyAngle(spin ? base + m_t : base + parameter(component, QStringLiteral("arc"), 45).toDouble() * std::sin(m_t));
+		}
+	}
 	m_resyncInside = true;
 	m_resyncOccupants = true;
 }

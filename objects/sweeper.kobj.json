@@ -1,0 +1,49 @@
+{
+  "kolfObject": 1,
+  "id": "sweeper",
+  "name": "Sweeper",
+  "category": "obstacle",
+  "help": "A bar that swings back and forth around its middle on a steady rhythm.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      100,
+      8
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "sweeper.svg",
+    "layer": "raised"
+  },
+  "properties": {
+    "swingSpeed": {
+      "type": "number",
+      "label": "Swing speed",
+      "min": 0.2,
+      "max": 4,
+      "step": 0.1,
+      "default": 1.2
+    },
+    "swingArc": {
+      "type": "number",
+      "label": "Swing (degrees)",
+      "min": 10,
+      "max": 90,
+      "step": 5,
+      "default": 45
+    }
+  },
+  "components": [
+    {
+      "type": "solid"
+    },
+    {
+      "type": "motion",
+      "kind": "swing",
+      "speed": "$swingSpeed",
+      "arc": "$swingArc"
+    }
+  ]
+}

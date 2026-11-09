@@ -155,3 +155,16 @@ weight=0.2
 
 [1-pin@150,30|30]
 dummykey=true
+
+[1-spinner@200,30|31]
+height=6
+rotation=0
+turnSpeed=1
+width=30
+
+[1-sweeper@260,30|32]
+height=6
+rotation=0
+swingArc=45
+swingSpeed=1
+width=30

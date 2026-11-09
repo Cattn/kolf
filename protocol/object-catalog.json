@@ -1,5 +1,5 @@
 {
-    "catalogHash": "bcd5bf106757e0c945bf66b3a122a9c9cf14ffdde38d8acc4071513246e26152",
+    "catalogHash": "39f2969eefdbe85a5c69f89696b9804018d8f9bc250c6e3c79ecc125df247747",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -1194,6 +1194,113 @@
             ],
             "runtime": [
                 "lastBoost"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "obstacle",
+            "id": "spinner",
+            "name": "Spinner Bar",
+            "properties": [
+                {
+                    "default": 90,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 8,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": 1,
+                    "key": "turnSpeed",
+                    "label": "Turn speed",
+                    "max": 4,
+                    "min": 0.2,
+                    "step": 0.1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+                "t",
+                "direction",
+                "running"
+            ]
+        },
+        {
+            "addOnNewHole": false,
+            "affectsGameplay": true,
+            "category": "obstacle",
+            "id": "sweeper",
+            "name": "Sweeper",
+            "properties": [
+                {
+                    "default": 100,
+                    "key": "width",
+                    "label": "Width",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 8,
+                    "key": "height",
+                    "label": "Height",
+                    "max": 2000,
+                    "min": 1,
+                    "step": 1,
+                    "type": "number"
+                },
+                {
+                    "default": 0,
+                    "key": "rotation",
+                    "label": "Rotation",
+                    "max": 359,
+                    "min": 0,
+                    "type": "angle"
+                },
+                {
+                    "default": 45,
+                    "key": "swingArc",
+                    "label": "Swing (degrees)",
+                    "max": 90,
+                    "min": 10,
+                    "step": 5,
+                    "type": "number"
+                },
+                {
+                    "default": 1.2,
+                    "key": "swingSpeed",
+                    "label": "Swing speed",
+                    "max": 4,
+                    "min": 0.2,
+                    "step": 0.1,
+                    "type": "number"
+                }
+            ],
+            "runtime": [
+                "t",
+                "direction",
+                "running"
             ]
         },
         {

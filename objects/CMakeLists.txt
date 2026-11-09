@@ -41,5 +41,9 @@ install(FILES
     barrel.svg
     pin.kobj.json
     pin.svg
+    spinner.kobj.json
+    spinner.svg
+    sweeper.kobj.json
+    sweeper.svg
     kobj.schema.json
     DESTINATION ${KDE_INSTALL_DATADIR}/kolf/objects)

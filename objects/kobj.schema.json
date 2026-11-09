@@ -578,6 +578,32 @@
                   "$ref": "#/$defs/binding"
                 }
               ]
+            },
+            "kind": {
+              "oneOf": [
+                {
+                  "enum": [
+                    "slide",
+                    "spin",
+                    "swing"
+                  ]
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
+            },
+            "arc": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 180
+                },
+                {
+                  "$ref": "#/$defs/binding"
+                }
+              ]
             }
           }
         },

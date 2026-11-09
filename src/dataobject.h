@@ -68,6 +68,8 @@ public:
 	QVariantMap runtimeState() const override;
 	bool gusting() const;
 	bool swirling() const;
+	bool rotating() const;
+	void applyAngle(double angle);
 	double gustFactor() const;
 	void setRuntimeState(const QVariantMap &state) override;
 	void onBall(BallStepContext &context) override;

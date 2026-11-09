@@ -1,0 +1,40 @@
+{
+  "kolfObject": 1,
+  "id": "spinner",
+  "name": "Spinner Bar",
+  "category": "obstacle",
+  "help": "A bar turning steadily around its middle. Time your putt through the gaps.",
+  "shape": {
+    "type": "rect",
+    "size": [
+      90,
+      8
+    ],
+    "resizable": true,
+    "rotatable": true
+  },
+  "visual": {
+    "sprite": "spinner.svg",
+    "layer": "raised"
+  },
+  "properties": {
+    "turnSpeed": {
+      "type": "number",
+      "label": "Turn speed",
+      "min": 0.2,
+      "max": 4,
+      "step": 0.1,
+      "default": 1
+    }
+  },
+  "components": [
+    {
+      "type": "solid"
+    },
+    {
+      "type": "motion",
+      "kind": "spin",
+      "speed": "$turnSpeed"
+    }
+  ]
+}
