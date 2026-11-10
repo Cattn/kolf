@@ -1,0 +1,394 @@
+{
+    "course": "Workshop",
+    "holes": [
+        {
+            "hole": 1,
+            "shots": [
+                {
+                    "ball": [
+                        122.421,
+                        177.75
+                    ],
+                    "direction": -0.655,
+                    "magnitude": 4.163,
+                    "objects": {
+                        "1-crate@174,225|2": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 178.071,
+                            "y": 223.837
+                        }
+                    },
+                    "state": 1,
+                    "steps": 128,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        182.437,
+                        198.449
+                    ],
+                    "direction": 0.097,
+                    "magnitude": 2.428,
+                    "objects": {
+                        "1-crate@174,225|2": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 178.071,
+                            "y": 223.841
+                        }
+                    },
+                    "state": 1,
+                    "steps": 175,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        241.043,
+                        161.446
+                    ],
+                    "direction": -0.562,
+                    "magnitude": 1.388,
+                    "objects": {
+                        "1-barrel@254,157|4": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 253.807,
+                            "y": 155.679
+                        },
+                        "1-crate@174,225|2": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 178.071,
+                            "y": 223.841
+                        }
+                    },
+                    "state": 1,
+                    "steps": 122,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 2,
+            "shots": [
+                {
+                    "ball": [
+                        38.608,
+                        26.972
+                    ],
+                    "direction": -0.774,
+                    "magnitude": 4.163,
+                    "state": 1,
+                    "steps": 304,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        183.781,
+                        150.889
+                    ],
+                    "direction": 0.604,
+                    "magnitude": 2.428,
+                    "state": 1,
+                    "steps": 175,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        154.809,
+                        118.045
+                    ],
+                    "direction": -0.479,
+                    "magnitude": 1.388,
+                    "state": 1,
+                    "steps": 99,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 3,
+            "shots": [
+                {
+                    "ball": [
+                        277.064,
+                        364.746
+                    ],
+                    "direction": -0.491,
+                    "magnitude": 4.163,
+                    "objects": {
+                        "3-spinner@207,198|2": {
+                            "rotation": 301.6,
+                            "visible": true,
+                            "x": 207,
+                            "y": 198
+                        }
+                    },
+                    "state": 1,
+                    "steps": 304,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        354.168,
+                        196.302
+                    ],
+                    "direction": -0.882,
+                    "magnitude": 2.428,
+                    "objects": {
+                        "3-spinner@207,198|2": {
+                            "rotation": 99.1,
+                            "visible": true,
+                            "x": 207,
+                            "y": 198
+                        }
+                    },
+                    "state": 1,
+                    "steps": 175,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        343.857,
+                        125.79
+                    ],
+                    "direction": -1.716,
+                    "magnitude": 1.388,
+                    "objects": {
+                        "3-spinner@207,198|2": {
+                            "rotation": 188.2,
+                            "visible": true,
+                            "x": 207,
+                            "y": 198
+                        }
+                    },
+                    "state": 1,
+                    "steps": 99,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 4,
+            "shots": [
+                {
+                    "direction": -0.512,
+                    "holed": true,
+                    "magnitude": 4.163,
+                    "steps": 90,
+                    "strokes": 1
+                }
+            ]
+        },
+        {
+            "hole": 5,
+            "shots": [
+                {
+                    "direction": -0.771,
+                    "holed": true,
+                    "magnitude": 4.163,
+                    "steps": 89,
+                    "strokes": 1
+                }
+            ]
+        },
+        {
+            "hole": 6,
+            "shots": [
+                {
+                    "ball": [
+                        138.567,
+                        333.057
+                    ],
+                    "direction": -0.7,
+                    "magnitude": 4.163,
+                    "state": 1,
+                    "steps": 412,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        299.005,
+                        123.849
+                    ],
+                    "direction": -0.481,
+                    "magnitude": 2.428,
+                    "objects": {
+                        "6-barrel@300,163|4": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 250.869,
+                            "y": 162.616
+                        }
+                    },
+                    "state": 1,
+                    "steps": 325,
+                    "strokes": 2
+                },
+                {
+                    "direction": -0.92,
+                    "holed": true,
+                    "magnitude": 1.388,
+                    "steps": 62,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 7,
+            "shots": [
+                {
+                    "ball": [
+                        99.832,
+                        244.446
+                    ],
+                    "direction": -0.77,
+                    "magnitude": 4.163,
+                    "objects": {
+                        "7-sweeper@145,260|2": {
+                            "rotation": -19.911,
+                            "visible": true,
+                            "x": 145,
+                            "y": 260
+                        },
+                        "7-sweeper@255,140|3": {
+                            "rotation": 168.057,
+                            "visible": true,
+                            "x": 255,
+                            "y": 140
+                        }
+                    },
+                    "state": 1,
+                    "steps": 304,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        313.451,
+                        200.03
+                    ],
+                    "direction": -0.205,
+                    "magnitude": 2.428,
+                    "objects": {
+                        "7-sweeper@145,260|2": {
+                            "rotation": 67.574,
+                            "visible": true,
+                            "x": 145,
+                            "y": 260
+                        },
+                        "7-sweeper@255,140|3": {
+                            "rotation": 105.324,
+                            "visible": true,
+                            "x": 255,
+                            "y": 140
+                        }
+                    },
+                    "state": 1,
+                    "steps": 175,
+                    "strokes": 2
+                },
+                {
+                    "ball": [
+                        325.001,
+                        129.71
+                    ],
+                    "direction": -1.408,
+                    "magnitude": 1.388,
+                    "objects": {
+                        "7-sweeper@145,260|2": {
+                            "rotation": 40.243,
+                            "visible": true,
+                            "x": 145,
+                            "y": 260
+                        },
+                        "7-sweeper@255,140|3": {
+                            "rotation": 165.84,
+                            "visible": true,
+                            "x": 255,
+                            "y": 140
+                        }
+                    },
+                    "state": 1,
+                    "steps": 99,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 8,
+            "shots": [
+                {
+                    "ball": [
+                        382.415,
+                        255.464
+                    ],
+                    "direction": 0.044,
+                    "magnitude": 4.163,
+                    "objects": {
+                        "8-barrel@122,284|10": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 119.401,
+                            "y": 284
+                        },
+                        "8-crate@147,270|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 149.599,
+                            "y": 270
+                        }
+                    },
+                    "state": 1,
+                    "steps": 304,
+                    "strokes": 1
+                },
+                {
+                    "ball": [
+                        326.491,
+                        243.41
+                    ],
+                    "direction": -1.83,
+                    "magnitude": 2.428,
+                    "objects": {
+                        "8-barrel@122,284|10": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 119.401,
+                            "y": 284
+                        },
+                        "8-crate@147,270|3": {
+                            "rotation": 0,
+                            "visible": true,
+                            "x": 149.599,
+                            "y": 270
+                        }
+                    },
+                    "state": 1,
+                    "steps": 175,
+                    "strokes": 2
+                },
+                {
+                    "direction": -0.977,
+                    "holed": true,
+                    "magnitude": 1.388,
+                    "steps": 24,
+                    "strokes": 3
+                }
+            ]
+        },
+        {
+            "hole": 9,
+            "shots": [
+                {
+                    "direction": -0.731,
+                    "holed": true,
+                    "magnitude": 4.163,
+                    "steps": 98,
+                    "strokes": 1
+                }
+            ]
+        }
+    ],
+    "seed": 1
+}

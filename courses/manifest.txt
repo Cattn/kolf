@@ -12,3 +12,6 @@ dangerzone|DangerZone
 toybox|ToyBox
 clockwork|Clockwork
 party|Party
+workshop|Workshop
+machineroom|MachineRoom
+stormcoast|StormCoast

@@ -3,7 +3,7 @@
 # by the greedy solver (see tests/replay/README.md). Courses are solved in parallel.
 param(
     [string]$Kolf = 'C:\CraftRoot\bin\kolf.exe',
-    [string[]]$Course = @('WeatherReport', 'DangerZone', 'ToyBox', 'Clockwork', 'Party')
+    [string[]]$Course = @('WeatherReport', 'DangerZone', 'ToyBox', 'Clockwork', 'Party', 'Workshop', 'MachineRoom', 'StormCoast')
 )
 $ErrorActionPreference = 'Continue'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
