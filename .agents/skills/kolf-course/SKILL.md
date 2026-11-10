@@ -74,11 +74,37 @@ instead of guessing. Useful types:
 | Classic | `wall`, `bumper`, `windmill`, `floater`, `bridge`, `sign`, `sand`, `puddle`, `slope`, `blackhole` |
 | Surfaces | `ice`, `mud`, `rough`, `shallowwater` |
 | Pushers and fields | `speedpad`, `conveyor`, `wind`, `magnet`, `repulsor`, `whirlpool` |
-| Hazards | `lava` (back to the last spot, +1), `pit` (back to the tee, +1), `quicksand`, `crumble`, `fence`, `mine` |
-| Mechanisms | `plate` + `gate` linked by the same `channel` text |
+| Hazards | `lava` (back to the last spot, +1), `pit` (back to the tee, +1), `quicksand` (sinks if the ball stops in it), `crumble` (becomes a pit after a ball crosses it, for the rest of the hole), `fence` (timed solid barrier), `mine` (one blast throwing nearby balls) |
+| Physics toys | `crate`, `barrel`, `pin` (pushable bodies), `spinner`, `sweeper` (rotating bars), `peg` (small round post), `ramp` (launches a fast ball into the air along its arrow, over walls/water/pits), `trampoline` (relaunches from any direction) |
+| Mechanisms | `plate` (trigger), `button` (trigger on a firm hit), `counter` (counts one channel, signals another after N), `gate` (receiver), `timedgate` (opens/closes on a cycle), `drawbridge` (deck that slides out when signalled; covers water), `cuplid` (put it on a cup: covers it until its channel opens it), `portal` (pairs by `channel`; `role` entry/exit/both; exits along the exit portal's arrow) |
+| Power-ups | `powerbox`: gives an item when a ball rolls through, refills after `refill` turns; `item` is `random` or a fixed item. Only active when the match has power-ups on (New Game "Power-ups", or the online lobby rule); otherwise hidden and inert |
+| Decorations | `oak`, `pine`, `palm` (canopy: fade when a ball is under them), `bush`, `hedge`, `flowersred`/`flowersyellow`/`flowerspurple`/`flowerswhite`, `grasstuft`, `cactus`, `lilypad`, `stones`, `boardwalk`, `arrowpaint`, `bench`, `lamp`, `flag`, `picketfence`, `brickwall`, `rock`. Never affect play |
 
-Each data object's help text in `objects/<type>.kobj.json` says what it does.
-Unknown types and out-of-range values fail `--check-course` (below) and online upload.
+Channels are free text: every trigger/button/counter output with channel `a`
+signals every receiver (gate, drawbridge, cuplid) listening on `a`. Use
+different channel names for unrelated puzzles in the same hole.
+
+Power-up items: attacks `wobble` (aim jitter), `heavy` (x0.65 power), `fog`
+(target can't see far), `butterfingers` (fast power meter), `mirror` (swapped
+aim), `slick` (ice friction), `swap` (trade ball positions, Chaos only); for
+yourself `shield` (blocks the next attack), `mulligan` (next stroke free),
+`steady` (ignore slopes/wind/forces), `bigcup` (cup counts from 1.5x radius).
+Players hold two items and use one with a putt. Good power-up holes put boxes
+where collecting one costs something (a detour, a risk, a timing gamble), not
+on every line; a course must also play well with power-ups off.
+
+Themes: put `theme=` in the course header (or a hole to override it):
+`classic`, `beach`, `snow`, `desert`, `autumn`, `night`, `neon`, `space`;
+`groundColor`, `borderColor`, `wallColor` take `#rrggbb` overrides. Themes are
+visual only.
+
+Each data object's help text in `objects/<type>.kobj.json` says what it does,
+and `courses/WeatherReport`, `DangerZone`, `ToyBox`, `Clockwork` and `Party`
+are worked examples. Unknown types and out-of-range values fail
+`--check-course` (below) and online upload.
+
+Rotation tip: rotating a rect by 90 swaps its visual width and height; for a
+vertical bar use `width=<long>`, `height=<thin>`, `rotation=90`.
 
 ## Generate, don't hand-edit
 
@@ -129,6 +155,15 @@ prelude). `$out` is any scratch folder.
    cup and tee are visible, and nothing covers the cup.
 
 Clean up the environment variables between steps (`Remove-Item env:KOLF_*`).
+
+Power-up holes: boxes are hidden unless power-ups are on. For screenshots, add
+`{ "setConfig": { "group": "New Game Dialog Mode", "key": "powerUps", "value": "casual" } }`
+as the first UI script step. For replays, set `KOLF_REPLAY_POWERUPS=casual` to
+record each shot's power-up state (`powerups` in the output JSON), and
+`KOLF_REPLAY_STATUS=<item>` to apply a status before every shot. The solver
+plays with power-ups off, so it proves each hole is fair without items.
+`tests/replay/run-solve.ps1 -Course <A>,<B>` solves several courses in
+parallel.
 
 ## Shipping a course with the game (only when asked)
 
