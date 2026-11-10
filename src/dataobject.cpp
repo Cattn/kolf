@@ -107,7 +107,9 @@ QList<ParameterRule> parameterRules(const QString &type)
 			{QStringLiteral("minSpeed"), ParameterRule::Number, 0, 8, {}, false}};
 	if (type == QLatin1String("pickup"))
 		return {{QStringLiteral("item"), ParameterRule::Choice, 0, 0, {QStringLiteral("random"), QStringLiteral("wobble"),
-				QStringLiteral("heavy"), QStringLiteral("fog"), QStringLiteral("shield"), QStringLiteral("mulligan")}, false},
+				QStringLiteral("heavy"), QStringLiteral("fog"), QStringLiteral("shield"), QStringLiteral("mulligan"),
+				QStringLiteral("butterfingers"), QStringLiteral("mirror"), QStringLiteral("slick"), QStringLiteral("steady"),
+				QStringLiteral("bigcup"), QStringLiteral("swap")}, false},
 			{QStringLiteral("refillTurns"), ParameterRule::Integer, 1, 20, {}, false}};
 	if (type == QLatin1String("counter"))
 		return {{QStringLiteral("input"), ParameterRule::Text, 0, 0, {}, true},

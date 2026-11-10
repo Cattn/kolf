@@ -1311,8 +1311,10 @@ void KolfGame::updateMouse()
 	if (!m_useMouse || ((stroking || putting) && m_useAdvancedPutting))
 		return;
 
-	const QPointF cursor = viewportToViewport(mapFromGlobal(QCursor::pos()));
+	QPointF cursor = viewportToViewport(mapFromGlobal(QCursor::pos()));
 	const QPointF ball((*curPlayer).ball()->x(), (*curPlayer).ball()->y());
+	if (localStatus(QStringLiteral("mirror")))
+		cursor.setX(2 * ball.x() - cursor.x());
 	putter->setAngle(-Vector(cursor - ball).direction());
 }
 
@@ -1369,8 +1371,10 @@ void KolfGame::keyPressEvent(QKeyEvent *e)
 		case Qt::Key_Left:
 		case Qt::Key_Right:
 			// don't move putter if in advanced putting sequence
-			if ((!stroking && !putting) || !m_useAdvancedPutting)
-				putter->go(e->key() == Qt::Key_Left? D_Left : D_Right, e->modifiers() & Qt::ShiftModifier? Amount_More : e->modifiers() & Qt::ControlModifier? Amount_Less : Amount_Normal);
+			if ((!stroking && !putting) || !m_useAdvancedPutting) {
+				const bool left = (e->key() == Qt::Key_Left) != localStatus(QStringLiteral("mirror"));
+				putter->go(left ? D_Left : D_Right, e->modifiers() & Qt::ShiftModifier? Amount_More : e->modifiers() & Qt::ControlModifier? Amount_Less : Amount_Normal);
+			}
 			break;
 
 		case Qt::Key_Space: case Qt::Key_Down:
@@ -1710,7 +1714,7 @@ void KolfGame::putterTimeout()
 			else
 			{
 				// make the increase at high strength faster
-				strength += pow(base, strength / maxStrength) - .3;
+				strength += (pow(base, strength / maxStrength) - .3) * (localStatus(QStringLiteral("butterfingers")) ? 2 : 1);
 				if ((int)strength > puttCount * 2)
 				{
 					putter->go(Backwards);
@@ -1783,7 +1787,7 @@ void KolfGame::putterTimeout()
 		{
 			putter->go(Backwards);
 			puttCount++;
-			strength += 1.5;
+			strength += 1.5 * (localStatus(QStringLiteral("butterfingers")) ? 2 : 1);
 			if (strength > maxStrength)
 			{
 				putting = false;
@@ -2111,7 +2115,19 @@ bool KolfGame::applyAcceptedShot(const Kolf::Session::ShotIntent &intent)
 	const int slot = currentSlot();
 	if (intent.powerUpSlot >= 0) {
 		const QString item = m_powerUps.player(slot).slots.value(intent.powerUpSlot);
-		const auto result = m_powerUps.use(slot, intent.powerUpSlot, intent.powerUpTarget);
+		const bool chaos = m_powerUps.rule() == Kolf::PowerUpRule::Chaos;
+		const bool swapBlocked = item == QLatin1String("swap") && (!chaos || intent.powerUpTarget < 0 || intent.powerUpTarget >= players->size()
+			|| (*players)[intent.powerUpTarget].ball()->curState() == Holed || !(*players)[intent.powerUpTarget].ball()->isVisible());
+		const auto result = swapBlocked ? Kolf::PowerUpState::UseResult::Invalid
+			: m_powerUps.use(slot, intent.powerUpSlot, intent.powerUpTarget);
+		if (result == Kolf::PowerUpState::UseResult::Applied && item == QLatin1String("swap")) {
+			Ball *mine = curBall();
+			Ball *theirs = (*players)[intent.powerUpTarget].ball();
+			const QPointF position = mine->pos();
+			mine->setPos(theirs->pos());
+			theirs->setPos(position);
+			putter->setOrigin(mine->x(), mine->y());
+		}
 		if (result != Kolf::PowerUpState::UseResult::Invalid) {
 			announcePowerUp(slot, item, Kolf::PowerUpState::isAttack(item) ? intent.powerUpTarget : -1,
 				result == Kolf::PowerUpState::UseResult::Shielded);
@@ -2492,6 +2508,21 @@ void KolfGame::openFile()
 		m_editSnapshot = holeSnapshot();
 	}
 	applyCourseTheme();
+}
+
+bool KolfGame::localStatus(const QString &status) const
+{
+	return m_viewerOwnsTurn && hasCurrentPlayer() && m_powerUps.hasStatus(currentSlot(), status);
+}
+
+bool KolfGame::ballHasStatus(const Ball *ball, const QString &status) const
+{
+	if (!players || !m_powerUps.enabled())
+		return false;
+	for (int i = 0; i < players->size(); ++i)
+		if ((*players)[i].ball() == ball)
+			return m_powerUps.hasStatus(i, status);
+	return false;
 }
 
 void KolfGame::armPowerUp(int slot, int target)

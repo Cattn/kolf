@@ -27,7 +27,13 @@
         "heavy",
         "fog",
         "shield",
-        "mulligan"
+        "mulligan",
+        "butterfingers",
+        "mirror",
+        "slick",
+        "steady",
+        "bigcup",
+        "swap"
       ],
       "default": "random"
     },

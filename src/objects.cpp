@@ -391,7 +391,8 @@ bool Kolf::Cup::collision(Ball* ball)
 	if (speed > 3.75)
 		return true;
 	//miss if center of ball not inside cup
-	if (!contains(ball->pos() - pos()))
+	const bool big = game && game->ballHasStatus(ball, QStringLiteral("bigcup"));
+	if (big ? QLineF(ball->pos(), pos()).length() > size().width() * 0.75 : !contains(ball->pos() - pos()))
 		return true;
 	//place ball in hole
 	ball->setState(Holed);

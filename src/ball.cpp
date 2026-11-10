@@ -138,7 +138,8 @@ void Ball::friction()
 		setVelocity(QPointF());
 		return;
 	}
-	const double subtractAmount = .027 * frictionMultiplier;
+	const double slick = game && game->ballHasStatus(this, QStringLiteral("slick")) ? 0.25 : 1.0;
+	const double subtractAmount = .027 * frictionMultiplier * slick;
 	Vector velocity = this->velocity();
 	if (velocity.magnitude() <= subtractAmount)
 	{
@@ -210,6 +211,8 @@ void Ball::collisionDetect()
 	const QList<QGraphicsItem *> items = collidingItems();
 
 	Kolf::BallStepContext context(this);
+	if (game && game->ballHasStatus(this, QStringLiteral("steady")))
+		context.blockForces();
 	for (QGraphicsItem* item : items) {
 		if (item->data(0) == Rtti_NoCollision || item->data(0) == Rtti_Putter)
 		{

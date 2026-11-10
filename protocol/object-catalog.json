@@ -1,5 +1,5 @@
 {
-    "catalogHash": "4ef1b43eedde34bafcc48e83dcf5a74f3ab8dea009f46248484218757fc996f0",
+    "catalogHash": "6c5595ebcf9f15908b00416f0ddf9f1c0e7c54ecfcdf3f2168e524e22fc9e761",
     "catalogVersion": 1,
     "structuralGroups": [
         "ball",
@@ -1668,7 +1668,13 @@
                         "heavy",
                         "fog",
                         "shield",
-                        "mulligan"
+                        "mulligan",
+                        "butterfingers",
+                        "mirror",
+                        "slick",
+                        "steady",
+                        "bigcup",
+                        "swap"
                     ]
                 },
                 {

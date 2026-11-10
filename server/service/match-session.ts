@@ -356,7 +356,8 @@ export class MatchCoordinator {
           const held = powerUps?.players?.[this.state.activeSlot]?.slots;
           if (!powerUps || powerUps.rule === 'off' || !Array.isArray(held) || p.powerUp.slot >= held.length)
             return reject('power-up not held');
-          const attack = ['wobble', 'heavy', 'fog'].includes(String(held[p.powerUp.slot]));
+          const attack = ['wobble', 'heavy', 'fog', 'butterfingers', 'mirror', 'slick', 'swap'].includes(String(held[p.powerUp.slot]));
+          if (held[p.powerUp.slot] === 'swap' && powerUps.rule !== 'chaos') return reject('swap needs the chaos rule');
           if (attack && (p.powerUp.target < 0 || p.powerUp.target >= this.match.roster.length
             || p.powerUp.target === this.state.activeSlot || this.departed.has(p.powerUp.target)))
             return reject('invalid power-up target');

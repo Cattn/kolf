@@ -311,6 +311,8 @@ public:
 	QString playerName(int slot) const;
 	void announcePowerUp(int user, const QString &item, int target, bool shielded);
 	void updateStatusView();
+	bool localStatus(const QString &status) const;
+	bool ballHasStatus(const Ball *ball, const QString &status) const;
 	void notifyPowerUpsChanged() { Q_EMIT powerUpsChanged(); }
 	bool bodiesMoving() const;
 	void celebrate(const QPointF &cup, int score, int par);

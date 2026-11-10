@@ -39,7 +39,8 @@ QString powerUpName(const QString &id)
         {QStringLiteral("slick"), kli18nc("@item power-up", "Slick")},
         {QStringLiteral("steady"), kli18nc("@item power-up", "Steady Hand")},
         {QStringLiteral("bigcup"), kli18nc("@item power-up", "Big Cup")},
-        {QStringLiteral("guide"), kli18nc("@item power-up", "Guide")}};
+        {QStringLiteral("guide"), kli18nc("@item power-up", "Guide")},
+        {QStringLiteral("swap"), kli18nc("@item power-up", "Swap")}};
     const auto it = names.constFind(id);
     return it == names.cend() ? id : it->toString();
 }
@@ -113,11 +114,13 @@ void PowerUpState::finishTurn(int slot)
 
 QStringList PowerUpState::pool(PowerUpRule rule)
 {
+    QStringList items{QStringLiteral("wobble"), QStringLiteral("heavy"), QStringLiteral("fog"), QStringLiteral("butterfingers"),
+        QStringLiteral("mirror"), QStringLiteral("slick"), QStringLiteral("shield"), QStringLiteral("mulligan"),
+        QStringLiteral("steady"), QStringLiteral("bigcup")};
     if (rule == PowerUpRule::Chaos)
-        return {QStringLiteral("wobble"), QStringLiteral("wobble"), QStringLiteral("heavy"), QStringLiteral("heavy"),
-            QStringLiteral("fog"), QStringLiteral("fog"), QStringLiteral("shield"), QStringLiteral("mulligan")};
-    return {QStringLiteral("wobble"), QStringLiteral("heavy"), QStringLiteral("fog"), QStringLiteral("shield"),
-        QStringLiteral("mulligan")};
+        items << QStringLiteral("wobble") << QStringLiteral("heavy") << QStringLiteral("fog") << QStringLiteral("slick")
+              << QStringLiteral("butterfingers") << QStringLiteral("mirror") << QStringLiteral("swap") << QStringLiteral("swap");
+    return items;
 }
 
 QString PowerUpState::draw(int hole)
@@ -129,12 +132,15 @@ QString PowerUpState::draw(int hole)
 
 bool PowerUpState::isAttack(const QString &item)
 {
-    return item == QLatin1String("wobble") || item == QLatin1String("heavy") || item == QLatin1String("fog");
+    static const QStringList attacks{QStringLiteral("wobble"), QStringLiteral("heavy"), QStringLiteral("fog"),
+        QStringLiteral("butterfingers"), QStringLiteral("mirror"), QStringLiteral("slick"), QStringLiteral("swap")};
+    return attacks.contains(item);
 }
 
 bool PowerUpState::isKnown(const QString &item)
 {
-    return isAttack(item) || item == QLatin1String("shield") || item == QLatin1String("mulligan");
+    return isAttack(item) || item == QLatin1String("shield") || item == QLatin1String("mulligan")
+        || item == QLatin1String("steady") || item == QLatin1String("bigcup");
 }
 
 PowerUpState::UseResult PowerUpState::use(int user, int index, int target)
@@ -150,7 +156,8 @@ PowerUpState::UseResult PowerUpState::use(int user, int index, int target)
         m_players[user].slots.removeAt(index);
         if (consumeStatus(target, QStringLiteral("shield")))
             return UseResult::Shielded;
-        addStatus(target, item, 1);
+        if (item != QLatin1String("swap"))
+            addStatus(target, item, 1);
         return UseResult::Applied;
     }
     m_players[user].slots.removeAt(index);
