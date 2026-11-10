@@ -100,6 +100,17 @@ KolfWindow::KolfWindow()
 	setCentralWidget(applicationStack);
 	layout = new QGridLayout(dummy);
 	gameHud = new Kolf::Ui::GameHud(dummy);
+	connect(gameHud, &Kolf::Ui::GameHud::powerUpClicked, this, [this](int index) {
+		if (game) gameHud->handlePowerUpClick(game, index);
+	});
+	for (int index = 0; index < 2; ++index) {
+		auto *useItem = actionCollection()->addAction(QStringLiteral("useitem%1").arg(index + 1));
+		useItem->setText(i18nc("@action", "Use Power-up %1", index + 1));
+		KActionCollection::setDefaultShortcut(useItem, QKeySequence(index == 0 ? Qt::Key_1 : Qt::Key_2));
+		connect(useItem, &QAction::triggered, this, [this, index] {
+			if (game && game->powerUps().enabled() && gameHud->isVisible()) gameHud->handlePowerUpClick(game, index);
+		});
+	}
 	layout->addWidget(gameHud, 0, 0);
 	gameHud->hide();
 	connect(gameHud, &Kolf::Ui::GameHud::hintDismissed, this, [] {
@@ -705,6 +716,7 @@ void KolfWindow::launchGame(int firstHole)
 	game->setStrict(competition);
 	game->setPowerUpRule(competition || isTutorial ? Kolf::PowerUpRule::Off : Kolf::powerUpRuleFromId(Kolf::Ui::NewGameView::savedPowerUpRule()));
 	connect(game, &KolfGame::powerUpsChanged, this, &KolfWindow::updateHud);
+	connect(game, &KolfGame::powerUpAnnounced, this, [this](const QString &text) { statusBar()->showMessage(text, 5000); });
 	if (m_savedRandomSeed >= 0)
 		game->setRandomSeed(quint32(m_savedRandomSeed));
 	m_savedRandomSeed = -1;
@@ -817,11 +829,7 @@ void KolfWindow::updateHud()
 		return;
 	}
 	gameHud->setTurn(game->currentPlayerName(), game->currentPlayerColor(), game->currentPlayerStrokes() + 1);
-	const auto &held = game->powerUps().player(game->currentSlot());
-	QStringList items, statuses;
-	for (const auto &item : held.slots) items << Kolf::powerUpName(item);
-	for (auto it = held.statuses.cbegin(); it != held.statuses.cend(); ++it) statuses << Kolf::powerUpName(it.key());
-	gameHud->setPowerUps(game->powerUps().enabled(), items, statuses);
+	gameHud->showPowerUps(game, !game->isEditing());
 }
 
 void KolfWindow::editNewCourse()

@@ -11,6 +11,8 @@ struct ShotIntent {
     double directionRadians = 0;
     double launchMagnitude = 1;
     bool advanced = false;
+    int powerUpSlot = -1;
+    int powerUpTarget = -1;
     bool valid() const {
         return std::isfinite(directionRadians) && std::abs(directionRadians) <= 3.14159265358979323846
             && std::isfinite(launchMagnitude) && launchMagnitude > 0

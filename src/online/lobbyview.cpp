@@ -107,6 +107,12 @@ LobbyView::LobbyView(OnlineCoordinator &coordinator, QWidget *parent)
     m_allowVoting->setObjectName(QStringLiteral("lobbyAllowVoting"));
     rulesLayout->addWidget(m_hostControls);
     rulesLayout->addWidget(m_allowVoting);
+    m_powerUps = new QComboBox(rules);
+    m_powerUps->setObjectName(QStringLiteral("lobbyPowerUps"));
+    m_powerUps->addItem(i18nc("@item:inlistbox power-ups", "Power-ups: Off"), QStringLiteral("off"));
+    m_powerUps->addItem(i18nc("@item:inlistbox power-ups", "Power-ups: Casual"), QStringLiteral("casual"));
+    m_powerUps->addItem(i18nc("@item:inlistbox power-ups", "Power-ups: Chaos"), QStringLiteral("chaos"));
+    rulesLayout->addWidget(m_powerUps);
     setup->addWidget(rules);
     setup->addStretch();
     columns->addLayout(setup, 1);
@@ -161,9 +167,12 @@ LobbyView::LobbyView(OnlineCoordinator &coordinator, QWidget *parent)
         const auto path = QFileDialog::getOpenFileName(this, i18n("Choose a Kolf course"), {}, i18n("Kolf courses (*.kolf);;All files (*)"));
         if (!path.isEmpty()) m_coordinator.uploadCourse(path);
     });
-    const auto sendRules = [this] { m_coordinator.setLobbyRules(m_hostControls->isChecked(), m_allowVoting->isChecked()); };
+    const auto sendRules = [this] {
+        m_coordinator.setLobbyRules(m_hostControls->isChecked(), m_allowVoting->isChecked(), m_powerUps->currentData().toString());
+    };
     connect(m_hostControls, &QCheckBox::clicked, this, sendRules);
     connect(m_allowVoting, &QCheckBox::clicked, this, sendRules);
+    connect(m_powerUps, &QComboBox::activated, this, sendRules);
     connect(&m_coordinator, &OnlineCoordinator::courseUploadProgress, this, [this](int percent) {
         m_courseStatus->setText(percent < 100 ? i18n("Uploading course… %1%", percent) : i18n("Course uploaded."));
     });
@@ -294,7 +303,7 @@ void LobbyView::setState(const QJsonObject &state)
     m_primary->setEnabled(open && (!host || (members.size() >= 2 && waiting == 0 && awayNames.isEmpty())));
     m_primary->setToolTip(m_primary->isEnabled() ? QString() : reason);
     setStatus(reason);
-    const QSignalBlocker blockCourse(m_course), blockHost(m_hostControls), blockVoting(m_allowVoting);
+    const QSignalBlocker blockCourse(m_course), blockHost(m_hostControls), blockVoting(m_allowVoting), blockPowerUps(m_powerUps);
     m_course->clear();
     QJsonObject selected;
     for (const auto &value : state.value(QStringLiteral("courses")).toArray()) {
@@ -309,6 +318,9 @@ void LobbyView::setState(const QJsonObject &state)
     m_hostControls->setChecked(state.value(QStringLiteral("hostControls")).toBool());
     m_allowVoting->setChecked(state.value(QStringLiteral("allowVoting")).toBool(true));
     m_hostControls->setEnabled(open && host); m_allowVoting->setEnabled(open && host);
+    m_powerUps->setCurrentIndex(qMax(0, m_powerUps->findData(state.value(QStringLiteral("powerUps")).toString(QStringLiteral("off")))));
+    m_powerUps->setEnabled(open && host);
+    m_powerUps->setToolTip(host ? QString() : i18n("Only the host can change lobby rules."));
     m_hostControls->setToolTip(host ? QString() : i18n("Only the host can change lobby rules."));
     m_allowVoting->setToolTip(m_hostControls->toolTip());
     m_courseDetails->setText(i18n("%1\n%2 holes · par %3\nby %4", selected.value(QStringLiteral("displayName")).toString(), selected.value(QStringLiteral("holes")).toInt(), selected.value(QStringLiteral("totalPar")).toInt(), selected.value(QStringLiteral("author")).toString()));

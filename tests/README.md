@@ -49,6 +49,7 @@ against a local server; [multiplayer/README.md](multiplayer/README.md)):
 | host-proposal-reject, -four-player | Guest requests, votes, rejection and approval |
 | match-resume, host-resume | Guest reconnecting in the lobby and mid-match; host reconnecting mid-match |
 | guest-leaves | Continuing after a guest leaves |
+| powerups | Casual power-ups set in the lobby; the owner collects Wobble from a box and uses it on the guest with the next shot; guest power-up state matches the host |
 
 **UI scripts** (`ui/*.json`, [ui/README.md](ui/README.md)): home screen and
 menus, new game, settings, local results, the online hub and lobby, server

@@ -305,6 +305,11 @@ public:
 	void setPowerUpRule(Kolf::PowerUpRule rule);
 	void turnEnded(int slot);
 	void setViewerOwnsTurn(bool owns);
+	void armPowerUp(int slot, int target);
+	int armedPowerUpSlot() const { return m_armedSlot; }
+	int armedPowerUpTarget() const { return m_armedTarget; }
+	QString playerName(int slot) const;
+	void announcePowerUp(int user, const QString &item, int target, bool shielded);
 	void updateStatusView();
 	void notifyPowerUpsChanged() { Q_EMIT powerUpsChanged(); }
 	bool bodiesMoving() const;
@@ -373,6 +378,7 @@ public Q_SLOTS:
 	void sayWhosGoing();
 
 Q_SIGNALS:
+	void powerUpAnnounced(const QString &text);
 	void powerUpsChanged();
 	void shotIntentReady(const Kolf::Session::ShotIntent &intent);
 	void onlineSettlementRequested();
@@ -460,6 +466,8 @@ private:
 	Kolf::PowerUpState m_powerUps;
 	Kolf::FogOverlay *m_fog = nullptr;
 	bool m_viewerOwnsTurn = true;
+	int m_armedSlot = -1;
+	int m_armedTarget = -1;
 	bool m_showGuideLineSetting = true;
 	bool m_recordEffects = false;
 	bool m_replayingEffects = false;

@@ -86,6 +86,7 @@ export interface LobbyState {
   selectedCourseId: string;
   courses?: CourseCatalogEntry[];
   hostControls: boolean;
+  powerUps: 'off' | 'casual' | 'chaos';
   allowVoting: boolean;
   members: Array<LobbyMember & { ready: boolean; connected: boolean; reconnectDeadline?: number }>;
   players: LobbyPlayer[];
@@ -164,6 +165,7 @@ export class LobbySession {
   private revision = 1;
   private hostControls = false;
   private allowVoting = true;
+  private powerUps: 'off' | 'casual' | 'chaos' = 'off';
   private lifecycle: LobbyPhase = 'Open';
 
   constructor(options: LobbyOptions) {
@@ -204,7 +206,7 @@ export class LobbySession {
       lobbyId: this.lobbyId, joinCode: this.joinCode, ownerMemberId: this.ownerMemberId,
       lobbyRevision: this.revision, phase: this.lifecycle, selectedCourseId: this.selectedCourseId,
       courses: [...this.catalog.values()].map(cloneCourse),
-      hostControls: this.hostControls, allowVoting: this.allowVoting,
+      hostControls: this.hostControls, allowVoting: this.allowVoting, powerUps: this.powerUps,
       members: [...this.members.values()].map(member => ({ ...member, connected: !this.reconnecting.has(member.memberId),
         ...(this.reconnecting.has(member.memberId) ? { reconnectDeadline: this.reconnecting.get(member.memberId) } : {}),
         ready: this.readiness.get(member.memberId) === this.revision })),
@@ -328,13 +330,14 @@ export class LobbySession {
     });
   }
 
-  setLobbyRules(actor: MemberId, requestId: RequestId, hostControls: boolean, allowVoting: boolean) {
-    return this.mutate(actor, requestId, 'SetLobbyRules', { hostControls, allowVoting }, () => {
+  setLobbyRules(actor: MemberId, requestId: RequestId, hostControls: boolean, allowVoting: boolean,
+    powerUps: 'off' | 'casual' | 'chaos' = this.powerUps) {
+    return this.mutate(actor, requestId, 'SetLobbyRules', { hostControls, allowVoting, powerUps }, () => {
       this.requireOwner(actor); this.requirePhase('Open');
-      if (typeof hostControls !== 'boolean' || typeof allowVoting !== 'boolean')
-        throw new LobbyError('InvalidRules', 'lobby rules must be boolean');
-      if (this.hostControls !== hostControls || this.allowVoting !== allowVoting) {
-        this.hostControls = hostControls; this.allowVoting = allowVoting; this.changed();
+      if (typeof hostControls !== 'boolean' || typeof allowVoting !== 'boolean' || !['off', 'casual', 'chaos'].includes(powerUps))
+        throw new LobbyError('InvalidRules', 'invalid lobby rules');
+      if (this.hostControls !== hostControls || this.allowVoting !== allowVoting || this.powerUps !== powerUps) {
+        this.hostControls = hostControls; this.allowVoting = allowVoting; this.powerUps = powerUps; this.changed();
       }
       return this.state();
     });

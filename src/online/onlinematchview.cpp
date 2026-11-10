@@ -272,8 +272,17 @@ SessionController *OnlineMatchView::startMatch(const QJsonObject &config, Net::N
         m_highestHole = qMax(1, highest);
         if (m_isHost) for (int i = 3; i < m_actions.size(); ++i) m_actions[i]->setEnabled(canNavigate);
     });
-    connect(m_controller, &SessionController::gameReady, this, [this](KolfGame *onlineGame) {
+    const QString powerUpRule = config.value(QStringLiteral("powerUps")).toString();
+    connect(m_controller, &SessionController::gameReady, this, [this, powerUpRule](KolfGame *onlineGame) {
         m_game = onlineGame;
+        if (m_isHost)
+            m_game->setPowerUpRule(Kolf::powerUpRuleFromId(powerUpRule));
+        connect(m_game, &KolfGame::powerUpsChanged, this, [this] {
+            if (!m_game || !m_controller) return;
+            const int slot = m_game->currentSlot();
+            m_hud->showPowerUps(m_game, slot >= 0 && m_controller->ownsSlot(slot) && m_controller->phase() == QLatin1String("AwaitingShot"));
+        });
+        connect(m_game, &KolfGame::powerUpAnnounced, m_hud, &Kolf::Ui::GameHud::setMessage);
         m_canvasLayout->addWidget(onlineGame, 0, 0);
         onlineGame->lower();
         m_notice->raise();
@@ -290,9 +299,14 @@ SessionController *OnlineMatchView::startMatch(const QJsonObject &config, Net::N
         m_hud->setHole(hole, m_game->holeCount(), m_game->holePar());
         if (m_controller->phase() == QLatin1String("AwaitingShot"))
             m_hud->setTurn(m_game->currentPlayerName(), m_game->currentPlayerColor(), m_game->currentPlayerStrokes() + 1, m_controller->ownsSlot(slot), true);
+        m_game->setViewerOwnsTurn(m_controller->ownsSlot(slot));
+        m_hud->showPowerUps(m_game, m_controller->ownsSlot(slot) && m_controller->phase() == QLatin1String("AwaitingShot"));
         if (hole != m_lastHole) { m_scoreToggle->setChecked(true); m_lastHole = hole; }
     });
     connect(m_controller, &SessionController::hazardChoiceChanged, this, &OnlineMatchView::setHazardChoiceAvailable);
+    connect(m_hud, &Kolf::Ui::GameHud::powerUpClicked, m_controller, [this](int index) {
+        if (m_game) m_hud->handlePowerUpClick(m_game, index);
+    });
     return m_controller;
 }
 

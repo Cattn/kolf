@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "gamehud.h"
+#include "powerups.h"
+#include "game.h"
 
+#include <QMenu>
 #include <KLocalizedString>
 
 #include <QHBoxLayout>
@@ -63,6 +66,15 @@ GameHud::GameHud(QWidget *parent)
     m_powerUps->hide();
     row->addSpacing(12);
     row->addWidget(m_powerUps);
+    for (int i = 0; i < 2; ++i) {
+        m_itemButtons[i] = new QToolButton(this);
+        m_itemButtons[i]->setObjectName(QStringLiteral("hudItem%1").arg(i + 1));
+        m_itemButtons[i]->setCheckable(true);
+        m_itemButtons[i]->setToolButtonStyle(Qt::ToolButtonTextOnly);
+        m_itemButtons[i]->hide();
+        connect(m_itemButtons[i], &QToolButton::clicked, this, [this, i] { Q_EMIT powerUpClicked(i); });
+        row->addWidget(m_itemButtons[i]);
+    }
     outer->addLayout(row);
 
     auto *hintCard = new QFrame(this);
@@ -116,18 +128,78 @@ void GameHud::setTurn(const QString &name, const QColor &color, int stroke, bool
     m_stroke->show();
 }
 
-void GameHud::setPowerUps(bool enabled, const QStringList &items, const QStringList &statuses)
+void GameHud::setPowerUps(bool enabled, const QStringList &items, const QStringList &statuses, int armed, const QString &armedTarget, bool canUse)
 {
     m_powerUps->setVisible(enabled);
+    for (int i = 0; i < 2; ++i) {
+        auto *button = m_itemButtons[i];
+        button->setVisible(enabled && i < items.size());
+        if (i >= items.size())
+            continue;
+        const bool isArmed = armed == i;
+        button->setChecked(isArmed);
+        button->setEnabled(canUse);
+        button->setText(isArmed && !armedTarget.isEmpty()
+            ? i18nc("@action:button HUD: armed power-up and its target", "%1: %2 \u2192 %3", i + 1, items.at(i), armedTarget)
+            : QStringLiteral("%1: %2").arg(i + 1).arg(items.at(i)));
+        button->setToolTip(isArmed ? i18nc("@info:tooltip", "Used with your next putt. Click again to cancel.")
+            : i18nc("@info:tooltip", "Use this with your next putt (key %1)", i + 1));
+    }
     if (!enabled)
         return;
-    QStringList parts;
-    for (int i = 0; i < 2; ++i)
-        parts << (i < items.size() ? QStringLiteral("%1 %2").arg(i + 1).arg(items.at(i)) : QStringLiteral("%1 \u2014").arg(i + 1));
-    QString text = i18nc("@info HUD: held power-ups", "Items: %1", parts.join(QStringLiteral("  ")));
+    QString text = items.isEmpty() ? i18nc("@info HUD: no power-ups held", "No items") : i18nc("@info HUD: power-ups label", "Items:");
     if (!statuses.isEmpty())
-        text += QStringLiteral("  \u00b7  ") + statuses.join(QStringLiteral(", "));
+        text += QStringLiteral("  ") + i18nc("@info HUD: statuses on the current player", "Affected by: %1", statuses.join(QStringLiteral(", ")));
     m_powerUps->setText(text);
+}
+
+void GameHud::showPowerUps(KolfGame *game, bool canUse)
+{
+    if (!game) {
+        setPowerUps(false, {}, {});
+        return;
+    }
+    const int slot = game->currentSlot();
+    const auto &held = game->powerUps().player(slot);
+    QStringList items, statuses;
+    for (const auto &item : held.slots)
+        items << Kolf::powerUpName(item);
+    for (auto it = held.statuses.cbegin(); it != held.statuses.cend(); ++it)
+        statuses << Kolf::powerUpName(it.key());
+    setPowerUps(game->powerUps().enabled(), items, statuses, game->armedPowerUpSlot(),
+        game->playerName(game->armedPowerUpTarget()), canUse);
+}
+
+void GameHud::handlePowerUpClick(KolfGame *game, int index)
+{
+    if (!game || !m_itemButtons[index]->isEnabled())
+        return;
+    if (game->armedPowerUpSlot() == index) {
+        game->armPowerUp(-1, -1);
+        return;
+    }
+    const int slot = game->currentSlot();
+    const QString item = game->powerUps().player(slot).slots.value(index);
+    if (item.isEmpty())
+        return;
+    if (!Kolf::PowerUpState::isAttack(item)) {
+        game->armPowerUp(index, -1);
+        return;
+    }
+    QMenu menu(this);
+    menu.setObjectName(QStringLiteral("hudTargetMenu"));
+    for (int target = 0; target < game->powerUps().playerCount(); ++target) {
+        if (target == slot)
+            continue;
+        auto *action = menu.addAction(i18nc("@action:inmenu power-up target", "Use on %1", game->playerName(target)));
+        action->setData(target);
+    }
+    if (menu.isEmpty())
+        return;
+    if (QAction *chosen = menu.exec(m_itemButtons[index]->mapToGlobal(QPoint(0, m_itemButtons[index]->height()))))
+        game->armPowerUp(index, chosen->data().toInt());
+    else
+        showPowerUps(game, true);
 }
 
 void GameHud::setMessage(const QString &message)

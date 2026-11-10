@@ -205,6 +205,8 @@ void SessionController::submit(const ShotIntent &intent) {
         {QStringLiteral("puttingMode"), intent.advanced ? QStringLiteral("advanced") : QStringLiteral("normal")},
         {QStringLiteral("directionRadians"), intent.directionRadians}, {QStringLiteral("launchMagnitude"), intent.launchMagnitude}};
     shot[QStringLiteral("playerId")] = playerIdForSlot(m_adapter->activeSlot());
+    if (intent.powerUpSlot >= 0)
+        shot[QStringLiteral("powerUp")] = QJsonObject{{QStringLiteral("slot"), intent.powerUpSlot}, {QStringLiteral("target"), intent.powerUpTarget}};
     m_pendingMessage = wireMessage(QStringLiteral("SubmitShot"), shot);
     m_network->send(m_pendingMessage);
     refresh();

@@ -340,7 +340,8 @@ export class MatchCoordinator {
           && finite(p.directionRadians, -Math.PI, Math.PI) && finite(p.launchMagnitude, Number.MIN_VALUE, maximum);
         if (!valid) return reject('invalid shot');
         if (this.away.size) return reject('waiting for a player to reconnect');
-        const key = JSON.stringify([p.holeGeneration, p.turnId, p.playerId, p.puttingMode, p.directionRadians, p.launchMagnitude]);
+        const key = JSON.stringify([p.holeGeneration, p.turnId, p.playerId, p.puttingMode, p.directionRadians, p.launchMagnitude,
+          p.powerUp?.slot ?? null, p.powerUp?.target ?? null]);
         const known = this.admissions.get(p.commandId);
         if (known) {
           if (known.key !== key || known.memberId !== memberId) return reject('command ID reused');
@@ -350,6 +351,16 @@ export class MatchCoordinator {
         if (!this.state || this.barrier || this.pending || this.state.phase !== 'AwaitingShot') return reject('not awaiting shot');
         if (player.ownerMemberId !== memberId || active?.playerId !== player.playerId) return reject('wrong owner');
         if (p.turnId !== this.state.turnId || p.holeGeneration !== this.state.holeGeneration) return reject('stale turn');
+        if (p.powerUp !== undefined) {
+          const powerUps = this.state.powerups;
+          const held = powerUps?.players?.[this.state.activeSlot]?.slots;
+          if (!powerUps || powerUps.rule === 'off' || !Array.isArray(held) || p.powerUp.slot >= held.length)
+            return reject('power-up not held');
+          const attack = ['wobble', 'heavy', 'fog'].includes(String(held[p.powerUp.slot]));
+          if (attack && (p.powerUp.target < 0 || p.powerUp.target >= this.match.roster.length
+            || p.powerUp.target === this.state.activeSlot || this.departed.has(p.powerUp.target)))
+            return reject('invalid power-up target');
+        }
         if (this.admissions.size >= 10_000) { this.interrupt('command retention limit reached'); return; }
         this.pending = p.commandId; this.pendingAt = this.now();
         this.retireProposal('shot started');

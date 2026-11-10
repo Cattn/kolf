@@ -38,6 +38,7 @@ private:
     QPushButton *m_primary;
     QCheckBox *m_hostControls;
     QCheckBox *m_allowVoting;
+    QComboBox *m_powerUps;
     QString m_thumbnailKey;
 };
 }

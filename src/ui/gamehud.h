@@ -5,6 +5,7 @@
 #include <QFrame>
 
 class QLabel;
+class KolfGame;
 class QHBoxLayout;
 class QToolButton;
 
@@ -16,7 +17,9 @@ public:
     void setHole(int hole, int holes, int par);
     void setTurn(const QString &name, const QColor &color, int stroke, bool yourTurn = true, bool markLocalTurn = false);
     void setMessage(const QString &message);
-    void setPowerUps(bool enabled, const QStringList &items, const QStringList &statuses);
+    void showPowerUps(KolfGame *game, bool canUse);
+    void handlePowerUpClick(KolfGame *game, int index);
+    void setPowerUps(bool enabled, const QStringList &items, const QStringList &statuses, int armed = -1, const QString &armedTarget = {}, bool canUse = true);
     void setEditing(int hole, int holes);
     void setHint(const QString &hint);
     void clearHint();
@@ -24,6 +27,7 @@ public:
 
 Q_SIGNALS:
     void hintDismissed();
+    void powerUpClicked(int index);
 
 private:
     QHBoxLayout *m_header;
@@ -34,6 +38,7 @@ private:
     QWidget *m_hintRow;
     QLabel *m_hint;
     QLabel *m_powerUps = nullptr;
+    QToolButton *m_itemButtons[2] = {nullptr, nullptr};
     QToolButton *m_dismissHint;
 };
 }

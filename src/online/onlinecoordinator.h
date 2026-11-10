@@ -29,7 +29,7 @@ public Q_SLOTS:
     void updatePlayer(const QString &playerId, const QString &displayName, const QString &colorMode, const QString &customColor);
     void removePlayer(const QString &playerId);
     void setCourse(const QString &courseId);
-    void setLobbyRules(bool hostControls, bool allowVoting);
+    void setLobbyRules(bool hostControls, bool allowVoting, const QString &powerUps = QStringLiteral("off"));
     void leaveLobby();
     void uploadCourse(const QString &path);
     void startMatch();

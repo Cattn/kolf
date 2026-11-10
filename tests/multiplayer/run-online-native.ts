@@ -12,7 +12,8 @@ const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const scenario = process.argv[2] ?? 'two-rematch';
 assert(['two-rematch', 'four-player', 'four-player-hazard', 'custom-course',
   'slope-out-of-bounds', 'slope-in-bounds', 'host-reset', 'host-undo', 'host-undo-dynamics', 'host-undo-channels', 'host-skip', 'host-go',
-  'host-proposal-reject', 'host-proposal-four-player', 'host-combined', 'shipped-download', 'match-resume', 'host-resume', 'guest-leaves'].includes(scenario),
+  'host-proposal-reject', 'host-proposal-four-player', 'host-combined', 'shipped-download', 'match-resume', 'host-resume', 'guest-leaves',
+  'powerups'].includes(scenario),
   'Unknown native scenario');
 const variableRoster = scenario.startsWith('four-player') || scenario === 'host-proposal-four-player';
 const hazardScenario = scenario === 'four-player-hazard';
@@ -23,13 +24,13 @@ const clientCount = variableRoster ? 3 : 2;
 const matchCount = scenario === 'two-rematch' || scenario === 'custom-course' || scenario === 'host-combined' ? 2 : 1;
 const turnCount = slopeScenario ? 2 : hazardScenario ? 40 : scenario === 'host-proposal-four-player' ? 12 : variableRoster ? 8
   : scenario === 'host-combined' ? 30
-  : scenario === 'host-undo-dynamics' ? 12
+  : scenario === 'host-undo-dynamics' || scenario === 'powerups' ? 12
   : scenario === 'host-reset' || hostUndo || scenario === 'host-go'
     || scenario.startsWith('host-proposal-') ? 8 : 4;
 const directory = resolve(root, 'server/local-session', `online-${scenario}-${Date.now()}`);
 const joinCodeFile = resolve(directory, 'join-code.txt');
 const course = slopeScenario ? resolve(directory, 'slope-practice-hole-1.kolf')
-  : resolve(root, `tests/multiplayer/fixtures/${hazardScenario ? 'water' : scenario === 'host-undo-dynamics' ? 'dynamics' : scenario === 'host-undo-channels' ? 'channels' : 'static'}.kolf`);
+  : resolve(root, `tests/multiplayer/fixtures/${hazardScenario ? 'water' : scenario === 'host-undo-dynamics' ? 'dynamics' : scenario === 'powerups' ? 'powerups' : scenario === 'host-undo-channels' ? 'channels' : 'static'}.kolf`);
 mkdirSync(directory, { recursive: true });
 if (slopeScenario) {
   const shipped = readFileSync(resolve(root, 'courses/Practice'), 'utf8');
@@ -118,7 +119,8 @@ try {
       color: ['#3daee9ff', '#f67400ff', '#27ae60ff'][client],
       courseId: 'test', joinCodeFile, expectedMembers: clientCount,
       windowSize: process.env.KOLF_TEST_4K ? [1920, 1080] : [1024, 640],
-      lobbyRules: hazardScenario ? { hostControls: true, allowVoting: false } : undefined,
+      lobbyRules: hazardScenario ? { hostControls: true, allowVoting: false }
+        : scenario === 'powerups' ? { hostControls: false, allowVoting: true, powerUps: 'casual' } : undefined,
       customCourse: scenario === 'custom-course' ? customCourse : undefined,
       forceCourseDownload: (scenario === 'custom-course' || scenario === 'shipped-download') && client > 0,
       scriptedLobbyDrop: scenario === 'match-resume' && client === 1,
@@ -141,9 +143,11 @@ try {
         directionRadians: slopeOutOfBounds ? Math.PI : 0,
         launchMagnitude: slopeOutOfBounds ? 6.5
           : scenario === 'host-combined' && turn < 12 ? 0.4
+          : scenario === 'powerups' && turn < 2 ? 1.2
           : ((scenario === 'host-reset' || hostUndo && scenario !== 'host-undo-channels') && turn < 2
             || (scenario === 'host-skip' || scenario === 'host-go') && turn === 0) ? 0.4 : 1.8,
-        advanced: scenario !== 'host-undo-channels' && turn % 2 === 1,
+        advanced: scenario !== 'host-undo-channels' && scenario !== 'powerups' && turn % 2 === 1,
+        powerUp: scenario === 'powerups' && turn === 2 ? { slot: 0, target: 1 } : undefined,
       })),
     };
     mkdirSync(logDirectory, { recursive: true });
@@ -272,6 +276,23 @@ try {
       assert(states.length > 0, `client ${client} applied match state`);
       const ice = states[0].state.objects.find((object: { id: string }) => object.id.startsWith('1-ice@'));
       assert(ice && ice.kind === 'data' && ice.visible === true, `client ${client} received the data-defined ice object`);
+    }
+  }
+  if (scenario === 'powerups') {
+    for (let client = 0; client < clientCount; ++client) {
+      const states = events(sessionDirectories(client)[0]).filter(event => (event.event === 'commit' || event.event === 'applied')
+        && event.state?.phase === 'AwaitingShot').map(event => event.state);
+      assert(states.every(state => state.powerups?.rule === 'casual'), `client ${client} saw the casual power-up rule`);
+      assert(states.some(state => state.powerups.players[0].slots.includes('wobble')), `client ${client} saw the owner collect Wobble`);
+      assert(states.some(state => state.powerups.players[1].statuses.wobble === 1), `client ${client} saw Wobble land on the guest`);
+      const after = states.find(state => state.powerups.players[1].statuses.wobble === 1);
+      assert.deepEqual(after.powerups.players[0].slots, [], 'using Wobble emptied the owner slot');
+    }
+    const authority = events(sessionDirectories(0)[0]).filter(event => event.event === 'commit').map(event => event.state);
+    const guest = events(sessionDirectories(1)[0]).filter(event => event.event === 'applied').map(event => event.state);
+    for (const state of authority.filter(state => state.phase === 'AwaitingShot')) {
+      const mirrored = guest.find(other => other.stateRevision === state.stateRevision);
+      if (mirrored) assert.deepEqual(mirrored.powerups, state.powerups, 'guest power-up state matches the authority');
     }
   }
   if (scenario === 'host-skip') {

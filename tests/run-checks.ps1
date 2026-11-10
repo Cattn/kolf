@@ -19,7 +19,7 @@ $nativeScenarios = @(
     'host-combined', 'host-undo-dynamics', 'host-undo-channels', 'four-player-hazard',
     'custom-course', 'shipped-download', 'slope-out-of-bounds', 'slope-in-bounds',
     'host-proposal-reject', 'host-proposal-four-player',
-    'match-resume', 'host-resume', 'guest-leaves'
+    'match-resume', 'host-resume', 'guest-leaves', 'powerups'
 )
 
 Get-ChildItem env: | Where-Object { [string]::IsNullOrEmpty($_.Value) } | ForEach-Object { Remove-Item "env:$($_.Name)" -ErrorAction SilentlyContinue }

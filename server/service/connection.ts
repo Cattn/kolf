@@ -141,7 +141,7 @@ export class LobbyProtocolController {
             case 'RemovePlayer': lobby.removePlayer(memberId, message.requestId!, message.payload.playerId); break;
             case 'ReorderPlayers': lobby.reorderPlayers(memberId, message.requestId!, message.payload.playerIds); break;
             case 'SetCourse': lobby.setCourse(memberId, message.requestId!, message.payload.courseId); break;
-            case 'SetLobbyRules': lobby.setLobbyRules(memberId, message.requestId!, message.payload.hostControls, message.payload.allowVoting); break;
+            case 'SetLobbyRules': lobby.setLobbyRules(memberId, message.requestId!, message.payload.hostControls, message.payload.allowVoting, message.payload.powerUps); break;
             case 'CourseUploadBegin': {
               const ready = lobby.beginCourseUpload(memberId, message.payload.uploadId,
                 message.payload.sha256, message.payload.byteSize);

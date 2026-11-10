@@ -243,10 +243,10 @@ void OnlineCoordinator::startMatch()
     send(QStringLiteral("StartMatch"), {{QStringLiteral("lobbyRevision"), m_state.value(QStringLiteral("lobbyRevision")).toInt()}});
 }
 
-void OnlineCoordinator::setLobbyRules(bool hostControls, bool allowVoting)
+void OnlineCoordinator::setLobbyRules(bool hostControls, bool allowVoting, const QString &powerUps)
 {
     send(QStringLiteral("SetLobbyRules"), {{QStringLiteral("hostControls"), hostControls},
-        {QStringLiteral("allowVoting"), allowVoting}});
+        {QStringLiteral("allowVoting"), allowVoting}, {QStringLiteral("powerUps"), powerUps}});
 }
 
 void OnlineCoordinator::leaveLobby()
@@ -417,6 +417,7 @@ void OnlineCoordinator::receive(const QJsonObject &message)
             {QStringLiteral("localMemberId"), m_memberId},
             {QStringLiteral("hostControls"), m_state.value(QStringLiteral("hostControls"))},
             {QStringLiteral("allowVoting"), m_state.value(QStringLiteral("allowVoting"))},
+            {QStringLiteral("powerUps"), m_state.value(QStringLiteral("powerUps")).toString(QStringLiteral("off"))},
             {QStringLiteral("role"), match.value(QStringLiteral("authorityMemberId")).toString() == m_memberId
                 ? QStringLiteral("authority") : QStringLiteral("guest")},
             {QStringLiteral("logDirectory"), logDirectory}});

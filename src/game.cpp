@@ -745,6 +745,11 @@ void KolfGame::playEffectEvents(const QJsonArray &events)
 			const QPointF position(qBound(-1000.0, event.value(QStringLiteral("x")).toDouble(), 2000.0),
 				qBound(-1000.0, event.value(QStringLiteral("y")).toDouble(), 2000.0));
 			m_impacts->spawn(Kolf::Impact(kind), position, qBound(0.0, event.value(QStringLiteral("s")).toDouble(), 10.0));
+		} else if (type == QLatin1String("a")) {
+			const QString text = event.value(QStringLiteral("text")).toString().left(160);
+			if (m_impacts && hasCurrentPlayer())
+				m_impacts->celebrate(curBall()->pos(), text, false);
+			Q_EMIT powerUpAnnounced(text);
 		} else if (type == QLatin1String("s") && kind >= 0 && kind <= int(Sound::Sand)) {
 			playSound(Sound(kind), qBound(0.0, event.value(QStringLiteral("v")).toDouble(1.0), 1.0));
 		}
@@ -2079,6 +2084,9 @@ void KolfGame::shotStart()
 
 	//kDebug(12007) << "Start started. BallX:" << (*curPlayer).ball()->x() << ", BallY:" << (*curPlayer).ball()->y() << ", Putter Angle:" << putter->curAngle() << ", Vector Strength: " << strength;
 	Kolf::Session::ShotIntent intent{std::remainder(-(putter->curAngle() + M_PI), 2 * M_PI), strength, m_useAdvancedPutting};
+	intent.powerUpSlot = m_armedSlot;
+	intent.powerUpTarget = m_armedTarget;
+	m_armedSlot = m_armedTarget = -1;
 	if (isOnline()) {
 		m_ignoreEvents = true;
 		putter->setVisible(false);
@@ -2101,6 +2109,15 @@ bool KolfGame::applyAcceptedShot(const Kolf::Session::ShotIntent &intent)
 	double direction = intent.directionRadians;
 	double magnitude = intent.launchMagnitude;
 	const int slot = currentSlot();
+	if (intent.powerUpSlot >= 0) {
+		const QString item = m_powerUps.player(slot).slots.value(intent.powerUpSlot);
+		const auto result = m_powerUps.use(slot, intent.powerUpSlot, intent.powerUpTarget);
+		if (result != Kolf::PowerUpState::UseResult::Invalid) {
+			announcePowerUp(slot, item, Kolf::PowerUpState::isAttack(item) ? intent.powerUpTarget : -1,
+				result == Kolf::PowerUpState::UseResult::Shielded);
+			Q_EMIT powerUpsChanged();
+		}
+	}
 	if (m_powerUps.hasStatus(slot, QStringLiteral("wobble")))
 		direction += m_powerUps.wobbleDegrees() * M_PI / 180.0;
 	if (m_powerUps.hasStatus(slot, QStringLiteral("heavy")))
@@ -2477,6 +2494,35 @@ void KolfGame::openFile()
 	applyCourseTheme();
 }
 
+void KolfGame::armPowerUp(int slot, int target)
+{
+	m_armedSlot = slot;
+	m_armedTarget = target;
+	Q_EMIT powerUpsChanged();
+}
+
+QString KolfGame::playerName(int slot) const
+{
+	return players && slot >= 0 && slot < players->size() ? (*players)[slot].name() : QString();
+}
+
+void KolfGame::announcePowerUp(int user, const QString &item, int target, bool shielded)
+{
+	const QString name = Kolf::powerUpName(item);
+	QString text;
+	if (shielded)
+		text = i18nc("@info power-up announcement", "%1's Shield blocked %2 from %3", playerName(target), name, playerName(user));
+	else if (target >= 0)
+		text = i18nc("@info power-up announcement", "%1 used %2 on %3", playerName(user), name, playerName(target));
+	else
+		text = i18nc("@info power-up announcement", "%1 used %2", playerName(user), name);
+	if (m_recordEffects && m_effectEvents.size() < 64)
+		m_effectEvents.append(QJsonObject{{QStringLiteral("t"), QStringLiteral("a")}, {QStringLiteral("text"), text.left(160)}});
+	if (m_impacts && players && user >= 0 && user < players->size())
+		m_impacts->celebrate((*players)[shielded || target < 0 ? user : target].ball()->pos(), text, false);
+	Q_EMIT powerUpAnnounced(text);
+}
+
 void KolfGame::setViewerOwnsTurn(bool owns)
 {
 	m_viewerOwnsTurn = owns;
@@ -2497,6 +2543,7 @@ void KolfGame::updateStatusView()
 
 void KolfGame::turnEnded(int slot)
 {
+	m_armedSlot = m_armedTarget = -1;
 	if (!m_powerUps.enabled())
 		return;
 	m_powerUps.finishTurn(slot);

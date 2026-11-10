@@ -18,7 +18,7 @@ export type ClientMessage =
   | Envelope<'RemovePlayer', { playerId: string }>
   | Envelope<'ReorderPlayers', { playerIds: string[] }>
   | Envelope<'SetCourse', { courseId: string }>
-  | Envelope<'SetLobbyRules', { hostControls: boolean; allowVoting: boolean }>
+  | Envelope<'SetLobbyRules', { hostControls: boolean; allowVoting: boolean; powerUps?: 'off' | 'casual' | 'chaos' }>
   | Envelope<'CourseUploadBegin', { uploadId: string; sha256: string; byteSize: number }>
   | Envelope<'CourseUploadChunk', { uploadId: string; index: number; data: string }>
   | Envelope<'CourseUploadFinish', { uploadId: string }>
@@ -30,7 +30,8 @@ export type ClientMessage =
   | Envelope<'ReturnToLobby', { rematch?: boolean }>
   | Envelope<'SceneReady', { manifestHash: string }>
   | Envelope<'SubmitShot', { commandId: string; holeGeneration: number; turnId: number; playerId: string;
-      puttingMode: 'normal' | 'advanced'; directionRadians: number; launchMagnitude: number }>
+      puttingMode: 'normal' | 'advanced'; directionRadians: number; launchMagnitude: number;
+      powerUp?: { slot: number; target: number } }>
   | Envelope<'ShotAccepted' | 'ShotRejected', { commandId: string; reason?: string }>
   | Envelope<'InitialState' | 'CommitTransition', { state: JsonObject }>
   | Envelope<'StateApplied', { stateRevision: number; syncId: number; manifestHash: string }>
@@ -156,7 +157,8 @@ export function decodeClientMessage(raw: string): ClientMessage {
     case 'SetLobbyRules':
       requireLobby(message); rejectExtraScope(message, true, false);
       if (typeof p.hostControls !== 'boolean' || typeof p.allowVoting !== 'boolean'
-        || Object.keys(p).some(key => key !== 'hostControls' && key !== 'allowVoting'))
+        || (p.powerUps !== undefined && !['off', 'casual', 'chaos'].includes(p.powerUps))
+        || Object.keys(p).some(key => key !== 'hostControls' && key !== 'allowVoting' && key !== 'powerUps'))
         throw new ProtocolError('InvalidPayload', 'invalid lobby rules');
       return message as ClientMessage;
     case 'CourseUploadBegin':
@@ -211,6 +213,10 @@ export function decodeClientMessage(raw: string): ClientMessage {
       if (!validId(p.commandId) || !integer(p.holeGeneration, 1) || !integer(p.turnId, 1) || !validId(p.playerId)
         || !finite(p.directionRadians, -Math.PI, Math.PI) || !finite(p.launchMagnitude, Number.MIN_VALUE, max))
         throw new ProtocolError('InvalidPayload', 'invalid shot');
+      if (p.powerUp !== undefined && (typeof p.powerUp !== 'object' || p.powerUp === null || Array.isArray(p.powerUp)
+        || Object.keys(p.powerUp).some(key => key !== 'slot' && key !== 'target')
+        || !integer(p.powerUp.slot, 0, 1) || !Number.isSafeInteger(p.powerUp.target) || p.powerUp.target < -1 || p.powerUp.target > 7))
+        throw new ProtocolError('InvalidPayload', 'invalid power-up');
       return message as ClientMessage;
     }
     case 'ShotAccepted': case 'ShotRejected':

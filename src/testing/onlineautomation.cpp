@@ -154,7 +154,8 @@ void OnlineAutomation::advance(const QJsonObject &state)
     const auto rules = m_config.value(QStringLiteral("lobbyRules")).toObject();
     if (!rules.isEmpty() && role == QLatin1String("owner") && !m_rulesSent) {
         m_rulesSent = true;
-        coordinator.setLobbyRules(rules.value(QStringLiteral("hostControls")).toBool(), rules.value(QStringLiteral("allowVoting")).toBool());
+        coordinator.setLobbyRules(rules.value(QStringLiteral("hostControls")).toBool(), rules.value(QStringLiteral("allowVoting")).toBool(),
+            rules.value(QStringLiteral("powerUps")).toString(QStringLiteral("off")));
         return;
     }
     if (!rules.isEmpty() && (state.value(QStringLiteral("hostControls")) != rules.value(QStringLiteral("hostControls"))
@@ -306,8 +307,14 @@ void OnlineAutomation::scheduleShot(int turn, bool requireReady)
     QTimer::singleShot(150, session, [this, session, shot, turn, requireReady] {
         if (session->turn() != turn || (requireReady && !session->isReady())) return;
         if (session->isPaused()) { m_shotTurns.remove(turn); return; }
-        session->submitShot({shot[QStringLiteral("directionRadians")].toDouble(),
-            shot[QStringLiteral("launchMagnitude")].toDouble(), shot[QStringLiteral("advanced")].toBool()});
+        Kolf::Session::ShotIntent intent{shot[QStringLiteral("directionRadians")].toDouble(),
+            shot[QStringLiteral("launchMagnitude")].toDouble(), shot[QStringLiteral("advanced")].toBool()};
+        const auto powerUp = shot[QStringLiteral("powerUp")].toObject();
+        if (!powerUp.isEmpty()) {
+            intent.powerUpSlot = powerUp[QStringLiteral("slot")].toInt();
+            intent.powerUpTarget = powerUp[QStringLiteral("target")].toInt(-1);
+        }
+        session->submitShot(intent);
     });
 }
 

@@ -18,6 +18,14 @@ bool decodeShot(const QJsonObject &m, ShotCommand &c, int maximumPlayerSlot) {
     c = {m[QStringLiteral("commandId")].toString(), m[QStringLiteral("holeGeneration")].toInt(),
          m[QStringLiteral("turnId")].toInt(), m[QStringLiteral("playerSlot")].toInt(),
          {m[QStringLiteral("directionRadians")].toDouble(), m[QStringLiteral("launchMagnitude")].toDouble(), mode == QLatin1String("advanced")}};
+    if (m.contains(QStringLiteral("powerUp"))) {
+        const auto powerUp = m[QStringLiteral("powerUp")].toObject();
+        if (!counter(powerUp[QStringLiteral("slot")], 0, 1) || !powerUp[QStringLiteral("target")].isDouble()) return false;
+        const int target = powerUp[QStringLiteral("target")].toInt(-2);
+        if (target < -1 || target > maximumPlayerSlot) return false;
+        c.intent.powerUpSlot = powerUp[QStringLiteral("slot")].toInt();
+        c.intent.powerUpTarget = target;
+    }
     return c.intent.valid();
 }
 }

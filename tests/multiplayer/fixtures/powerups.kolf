@@ -1,0 +1,19 @@
+[0-course@-50,-50]
+Name=Power-up test
+author=Kolf online tests
+formatVersion=2
+
+[1-hole@-50,-50|0]
+borderWalls=true
+maxstrokes=6
+par=3
+
+[1-ball@60,200]
+dummykey=true
+
+[1-cup@340,200|1]
+dummykey=true
+
+[1-powerbox@110,200|2]
+item=wobble
+refill=20
