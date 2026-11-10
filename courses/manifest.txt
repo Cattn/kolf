@@ -11,3 +11,4 @@ weatherreport|WeatherReport
 dangerzone|DangerZone
 toybox|ToyBox
 clockwork|Clockwork
+party|Party
