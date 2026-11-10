@@ -10,7 +10,7 @@ project(kolf VERSION ${RELEASE_SERVICE_VERSION})
 
 # Fork release, shown in About and sent to online servers. scripts/release-windows.ps1 bumps it.
 set(KOLF_BASE_VERSION "26.08.1")
-set(KOLF_FORK_RELEASE "4")
+set(KOLF_FORK_RELEASE "5")
 set(KOLF_DISPLAY_VERSION "${KOLF_BASE_VERSION}-cattn.${KOLF_FORK_RELEASE}")
 
 set(QT_MIN_VERSION "6.5.0")
